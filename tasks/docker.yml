@@ -1,0 +1,223 @@
+version: '3'
+
+vars:
+  ROOT_DIR: "."
+  DOCKER_COMPOSE: "./docker-compose.yaml"
+  DOCKER_SERVICE: web
+  DJANGO_DOCKER_SETTINGS: core.settings.dev_docker
+  POSTGRES_DATA_DIR: "./postgres_data"
+  BACKUP_SCOPE: development
+  ALLOW_PRODUCTION: "false"
+
+tasks:
+  default:
+    desc: "Show docker tasks"
+    cmds:
+      - task --list
+    silent: true
+
+  setup:
+    desc: "Build Docker images and start the stack in the background"
+    cmds:
+      - task: build
+      - task: start:detached
+
+  dev:
+    desc: "Run the Docker development stack in the foreground"
+    cmds:
+      - task: start
+
+  test:
+    desc: "Run backend tests inside Docker"
+    cmds:
+      - task: backend:test
+
+  lint:
+    desc: "Run backend lint inside Docker"
+    cmds:
+      - task: backend:lint
+
+  build:
+    desc: "Build Docker images for the stack"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" build
+
+  start:
+    desc: "Start the Docker stack in the foreground with rebuilt images"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" up --build
+
+  start:detached:
+    desc: "Start the Docker stack in the background with rebuilt images"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" up --build -d
+
+  stop:
+    desc: "Stop the Docker stack"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" down
+
+  bootstrap:
+    desc: "Reset Docker volumes and start the stack in the background"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" down -v
+      - docker compose -f "{{.DOCKER_COMPOSE}}" up --build -d
+
+  bootstrap:with-backup:
+    desc: "Reset Docker data, restore backup, migrate, then start"
+    cmds:
+      - task: stop
+      - task: volume:postgres:reset
+      - task: build
+      - task: backend:db:restore-backup
+      - task: backend:db:migrate
+      - task: start
+
+  logs:
+    desc: "Follow Docker service logs"
+    dir: "{{.ROOT_DIR}}"
+    vars:
+      SERVICE: '{{default .DOCKER_SERVICE .SERVICE}}'
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" logs -f {{.SERVICE}}
+
+  shell:
+    desc: "Open a Django shell inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec {{.DOCKER_SERVICE}} python manage.py shell --settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  manage:
+    desc: "Run a manage.py command inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    requires:
+      vars: [CMD]
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" run --rm {{.DOCKER_SERVICE}} python manage.py {{.CMD}} --settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  volume:postgres:reset:
+    desc: "Remove and recreate the local PostgreSQL data directory"
+    cmds:
+      - rm -rf {{.POSTGRES_DATA_DIR}}
+      - mkdir -p {{.POSTGRES_DATA_DIR}}
+
+  backend:test:
+    desc: "Run backend tests inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} uv run --group dev pytest
+
+  backend:tests:coverage:
+    desc: "Run backend tests with coverage inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} uv run --group dev coverage run -m pytest
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} uv run --group dev coverage report
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} uv run --group dev coverage html
+
+  backend:lint:
+    desc: "Run backend Ruff checks inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} uv run --group dev ruff check .
+
+  backend:app:update-init-files:
+    desc: "Update __init__.py files for models inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    requires:
+      vars: [PATH]
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} uv run python manage.py update_init_files {{.PATH}} --settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  backend:db:migrate:
+    desc: "Apply Django migrations inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} python manage.py migrate --settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  backend:db:makemigrations:
+    desc: "Create Django migrations inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} python manage.py makemigrations --settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  backend:db:makemigrations-app:
+    desc: "Create Django migrations for one app inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    requires:
+      vars: [APP]
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} python manage.py makemigrations {{.APP}} --settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  backend:db:delete-migrations:
+    desc: "Delete project migration files and keep __init__.py inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - |
+          set -e
+          find backend \
+            -path '*/migrations/*.py' \
+            ! -name '__init__.py' \
+            -delete
+
+  backend:db:bootstrap:
+    desc: "Apply migrations and seed Docker e2e workspace data"
+    cmds:
+      - task: backend:db:migrate
+      - task: backend:app:seed-e2e-workspace
+
+  backend:db:drop-local-db:
+    desc: "Drop and recreate the Docker PostgreSQL database"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T db sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE IF EXISTS \"$POSTGRES_DB\";" -c "CREATE DATABASE \"$POSTGRES_DB\";"'
+
+  backend:db:restore-backup:
+    desc: "Restore a backup inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" run --rm {{.DOCKER_SERVICE}} python manage.py restore_latest_backup --no-input --backup-scope={{.BACKUP_SCOPE}} {{if eq .ALLOW_PRODUCTION "true"}}--allow-production{{end}} --settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  backend:db:bootstrap:backup:
+    desc: "Recreate the Docker database from the latest backup"
+    cmds:
+      - task: backend:db:drop-local-db
+      - task: backend:db:restore-backup
+      - task: backend:db:migrate
+
+  backend:db:createsuperuser:
+    desc: "Create a Django superuser inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} python manage.py createsuperuser --settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  backend:user:create-dummy-user:
+    desc: "Create a DEBUG-only dummy user inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    requires:
+      vars: [EMAIL, PASSWORD]
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} python manage.py create_dummy_user --email={{.EMAIL}} --password={{.PASSWORD}} {{if .USERNAME}}--username={{.USERNAME}} {{end}}--settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  backend:app:seed-e2e-workspace:
+    desc: "Seed deterministic workspace data for end-to-end browser tests inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" exec -T {{.DOCKER_SERVICE}} python manage.py seed_e2e_workspace --settings={{.DJANGO_DOCKER_SETTINGS}}
+
+  backend:server:run:
+    desc: "Run the Docker web service in the foreground"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - docker compose -f "{{.DOCKER_COMPOSE}}" up --build {{.DOCKER_SERVICE}}
+
+  backend:shell:django:
+    desc: "Open a Django shell inside Docker"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - task: shell

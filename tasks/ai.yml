@@ -1,0 +1,26 @@
+version: '3'
+
+vars:
+  ROOT_DIR: "."
+
+tasks:
+  setup:
+    desc: "Setup all AI agent and OpenCode linkages"
+    cmds:
+      - task: setup-opencode
+      - task: setup-claude
+
+  setup-opencode:
+    desc: "Recreate OpenCode configuration linkages"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - mkdir -p .opencode
+      - uv run agents/build_agents.py --target opencode --out . --layout in-place
+
+  setup-claude:
+    desc: "Recreate Claude Code configuration linkages"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - mkdir -p .claude
+      - uv run agents/build_agents.py --target claude --out . --layout in-place
+

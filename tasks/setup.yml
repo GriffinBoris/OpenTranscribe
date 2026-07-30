@@ -1,0 +1,136 @@
+version: '3'
+
+vars:
+  ROOT_DIR: "."
+  FRONTEND_DIR: "./frontend"
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+  NVM_VERSION: "v0.40.1"
+  NVM_DIR: "{{.HOME}}/.nvm"
+
+tasks:
+  default:
+    desc: "Show setup tasks"
+    cmds:
+      - task --list
+    silent: true
+
+  all:
+    desc: "Install tools, local dependencies, Docker images, and AI agent files"
+    cmds:
+      - task: tools
+      - task: local
+      - task: docker
+      - task: ai
+
+  tools:
+    desc: "Install host tools for the current OS"
+    cmds:
+      - cmd: |
+          set -e
+          if ! command -v brew >/dev/null 2>&1; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          if ! command -v brew >/dev/null 2>&1; then
+            if [ -x /opt/homebrew/bin/brew ]; then
+              eval "$(/opt/homebrew/bin/brew shellenv)"
+            elif [ -x /usr/local/bin/brew ]; then
+              eval "$(/usr/local/bin/brew shellenv)"
+            fi
+          fi
+          brew list uv >/dev/null 2>&1 || brew install uv
+          brew list nvm >/dev/null 2>&1 || brew install nvm
+          mkdir -p "{{.NVM_DIR}}"
+        platforms: [darwin]
+      - cmd: |
+          set -e
+          if ! command -v curl >/dev/null 2>&1; then
+            printf '%s\n' "curl is required before setup can install uv or nvm." >&2
+            exit 1
+          fi
+          if ! command -v uv >/dev/null 2>&1; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+          fi
+          if [ ! -s "{{.NVM_DIR}}/nvm.sh" ]; then
+            PROFILE=/dev/null curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/{{.NVM_VERSION}}/install.sh | bash
+          fi
+        platforms: [linux]
+
+  local:
+    desc: "Install local Python and frontend dependencies"
+    cmds:
+      - task: python
+      - task: frontend
+
+  docker:
+    desc: "Build Docker images"
+    cmds:
+      - task: :docker:build
+
+  ai:
+    desc: "Rebuild AI agent configuration files"
+    cmds:
+      - task: :ai:setup
+
+  python:
+    desc: "Install Python dependencies"
+    cmds:
+      - task: python:venv
+      - task: python:deps
+
+  python:venv:
+    desc: "Create a uv virtual environment with Python {{.PYTHON_VERSION}}"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - uv python install {{.PYTHON_VERSION}}
+      - uv venv --python {{.PYTHON_VERSION}}
+
+  python:deps:
+    desc: "Install Python dependencies and pre-commit hooks"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - uv sync --locked --group dev --all-packages
+      - uv run pre-commit install
+
+  frontend:
+    desc: "Install Node.js {{.NODE_VERSION}} and frontend npm packages"
+    cmds:
+      - task: frontend:node
+      - task: frontend:npm
+
+  frontend:node:
+    desc: "Install and use Node.js {{.NODE_VERSION}} through nvm"
+    cmds:
+      - |
+          set -e
+          if [ -s "{{.NVM_DIR}}/nvm.sh" ]; then
+            . "{{.NVM_DIR}}/nvm.sh"
+          elif command -v brew >/dev/null 2>&1 && [ -s "$(brew --prefix nvm)/nvm.sh" ]; then
+            . "$(brew --prefix nvm)/nvm.sh"
+          else
+            printf '%s\n' "nvm is not installed. Run 'task setup:tools' first." >&2
+            exit 1
+          fi
+          nvm install {{.NODE_VERSION}}
+          nvm use {{.NODE_VERSION}}
+
+  frontend:npm:
+    desc: "Install frontend npm dependencies"
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - |
+          set -e
+          if [ -s "{{.NVM_DIR}}/nvm.sh" ]; then
+            . "{{.NVM_DIR}}/nvm.sh"
+            nvm use {{.NODE_VERSION}}
+          elif command -v brew >/dev/null 2>&1 && [ -s "$(brew --prefix nvm)/nvm.sh" ]; then
+            . "$(brew --prefix nvm)/nvm.sh"
+            nvm use {{.NODE_VERSION}}
+          fi
+          npm ci
+
+  sync:
+    desc: "Sync Python dependencies without recreating the virtual environment"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - uv sync --locked --group dev --all-packages

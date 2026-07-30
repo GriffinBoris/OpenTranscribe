@@ -1,0 +1,212 @@
+version: '3'
+
+vars:
+  ROOT_DIR: "."
+  BACKEND_DIR: "./backend"
+  FRONTEND_DIR: "./frontend"
+  DJANGO_SETTINGS: core.settings.dev_local
+  BACKUP_SCOPE: development
+  ALLOW_PRODUCTION: "false"
+
+tasks:
+  default:
+    desc: "Show local tasks"
+    cmds:
+      - task --list
+    silent: true
+
+  setup:
+    desc: "Install local dependencies"
+    cmds:
+      - task: :setup:local
+
+  dev:
+    desc: "Run local backend and frontend development servers"
+    cmds:
+      - task --parallel local:backend:server:run local:frontend:dev
+
+  test:
+    desc: "Run local backend tests"
+    cmds:
+      - task: backend:test
+
+  lint:
+    desc: "Run local backend and frontend linters"
+    cmds:
+      - task: backend:lint
+      - task: frontend:lint
+
+  build:
+    desc: "Build local frontend assets"
+    cmds:
+      - task: frontend:build
+
+  format:
+    desc: "Format frontend files"
+    cmds:
+      - task: frontend:format
+
+  backend:test:
+    desc: "Run backend tests locally"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - uv run --group dev pytest
+
+  backend:tests:coverage:
+    desc: "Run backend tests with coverage locally"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - uv run --group dev coverage run -m pytest
+      - uv run --group dev coverage report
+      - uv run --group dev coverage html
+
+  backend:lint:
+    desc: "Run backend Ruff checks locally"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - uv run --group dev ruff check .
+
+  backend:deps:check:
+    desc: "Check Python dependencies for upgrades"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - uvbump --kind uv --root . --upgrade --interactive --group-by package
+
+  backend:app:update-init-files:
+    desc: "Update __init__.py files for models locally"
+    dir: "{{.BACKEND_DIR}}"
+    requires:
+      vars: [PATH]
+    cmds:
+      - uv run python manage.py update_init_files {{.PATH}} --settings={{.DJANGO_SETTINGS}}
+
+  backend:db:migrate:
+    desc: "Apply Django migrations locally"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - uv run python manage.py migrate --settings={{.DJANGO_SETTINGS}}
+
+  backend:db:makemigrations:
+    desc: "Create Django migrations locally"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - uv run python manage.py makemigrations --settings={{.DJANGO_SETTINGS}}
+
+  backend:db:makemigrations-app:
+    desc: "Create Django migrations for one app locally"
+    dir: "{{.BACKEND_DIR}}"
+    requires:
+      vars: [APP]
+    cmds:
+      - uv run python manage.py makemigrations {{.APP}} --settings={{.DJANGO_SETTINGS}}
+
+  backend:db:delete-migrations:
+    desc: "Delete project migration files and keep __init__.py locally"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - |
+          set -e
+          find backend \
+            -path '*/migrations/*.py' \
+            ! -name '__init__.py' \
+            -delete
+
+  backend:db:bootstrap:
+    desc: "Recreate and seed the local database"
+    cmds:
+      - task: backend:db:drop-local-db
+      - task: backend:db:migrate
+      - task: backend:app:seed-e2e-workspace
+
+  backend:db:drop-local-db:
+    desc: "Drop the local SQLite database"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - rm -f db.sqlite3
+
+  backend:db:restore-backup:
+    desc: "Restore a backup into the local database"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - uv run python manage.py restore_latest_backup --no-input --backup-scope={{.BACKUP_SCOPE}} {{if eq .ALLOW_PRODUCTION "true"}}--allow-production{{end}} --settings={{.DJANGO_SETTINGS}}
+
+  backend:db:bootstrap:backup:
+    desc: "Recreate the local database from the latest backup"
+    cmds:
+      - task: backend:db:drop-local-db
+      - task: backend:db:restore-backup
+      - task: backend:db:migrate
+
+  backend:db:createsuperuser:
+    desc: "Create a Django superuser locally"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - uv run python manage.py createsuperuser --settings={{.DJANGO_SETTINGS}}
+
+  backend:user:create-dummy-user:
+    desc: "Create a DEBUG-only dummy user locally"
+    dir: "{{.BACKEND_DIR}}"
+    requires:
+      vars: [EMAIL, PASSWORD]
+    cmds:
+      - uv run python manage.py create_dummy_user --email={{.EMAIL}} --password={{.PASSWORD}} {{if .USERNAME}}--username={{.USERNAME}} {{end}}--settings={{.DJANGO_SETTINGS}}
+
+  backend:app:seed-e2e-workspace:
+    desc: "Seed deterministic workspace data for end-to-end browser tests locally"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - uv run python manage.py seed_e2e_workspace --settings={{.DJANGO_SETTINGS}}
+
+  backend:server:run:
+    desc: "Run the local Django development server"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - uv run python manage.py runserver 0.0.0.0:8000 --settings={{.DJANGO_SETTINGS}}
+
+  backend:shell:django:
+    desc: "Open a local Django shell"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - uv run python manage.py shell --settings={{.DJANGO_SETTINGS}}
+
+  frontend:dev:
+    desc: "Run the local frontend development server"
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run dev
+
+  frontend:type-check:
+    desc: "Run frontend TypeScript checks locally"
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run type-check
+
+  frontend:lint:
+    desc: "Run frontend lint locally"
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run lint
+
+  frontend:format:
+    desc: "Format frontend source locally"
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run format
+
+  frontend:build:
+    desc: "Build frontend assets locally"
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run build
+
+  frontend:preview:
+    desc: "Preview built frontend assets locally"
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run preview
+
+  frontend:deps:check:
+    desc: "Check npm dependencies for upgrades"
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - uvbump --kind npm --root . --upgrade --interactive --group-by package

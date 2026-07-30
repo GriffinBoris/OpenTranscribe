@@ -1,0 +1,29 @@
+version: '3'
+
+includes:
+  ai:
+    taskfile: ./tasks/ai.yml
+    dir: .
+
+  docker:
+    taskfile: ./tasks/docker.yml
+    dir: .
+
+  local:
+    taskfile: ./tasks/local.yml
+    dir: .
+
+  github:
+    taskfile: ./tasks/github.yml
+    dir: .
+
+  setup:
+    taskfile: ./tasks/setup.yml
+    dir: .
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
