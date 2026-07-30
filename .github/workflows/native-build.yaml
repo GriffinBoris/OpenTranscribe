@@ -1,0 +1,80 @@
+name: Native Compile
+
+on:
+  workflow_call:
+    inputs:
+      bundle:
+        description: Build and retain unsigned installers instead of compile-only checks
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      bundle:
+        description: Build and retain unsigned installers
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+        with:
+          toolchain: 1.92.0
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
+
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes cmake libappindicator3-dev libasound2-dev libgtk-3-dev libpipewire-0.3-dev librsvg2-dev libwebkit2gtk-4.1-dev patchelf
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Prepare local transcription sidecar
+        if: inputs.bundle != true
+        run: npm run prepare:sidecar:debug
+
+      - name: Compile native workspace
+        if: inputs.bundle != true
+        run: cargo check --workspace --locked
+
+      - name: Build unsigned installers
+        if: inputs.bundle
+        run: npm run tauri -- build --ci --no-sign -- --locked
+
+      - name: Upload unsigned installers
+        if: inputs.bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: opentranscribe-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+          path: |
+            target/release/bundle/**/*.AppImage
+            target/release/bundle/**/*.deb
+            target/release/bundle/**/*.dmg
+            target/release/bundle/**/*.exe
+            target/release/bundle/**/*.msi
+          if-no-files-found: error
+          retention-days: 7

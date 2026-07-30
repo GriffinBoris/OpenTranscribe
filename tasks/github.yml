@@ -1,7 +1,0 @@
-version: '3'
-
-tasks:
-  apply:
-    desc: Apply repository settings, Dependabot security updates, and main branch protection
-    cmds:
-      - uv run scripts/github/apply_settings.py
