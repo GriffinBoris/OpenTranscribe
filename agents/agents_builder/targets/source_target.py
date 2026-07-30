@@ -7,10 +7,10 @@ from agents.agents_builder.targets.base_target import BaseTarget
 
 
 class SourceTarget(BaseTarget):
-    name = 'source'
+	name = 'source'
 
-    def build(self, context: BuildContext, out_dir: Path, *, clean: bool) -> None:  # noqa: ARG002
-        self.emit(context, out_dir)
+	def build(self, context: BuildContext, out_dir: Path, *, clean: bool) -> None:
+		self.emit(context, out_dir)
 
-    def emit(self, _context: BuildContext, out_dir: Path) -> None:
-        copy_tree(AGENTS_ROOT, out_dir / 'agents')
+	def emit(self, _context: BuildContext, out_dir: Path) -> None:
+		copy_tree(AGENTS_ROOT, out_dir / 'agents')

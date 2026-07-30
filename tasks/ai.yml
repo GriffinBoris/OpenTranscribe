@@ -1,26 +1,70 @@
 version: '3'
 
 vars:
-  ROOT_DIR: "."
+  AGENTS_REF: '{{default "main" .AGENTS_REF}}'
+  PYTHON_BIN: '{{default "python3" .PYTHON_BIN}}'
 
 tasks:
+  default:
+    desc: Show agent tooling tasks
+    cmds:
+      - task --taskfile "{{.TASKFILE_DIR}}/agents.yml" --list --sort alphanumeric
+    silent: true
+
+  install:
+    desc: Refresh the canonical agents/ source from GriffinBoris/Agents
+    cmds:
+      - |
+        project_guidance="$(mktemp)"
+        cp agents/guidance/project/guidance.md "$project_guidance"
+        trap 'rm -f "$project_guidance"' EXIT
+        curl -fsSL https://raw.githubusercontent.com/GriffinBoris/Agents/{{.AGENTS_REF}}/agents/scripts/install-agents.sh | bash -s -- --target source --dest . --ref "{{.AGENTS_REF}}"
+        cp "$project_guidance" agents/guidance/project/guidance.md
+
+  generate:
+    desc: Generate all local agent-tool outputs from agents/
+    cmds:
+      - task: generate:codex
+      - task: generate:claude
+      - task: generate:copilot
+      - task: generate:gemini
+      - task: generate:opencode
+
+  check:
+    desc: Validate all authored guidance by building every packaged target
+    cmds:
+      - |
+        output_dir="$(mktemp -d)"
+        trap 'rm -rf "$output_dir"' EXIT
+        PYTHONDONTWRITEBYTECODE=1 {{.PYTHON_BIN}} agents/build_agents.py --target all --out "$output_dir" --clean
+
+  generate:codex:
+    desc: Generate Codex guidance, skills, and project config
+    cmds:
+      - '{{.PYTHON_BIN}} agents/build_agents.py --target codex --out . --layout in-place --clean'
+
+  generate:claude:
+    desc: Generate Claude instructions, commands, and skills
+    cmds:
+      - '{{.PYTHON_BIN}} agents/build_agents.py --target claude --out . --layout in-place --clean'
+
+  generate:copilot:
+    desc: Generate GitHub Copilot instructions
+    cmds:
+      - '{{.PYTHON_BIN}} agents/build_agents.py --target copilot --out . --layout in-place --clean'
+
+  generate:gemini:
+    desc: Generate Gemini instructions, commands, and skills
+    cmds:
+      - '{{.PYTHON_BIN}} agents/build_agents.py --target gemini --out . --layout in-place --clean'
+
+  generate:opencode:
+    desc: Generate OpenCode instructions, commands, and skills
+    cmds:
+      - '{{.PYTHON_BIN}} agents/build_agents.py --target opencode --out . --layout in-place --clean'
+
   setup:
-    desc: "Setup all AI agent and OpenCode linkages"
+    desc: Refresh agent source and generate every local output
     cmds:
-      - task: setup-opencode
-      - task: setup-claude
-
-  setup-opencode:
-    desc: "Recreate OpenCode configuration linkages"
-    dir: "{{.ROOT_DIR}}"
-    cmds:
-      - mkdir -p .opencode
-      - uv run agents/build_agents.py --target opencode --out . --layout in-place
-
-  setup-claude:
-    desc: "Recreate Claude Code configuration linkages"
-    dir: "{{.ROOT_DIR}}"
-    cmds:
-      - mkdir -p .claude
-      - uv run agents/build_agents.py --target claude --out . --layout in-place
-
+      - task: install
+      - task: generate

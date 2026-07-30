@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent.parent
 AGENTS_ROOT = ROOT / 'agents'
 GUIDANCE_ROOT = AGENTS_ROOT / 'guidance'
@@ -9,17 +8,17 @@ TOOLS_ROOT = AGENTS_ROOT / 'tools'
 
 
 SUPPORTED_FRONTMATTER_FIELDS = {
-    'id',
-    'title',
-    'description',
-    'kind',
-    'scope',
-    'name',
-    'tags',
-    'applies_to',
-    'status',
-    'order',
-    'role',
+	'id',
+	'title',
+	'description',
+	'kind',
+	'scope',
+	'name',
+	'tags',
+	'applies_to',
+	'status',
+	'order',
+	'role',
 }
 
 ALLOWED_STATUSES = {'active', 'draft', 'deprecated'}

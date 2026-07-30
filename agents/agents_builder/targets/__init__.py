@@ -7,11 +7,11 @@ from agents.agents_builder.targets.opencode_target import OpenCodeTarget
 from agents.agents_builder.targets.source_target import SourceTarget
 
 __all__ = [
-    'BaseTarget',
-    'ClaudeTarget',
-    'CodexTarget',
-    'CopilotTarget',
-    'GeminiTarget',
-    'OpenCodeTarget',
-    'SourceTarget',
+	'BaseTarget',
+	'ClaudeTarget',
+	'CodexTarget',
+	'CopilotTarget',
+	'GeminiTarget',
+	'OpenCodeTarget',
+	'SourceTarget',
 ]

@@ -3,42 +3,37 @@ from pathlib import Path
 from agents.agents_builder.constants import DEFAULT_OPENCODE_JSON, TOOLS_ROOT
 from agents.agents_builder.document_types import BuildContext
 from agents.agents_builder.file_ops import write_file
-from agents.agents_builder.target_assets import (
-    render_agents_document,
-    render_opencode_command,
-    render_skill_document,
-    should_emit_command,
-)
+from agents.agents_builder.target_assets import render_agents_document, render_opencode_command, render_skill_document, should_emit_command
 from agents.agents_builder.targets.base_target import BaseTarget
 
 
 class OpenCodeTarget(BaseTarget):
-    name = 'opencode'
+	name = 'opencode'
 
-    def output_paths(self) -> tuple[str, ...]:
-        return ('AGENTS.md', 'opencode.json', '.opencode')
+	def output_paths(self) -> tuple[str, ...]:
+		return ('AGENTS.md', 'opencode.json', '.opencode')
 
-    def emit(self, context: BuildContext, out_dir: Path) -> None:
-        write_file(out_dir / '.opencode' / 'AGENTS.md', render_agents_document(context))
-        write_file(out_dir / 'opencode.json', load_opencode_json())
+	def emit(self, context: BuildContext, out_dir: Path) -> None:
+		write_file(out_dir / '.opencode' / 'AGENTS.md', render_agents_document(context))
+		write_file(out_dir / 'opencode.json', load_opencode_json())
 
-        for command in context.assets.commands:
-            if not should_emit_command(command, self.name):
-                continue
+		for command in context.assets.commands:
+			if not should_emit_command(command, self.name):
+				continue
 
-            write_file(out_dir / '.opencode' / 'commands' / f'{command.name}.md', render_opencode_command(command))
+			write_file(out_dir / '.opencode' / 'commands' / f'{command.name}.md', render_opencode_command(command))
 
-        for skill in context.assets.skills:
-            if skill.kind != 'skill':
-                continue
+		for skill in context.assets.skills:
+			if skill.kind != 'skill':
+				continue
 
-            write_file(out_dir / '.opencode' / 'skills' / skill.name / 'SKILL.md', render_skill_document(skill))
+			write_file(out_dir / '.opencode' / 'skills' / skill.name / 'SKILL.md', render_skill_document(skill))
 
 
 def load_opencode_json() -> str:
-    opencode_path = TOOLS_ROOT / 'opencode' / 'opencode.json'
+	opencode_path = TOOLS_ROOT / 'opencode' / 'opencode.json'
 
-    if opencode_path.exists():
-        return opencode_path.read_text(encoding='utf-8')
+	if opencode_path.exists():
+		return opencode_path.read_text(encoding='utf-8')
 
-    return DEFAULT_OPENCODE_JSON
+	return DEFAULT_OPENCODE_JSON

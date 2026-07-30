@@ -39,7 +39,7 @@ order: 19
 ### Settings Boundary
 
 ```python
-# backend/core/settings/base.py
+# backend/core/settings/settings_base.py
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -66,7 +66,7 @@ Keep shared middleware, static defaults, template defaults, and domain defaults 
 ### Local Split-Origin Settings
 
 ```python
-# backend/core/settings/dev_local.py
+# backend/core/settings/settings_dev_local.py
 
 DEBUG = True
 
@@ -100,7 +100,7 @@ Keep `CSRF_USE_SESSIONS = False` locally so Django writes the `csrftoken` cookie
 ### Production Same-Origin Settings
 
 ```python
-# backend/core/settings/production.py
+# backend/core/settings/settings_production.py
 
 DEBUG = False
 

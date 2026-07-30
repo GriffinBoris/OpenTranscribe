@@ -38,7 +38,7 @@ order: 13
 ### Middleware Stack Placement
 
 ```python
-# backend/core/settings/base.py
+# backend/core/settings/settings_base.py
 
 MIDDLEWARE = [
 	'django.middleware.security.SecurityMiddleware',

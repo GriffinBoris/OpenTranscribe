@@ -177,8 +177,14 @@ postgres_data/
 docker_data/
 .ssh/
 
-
+# Generated from agents/ with task agents:generate.
 /AGENTS.md
+/CLAUDE.md
+/GEMINI.md
 /opencode.json
-/.opencode
-/.claude
+/.agents/
+/.codex/
+/.claude/
+/.gemini/
+/.opencode/
+/.github/copilot-instructions.md
