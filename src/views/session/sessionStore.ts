@@ -7,6 +7,7 @@ import type {
   ExportResult,
   SessionWorkspace,
   Transcript,
+  TranscriptRun,
 } from "@/types/domain";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { findActiveTranscriptionJob } from "@/views/session/sessionJobs";
@@ -14,6 +15,7 @@ import { findActiveTranscriptionJob } from "@/views/session/sessionJobs";
 export const useSessionStore = defineStore("session", () => {
   const application = useApplicationStore();
   const transcripts = ref<Record<string, Transcript>>({});
+  const transcriptRuns = ref<Record<string, TranscriptRun>>({});
   const notesHashes = ref<Record<string, string>>({});
 
   function transcriptionJobForSession(sessionId: string) {
@@ -61,6 +63,9 @@ export const useSessionStore = defineStore("session", () => {
       if (workspace) {
         if (workspace.transcript) {
           transcripts.value[sessionId] = workspace.transcript;
+        }
+        if (workspace.transcript_run) {
+          transcriptRuns.value[sessionId] = workspace.transcript_run;
         }
       }
 
@@ -237,6 +242,7 @@ export const useSessionStore = defineStore("session", () => {
 
   return {
     transcripts,
+    transcriptRuns,
     transcriptionJobForSession,
     transcribeWithOpenAi,
     transcribeLocally,

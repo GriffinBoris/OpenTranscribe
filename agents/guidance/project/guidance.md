@@ -154,6 +154,12 @@ order: 0
   captions as ephemeral feedback; after stop, create the durable transcript
   from the finalized recording with the user's selected file model.
 - Every provider action displays whether audio stays local or is sent to OpenAI.
+- Preserve provider-reported transcription usage with each immutable run. Derive
+  cloud cost estimates from one centralized, dated pricing table, include both
+  the live and saved-transcript passes when both are requested, count concurrent
+  source streams separately, and label the result as an estimate because
+  provider billing and prices can change. Never invent a price for a model whose
+  official rate is not published.
 - All strings go through Vue I18n even though the first release ships only English.
 - Maintain keyboard navigation, visible focus, reduced motion, and WCAG 2.2 AA contrast.
 - Keep the desktop shell compact and product-first: one quiet sidebar, one inset

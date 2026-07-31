@@ -3,7 +3,7 @@ use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use cpal::traits::{DeviceTrait, StreamTrait};
-use cpal::{SampleFormat, StreamConfig};
+use cpal::{FromSample, I24, SampleFormat, SizedSample, StreamConfig, U24};
 use crossbeam_channel::{Sender, bounded};
 
 use super::packet_writer::{
@@ -109,44 +109,47 @@ fn build_stream(
     sender: Sender<AudioPacket>,
     signals: CaptureSignals,
 ) -> AppResult<cpal::Stream> {
-    let error_callback = |error| log::error!("audio input stream error: {error}");
     let capture_format = AudioFormat {
         channels: config.channels,
         sample_rate: config.sample_rate,
     };
     let stream = match sample_format {
-        SampleFormat::F32 => device.build_input_stream(
-            config,
-            move |samples: &[f32], _| {
-                enqueue_samples(samples.to_vec(), &sender, &signals, capture_format);
-            },
-            error_callback,
-            None,
-        ),
-        SampleFormat::I16 => device.build_input_stream(
-            config,
-            move |samples: &[i16], _| {
-                let samples = samples
-                    .iter()
-                    .map(|sample| f32::from(*sample) / f32::from(i16::MAX))
-                    .collect();
-                enqueue_samples(samples, &sender, &signals, capture_format);
-            },
-            error_callback,
-            None,
-        ),
-        SampleFormat::U16 => device.build_input_stream(
-            config,
-            move |samples: &[u16], _| {
-                let samples = samples
-                    .iter()
-                    .map(|sample| (f32::from(*sample) / f32::from(u16::MAX)) * 2.0 - 1.0)
-                    .collect();
-                enqueue_samples(samples, &sender, &signals, capture_format);
-            },
-            error_callback,
-            None,
-        ),
+        SampleFormat::I8 => {
+            build_typed_stream::<i8>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::I16 => {
+            build_typed_stream::<i16>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::I24 => {
+            build_typed_stream::<I24>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::I32 => {
+            build_typed_stream::<i32>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::I64 => {
+            build_typed_stream::<i64>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::U8 => {
+            build_typed_stream::<u8>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::U16 => {
+            build_typed_stream::<u16>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::U24 => {
+            build_typed_stream::<U24>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::U32 => {
+            build_typed_stream::<u32>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::U64 => {
+            build_typed_stream::<u64>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::F32 => {
+            build_typed_stream::<f32>(device, config, sender, signals, capture_format)
+        }
+        SampleFormat::F64 => {
+            build_typed_stream::<f64>(device, config, sender, signals, capture_format)
+        }
         _ => {
             return Err(AppError::Audio(format!(
                 "unsupported audio format: {sample_format:?}"
@@ -157,6 +160,39 @@ fn build_stream(
     Ok(stream)
 }
 
+fn build_typed_stream<T>(
+    device: &cpal::Device,
+    config: &StreamConfig,
+    sender: Sender<AudioPacket>,
+    signals: CaptureSignals,
+    capture_format: AudioFormat,
+) -> Result<cpal::Stream, cpal::BuildStreamError>
+where
+    T: SizedSample,
+    f32: FromSample<T>,
+{
+    device.build_input_stream(
+        config,
+        move |samples: &[T], _| {
+            let samples = convert_samples(samples);
+            enqueue_samples(samples, &sender, &signals, capture_format);
+        },
+        |error| log::error!("audio input stream error: {error}"),
+        None,
+    )
+}
+
+fn convert_samples<T>(samples: &[T]) -> Vec<f32>
+where
+    T: SizedSample,
+    f32: FromSample<T>,
+{
+    samples
+        .iter()
+        .map(|sample| f32::from_sample_(*sample))
+        .collect()
+}
+
 fn audio_error(error: impl std::fmt::Display) -> AppError {
     AppError::Audio(error.to_string())
 }
@@ -165,4 +201,18 @@ fn join_capture(handle: JoinHandle<AppResult<()>>, description: &str) -> AppResu
     handle
         .join()
         .map_err(|_| AppError::Audio(format!("{description} thread crashed")))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::convert_samples;
+
+    #[test]
+    fn converts_signed_unsigned_and_float_device_samples() {
+        assert_eq!(convert_samples(&[i32::MIN, 0, i32::MAX])[1], 0.0);
+        assert_eq!(convert_samples(&[u32::MIN, 1_u32 << 31, u32::MAX])[1], 0.0);
+
+        let floats = convert_samples(&[-1.0_f64, 0.25, 1.0]);
+        assert_eq!(floats, vec![-1.0, 0.25, 1.0]);
+    }
 }

@@ -1,4 +1,5 @@
-export type RecordingMode = "record_only" | "local_live" | "open_ai_live";
+export type RecordingMode =
+  "record_only" | "local_after_recording" | "open_ai_live";
 export type OpenAiTranscriptionModel =
   "gpt_transcribe" | "gpt_4o_transcribe_diarize" | "gpt_4o_mini_transcribe";
 export type RecordingProjectSelection =
@@ -105,6 +106,7 @@ export interface Job {
   kind: string;
   state: string;
   progress: JobProgress | null;
+  estimated_cost_usd: number | null;
   attempt: number;
   error_message: string | null;
   created_at: string;
@@ -224,6 +226,23 @@ export interface Transcript {
   updated_at: string;
 }
 
+export interface TranscriptRun {
+  schema_version: number;
+  id: string;
+  session_id: string;
+  source: "local" | "open_ai";
+  model_id: string;
+  status: "queued" | "running" | "completed" | "failed" | "canceled";
+  input_artifact_ids: string[];
+  language_hint: string | null;
+  glossary: string[];
+  started_at: string | null;
+  completed_at: string | null;
+  usage: unknown | null;
+  approximate_cost_usd: number | null;
+  promoted_at: string | null;
+}
+
 export type ExportFormat = "markdown" | "text" | "json" | "srt" | "vtt";
 
 export interface ExportResult {
@@ -236,6 +255,7 @@ export interface SessionWorkspace {
   notes: string;
   notes_hash: string;
   transcript: Transcript | null;
+  transcript_run: TranscriptRun | null;
 }
 
 export interface SavedDocument {

@@ -4,6 +4,11 @@ OpenTranscribe is a local-first desktop meeting workspace. It records audio to
 readable files you control, keeps notes beside each session, and can transcribe
 completed recordings locally or with an OpenAI API key.
 
+OpenAI API keys are stored in the native macOS Keychain, Windows Credential
+Manager, or Linux Secret Service vault. See
+[`docs/credentials.md`](docs/credentials.md) for storage details and macOS
+development prompt behavior.
+
 The project is under active development. It includes microphone and
 system-output capture adapters for macOS, Windows, and Linux; separate source
 tracks and a mixed playback file; crash-recovery chunks; tray controls; durable
@@ -15,13 +20,15 @@ sources, and default transcription path before a real ten-second audio test.
 
 macOS capture is the current physically tested development path. Windows WASAPI
 loopback and Linux PipeWire capture compile in the platform CI matrix but still
-need the hardware, interruption, and long-duration validation described in the
-product blueprint. Realtime transcription is intentionally deferred until the
-record-and-transcribe workflow is release-hardened.
+need the hardware, interruption, and duration validation in
+`docs/platform-validation.md`. OpenAI live transcription is implemented; local
+transcription runs after the recording is durably finalized so model latency
+cannot interrupt capture.
 
-Pull requests run compile-only native checks. Trusted `main` and nightly runs
-also retain unsigned macOS, Windows, and Linux installers for seven days so
-current packages can be smoke-tested before signing is configured.
+Pull requests run the shared native tests on macOS, Windows, and Linux plus
+compile checks for every supported release triple. Trusted `main` and nightly
+runs also retain unsigned installers for seven days so current packages can be
+smoke-tested before signing is configured.
 
 ## Stack
 

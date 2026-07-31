@@ -142,6 +142,7 @@ async function merge() {
             v-model="sourceSpeakerId"
             :options="speakerOptions"
             :accessible-label="t('session.speakers.mergeSource')"
+            :placeholder="t('session.speakers.mergeSource')"
           />
           <span aria-hidden="true">→</span>
           <AppSelect
@@ -149,6 +150,7 @@ async function merge() {
             v-model="targetSpeakerId"
             :options="targetOptions"
             :accessible-label="t('session.speakers.mergeTarget')"
+            :placeholder="t('session.speakers.mergeTarget')"
           />
           <AppButton
             variant="secondary"

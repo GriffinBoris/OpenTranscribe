@@ -180,12 +180,12 @@ fn handle_sidecar_event(
     on_progress: &mut impl FnMut(u64, u64),
 ) -> AppResult<()> {
     match event {
-        Event::Final {
-            stream_id,
+        Event::Segment {
+            job_id: event_job_id,
             start_ms,
             end_ms,
             text,
-        } if stream_id == job_id => {
+        } if event_job_id == job_id => {
             segments.push(TranscriptionSegmentInput {
                 start_ms,
                 end_ms,
@@ -249,8 +249,8 @@ mod tests {
         )
         .expect("progress should be accepted");
         handle_sidecar_event(
-            Event::Final {
-                stream_id: "job".to_owned(),
+            Event::Segment {
+                job_id: "job".to_owned(),
                 start_ms: 0,
                 end_ms: 1_000,
                 text: "Testing the local contract.".to_owned(),
@@ -292,8 +292,8 @@ mod tests {
                 completed_ms: 500,
                 total_ms: 1_000,
             },
-            Event::Final {
-                stream_id: "other".to_owned(),
+            Event::Segment {
+                job_id: "other".to_owned(),
                 start_ms: 0,
                 end_ms: 1_000,
                 text: "Wrong job".to_owned(),

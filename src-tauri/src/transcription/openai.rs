@@ -33,6 +33,8 @@ pub struct DetectedLanguage {
 pub struct OpenAiChunkTranscript {
     pub text: String,
     #[serde(default)]
+    pub usage: Option<serde_json::Value>,
+    #[serde(default)]
     pub languages: Vec<DetectedLanguage>,
     #[serde(default)]
     pub segments: Vec<OpenAiDiarizedSegment>,
@@ -205,8 +207,14 @@ mod tests {
     #[test]
     fn sends_the_openai_file_transcription_contract() {
         let audio = TestAudio::new();
-        let (endpoint, requests, server) =
-            mock_server("200 OK", r#"{"text":"hola","languages":[{"code":"es"}]}"#);
+        let (endpoint, requests, server) = mock_server(
+            "200 OK",
+            r#"{
+                "text":"hola",
+                "languages":[{"code":"es"}],
+                "usage":{"type":"duration","seconds":1}
+            }"#,
+        );
         let transcriber = OpenAiFileTranscriber {
             client: reqwest::blocking::Client::new(),
             endpoint,
@@ -240,6 +248,7 @@ mod tests {
         assert_eq!(transcripts.len(), 1);
         assert_eq!(transcripts[0].text, "hola");
         assert_eq!(transcripts[0].languages[0].code, "es");
+        assert_eq!(transcripts[0].usage.as_ref().unwrap()["seconds"], 1);
         assert_eq!(transcripts[0].duration_ms, 1_000);
     }
 

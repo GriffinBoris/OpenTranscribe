@@ -15,6 +15,7 @@ function createJob(
     kind,
     state,
     progress: null,
+    estimated_cost_usd: null,
     attempt: 1,
     error_message: null,
     created_at: timestamp,

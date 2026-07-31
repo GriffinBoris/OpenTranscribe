@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 import AppProgressBar from "@/components/ui/AppProgressBar.vue";
+import { jobEstimateDetails } from "@/views/application/jobEstimates";
 import { useSessionStore } from "@/views/session/sessionStore";
 
 const props = defineProps<{
@@ -23,6 +24,17 @@ const progressValue = computed(() => {
 
   return (progress.completed_units / progress.total_units) * 100;
 });
+const estimateDetails = computed(() => {
+  const job = activeJob.value;
+
+  if (!job) {
+    return [];
+  }
+
+  return jobEstimateDetails(job, (key, parameters) =>
+    parameters ? t(key, parameters) : t(key),
+  );
+});
 </script>
 
 <template>
@@ -36,6 +48,11 @@ const progressValue = computed(() => {
       :value="progressValue"
       :accessible-label="t('processing.progress')"
     />
-    <span>{{ activeJob.progress?.message ?? t("processing.waiting") }}</span>
+    <span class="grid gap-0.5">
+      <span>{{ activeJob.progress?.message ?? t("processing.waiting") }}</span>
+      <small v-if="estimateDetails.length" class="text-xs">
+        {{ estimateDetails.join(" · ") }}
+      </small>
+    </span>
   </div>
 </template>

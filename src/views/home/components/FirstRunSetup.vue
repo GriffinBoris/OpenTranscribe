@@ -173,7 +173,10 @@ const {
             :accessible-label="t('firstRun.transcription')"
             @update:model-value="updateRecordingMode"
           />
-          <small v-if="recordingMode === 'local_live'" class="text-ink-muted">
+          <small
+            v-if="recordingMode === 'local_after_recording'"
+            class="text-ink-muted"
+          >
             {{
               providerReady
                 ? t("firstRun.localReady")
@@ -189,7 +192,7 @@ const {
           </small>
         </div>
         <AppButton
-          v-if="recordingMode === 'local_live' && !providerReady"
+          v-if="recordingMode === 'local_after_recording' && !providerReady"
           @click="openSettings('models')"
         >
           {{ t("firstRun.configureLocal") }}

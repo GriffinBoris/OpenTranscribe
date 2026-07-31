@@ -135,7 +135,7 @@ async function save(segment: TranscriptSegment) {
     class="grid min-h-0 grid-rows-[var(--layout-pane-toolbar-height)_minmax(0,1fr)] border-r border-[var(--divider)] max-[900px]:border-r-0"
   >
     <div
-      class="text-ink-muted flex min-h-0 items-center justify-between gap-3 border-b border-[var(--divider)] px-[18px] py-[9px] text-xs"
+      class="session-pane-toolbar text-ink-muted flex h-[var(--layout-pane-toolbar-height)] min-h-0 items-center justify-between gap-3 border-b border-[var(--divider)] px-[18px] py-[9px] text-xs"
     >
       <div>
         <strong>{{ t("session.transcript") }}</strong>

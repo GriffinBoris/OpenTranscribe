@@ -58,7 +58,7 @@ const recordingModeOptions = computed(() => [
   { label: t("recording.recordOnly"), value: "record_only" },
   {
     label: t("home.recordLocal"),
-    value: "local_live",
+    value: "local_after_recording",
     disabled: localModels.installedModels.length === 0,
   },
   {
@@ -157,6 +157,7 @@ watch(
           :model-value="projectId"
           :options="projectOptions"
           :accessible-label="t('recordingOptions.project')"
+          :placeholder="t('navigation.inbox')"
           @update:model-value="updateProject"
         />
       </label>
@@ -215,6 +216,7 @@ watch(
           v-model="languageHint"
           :options="languageOptions"
           :accessible-label="t('recordingOptions.language')"
+          :placeholder="t('recordingOptions.languages.auto')"
         />
       </label>
     </form>

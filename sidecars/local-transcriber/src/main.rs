@@ -64,21 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     },
                 )?;
             }
-            Command::AudioChunk(chunk) => write_event(
-                envelope.request_id,
-                Event::ChunkAck {
-                    stream_id: chunk.stream_id,
-                    sequence: chunk.sequence,
-                },
-            )?,
             Command::Shutdown => break,
-            _ => write_event(
-                envelope.request_id,
-                Event::Error {
-                    code: "live_transcription_not_available".to_owned(),
-                    message: "Live local transcription is not available in this build.".to_owned(),
-                },
-            )?,
         }
     }
 
@@ -108,8 +94,8 @@ fn transcribe_file(
             for segment in segments {
                 write_event(
                     request_id.clone(),
-                    Event::Final {
-                        stream_id: request.job_id.clone(),
+                    Event::Segment {
+                        job_id: request.job_id.clone(),
                         start_ms: segment.start_ms,
                         end_ms: segment.end_ms,
                         text: segment.text,

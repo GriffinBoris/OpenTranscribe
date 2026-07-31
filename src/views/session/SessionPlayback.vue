@@ -138,6 +138,7 @@ defineExpose({ seek });
       class="w-[150px] shrink-0"
       :options="sourceOptions"
       :accessible-label="t('playback.source')"
+      :placeholder="t('playback.source')"
     />
     <AppButton
       variant="secondary"

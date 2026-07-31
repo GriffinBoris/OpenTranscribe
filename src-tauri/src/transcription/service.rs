@@ -3,9 +3,9 @@ use opentranscribe_domain::TranscriptSource;
 use crate::error::{AppError, AppResult};
 use crate::storage::TranscriptionInput;
 
-use super::OpenAiFileTranscriber;
 use super::bundle::{TranscriptionBundle, TranscriptionSegmentInput, build_bundle};
 use super::openai::OpenAiChunkTranscript;
+use super::{OpenAiFileTranscriber, estimate_openai_cost, openai_usage};
 
 pub struct OpenAiTranscriptionService;
 
@@ -14,6 +14,7 @@ impl OpenAiTranscriptionService {
         input: TranscriptionInput,
         api_key: &str,
         model: String,
+        live_stream_count: u8,
         on_progress: impl FnMut(usize, usize),
         should_cancel: impl Fn() -> bool,
     ) -> AppResult<TranscriptionBundle> {
@@ -32,16 +33,30 @@ impl OpenAiTranscriptionService {
             .flat_map(|chunk| chunk.languages.iter())
             .next()
             .map(|language| language.code.clone());
+        let duration_ms = transcripts.iter().map(|chunk| chunk.duration_ms).sum();
+        let usage = openai_usage(
+            &model,
+            duration_ms,
+            live_stream_count,
+            transcripts
+                .iter()
+                .filter_map(|chunk| chunk.usage.clone())
+                .collect(),
+        );
+        let approximate_cost_usd = estimate_openai_cost(&model, duration_ms, live_stream_count);
         let provider_response = serde_json::to_value(&transcripts)?;
 
-        Ok(build_bundle(
+        let mut bundle = build_bundle(
             input,
             TranscriptSource::OpenAi,
             model,
             segments,
             detected_language,
             provider_response,
-        ))
+        );
+        bundle.run.usage = Some(usage);
+        bundle.run.approximate_cost_usd = approximate_cost_usd;
+        Ok(bundle)
     }
 }
 
@@ -107,6 +122,7 @@ mod tests {
         let transcripts = vec![
             OpenAiChunkTranscript {
                 text: "First speaker".to_owned(),
+                usage: None,
                 languages: Vec::new(),
                 segments: vec![OpenAiDiarizedSegment {
                     start: 0.1,
@@ -118,6 +134,7 @@ mod tests {
             },
             OpenAiChunkTranscript {
                 text: "Same provider label, separate upload".to_owned(),
+                usage: None,
                 languages: Vec::new(),
                 segments: vec![OpenAiDiarizedSegment {
                     start: 0.2,
@@ -145,6 +162,7 @@ mod tests {
     fn keeps_text_only_responses_as_chunk_timed_fallbacks() {
         let transcripts = vec![OpenAiChunkTranscript {
             text: "Transcript text".to_owned(),
+            usage: None,
             languages: Vec::new(),
             segments: Vec::new(),
             duration_ms: 2_500,
@@ -163,6 +181,7 @@ mod tests {
     fn rejects_empty_provider_responses() {
         let transcripts = vec![OpenAiChunkTranscript {
             text: String::new(),
+            usage: None,
             languages: Vec::new(),
             segments: Vec::new(),
             duration_ms: 2_500,

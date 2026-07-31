@@ -1,22 +1,26 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { Cpu, Settings, Sparkles } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
-import AppSelect from "@/components/ui/AppSelect.vue";
-import type { OpenAiTranscriptionModel } from "@/types/domain";
+import AppSplitButton from "@/components/ui/AppSplitButton.vue";
 import { useOpenAiStore } from "@/views/application/openAiStore";
-import {
-  openAiModelId,
-  openAiModelOptions,
-} from "@/views/application/openAiModels";
+import { openAiModelOptions } from "@/views/application/openAiModels";
 import { useLocalModelsStore } from "@/views/models/localModelsStore";
 import { useSessionStore } from "@/views/session/sessionStore";
 
+interface TranscriptionTarget {
+  label: string;
+  value: string;
+  provider: "local" | "open_ai";
+  modelId: string;
+}
+
 const props = defineProps<{
   canTranscribe: boolean;
+  hasTranscript: boolean;
   sessionId: string;
 }>();
 
@@ -25,91 +29,106 @@ const openAi = useOpenAiStore();
 const localModels = useLocalModelsStore();
 const sessionStore = useSessionStore();
 const { t } = useI18n();
-const selectedLocalModelId = ref("");
-const selectedOpenAiModel = ref<OpenAiTranscriptionModel>("gpt_transcribe");
+const selectedTarget = ref("");
 const activeJob = computed(() =>
   sessionStore.transcriptionJobForSession(props.sessionId),
 );
-
-const localModelOptions = computed(() =>
-  localModels.installedModels.map((model) => ({
+const transcriptionTargets = computed<TranscriptionTarget[]>(() => [
+  ...localModels.installedModels.map((model) => ({
     label: t("session.localOption", { model: model.label }),
-    value: model.id,
+    value: `local:${model.id}`,
+    provider: "local" as const,
+    modelId: model.id,
   })),
+  ...(openAi.credential?.configured
+    ? openAiModelOptions(t).map((model) => ({
+        label: model.label,
+        value: `open_ai:${model.value}`,
+        provider: "open_ai" as const,
+        modelId: model.modelId,
+      }))
+    : []),
+]);
+const selectedTargetOption = computed(
+  () =>
+    transcriptionTargets.value.find(
+      (target) => target.value === selectedTarget.value,
+    ) ?? null,
 );
-const cloudModelOptions = computed(() => openAiModelOptions(t));
-async function transcribeLocally() {
-  if (selectedLocalModelId.value) {
-    await sessionStore.transcribeLocally(
-      props.sessionId,
-      selectedLocalModelId.value,
+
+watch(
+  transcriptionTargets,
+  (targets) => {
+    if (targets.some((target) => target.value === selectedTarget.value)) {
+      return;
+    }
+
+    const preferredLocalModel = localModels.installedModels.find(
+      (model) => model.preset === "balanced",
     );
+    selectedTarget.value = preferredLocalModel
+      ? `local:${preferredLocalModel.id}`
+      : (targets[0]?.value ?? "");
+  },
+  { immediate: true },
+);
+
+async function transcribe(target = selectedTargetOption.value) {
+  if (!target) {
+    return;
   }
+
+  if (target.provider === "local") {
+    await sessionStore.transcribeLocally(props.sessionId, target.modelId);
+    return;
+  }
+
+  await sessionStore.transcribeWithOpenAi(props.sessionId, target.modelId);
 }
 
-async function transcribeWithOpenAi() {
-  await sessionStore.transcribeWithOpenAi(
-    props.sessionId,
-    openAiModelId(selectedOpenAiModel.value),
+function selectTarget(value: string) {
+  selectedTarget.value = value;
+  void transcribe(
+    transcriptionTargets.value.find((target) => target.value === value) ?? null,
   );
 }
 
-onMounted(async () => {
-  await localModels.load();
-  selectedLocalModelId.value =
-    localModels.installedModels.find((model) => model.preset === "balanced")
-      ?.id ??
-    localModels.installedModels[0]?.id ??
-    "";
-  selectedOpenAiModel.value = "gpt_transcribe";
+onMounted(() => {
+  void localModels.load();
 });
 </script>
 
 <template>
   <div
     v-if="canTranscribe"
-    class="transcription-actions flex w-full min-w-0 items-center gap-2 max-[720px]:flex-wrap"
+    class="transcription-actions flex max-w-full min-w-0 flex-wrap items-center gap-2"
   >
-    <template v-if="localModels.installedModels.length">
-      <AppSelect
-        class="w-[150px] flex-1 text-sm max-[720px]:w-full max-[720px]:flex-none"
-        v-model="selectedLocalModelId"
-        :options="localModelOptions"
-        :accessible-label="t('session.localModel')"
-      />
-      <AppButton
-        class="max-[720px]:w-full"
-        variant="primary"
+    <template v-if="transcriptionTargets.length">
+      <AppSplitButton
+        class="max-w-full shrink-0 max-[720px]:w-full"
+        :options="transcriptionTargets"
+        :accessible-label="
+          props.hasTranscript
+            ? t('session.retranscribe')
+            : t('session.transcribe')
+        "
+        :menu-accessible-label="t('session.transcriptionTarget')"
+        size="medium"
         :disabled="Boolean(activeJob)"
-        :loading="activeJob?.kind === 'transcribe_local'"
-        @click="transcribeLocally"
+        @click="transcribe()"
+        @select="selectTarget"
       >
-        <Cpu :size="15" />
-        {{ t("session.transcribe") }}
-      </AppButton>
-    </template>
-    <template v-if="openAi.credential?.configured">
-      <AppSelect
-        v-model="selectedOpenAiModel"
-        class="w-[190px] flex-1 text-sm max-[720px]:w-full max-[720px]:flex-none"
-        :options="cloudModelOptions"
-        :accessible-label="t('session.openAiModel')"
-      />
-      <AppButton
-        class="max-[720px]:w-full"
-        variant="secondary"
-        :disabled="Boolean(activeJob)"
-        :loading="activeJob?.kind === 'transcribe_open_ai'"
-        @click="transcribeWithOpenAi"
-      >
-        <Sparkles :size="15" />
-        {{ t("session.openAi") }}
-      </AppButton>
+        <Cpu v-if="selectedTargetOption?.provider === 'local'" :size="15" />
+        <Sparkles v-else :size="15" />
+        {{
+          props.hasTranscript
+            ? t("session.retranscribe")
+            : t("session.transcribe")
+        }}
+      </AppSplitButton>
     </template>
     <AppButton
-      v-if="
-        !localModels.installedModels.length && !openAi.credential?.configured
-      "
+      v-else
       class="max-[720px]:w-full"
       variant="secondary"
       @click="router.push('/settings#models')"

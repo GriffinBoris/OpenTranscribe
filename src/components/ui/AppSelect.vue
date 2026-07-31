@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import Select from "primevue/select";
+import { useI18n } from "vue-i18n";
 
 interface AppSelectOption {
   label: string;
@@ -7,7 +9,7 @@ interface AppSelectOption {
   disabled?: boolean;
 }
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     modelValue: string;
     options: AppSelectOption[];
@@ -21,6 +23,11 @@ withDefaults(
   },
 );
 
+const { t } = useI18n();
+const resolvedPlaceholder = computed(
+  () => props.placeholder ?? t("controls.selectOption"),
+);
+
 defineEmits<{
   "update:modelValue": [value: string];
 }>();
@@ -28,7 +35,7 @@ defineEmits<{
 const selectParts = {
   root: "app-select relative flex min-h-[var(--control-height-medium)] min-w-0 items-center rounded-app-sm border border-line bg-surface-raised text-ink transition-[border-color,box-shadow] duration-[var(--duration-standard)] ease-[var(--easing-standard)] focus-within:border-accent focus-within:shadow-[var(--shadow-focus)] data-[p-disabled=true]:cursor-not-allowed data-[p-disabled=true]:opacity-[var(--opacity-disabled)]",
   label:
-    "app-select__label min-w-0 flex-1 overflow-hidden px-3 py-2 pr-1.5 text-ellipsis whitespace-nowrap outline-none",
+    "app-select__label min-w-0 flex-1 overflow-hidden px-3 py-2 pr-1.5 text-ellipsis whitespace-nowrap outline-none data-[p-placeholder=true]:text-ink-faint",
   dropdown:
     "app-select__trigger grid w-[34px] shrink-0 self-stretch place-items-center text-ink-muted",
   dropdownIcon: "app-select__icon size-[13px]",
@@ -53,7 +60,7 @@ const selectParts = {
     option-disabled="disabled"
     :aria-label="accessibleLabel"
     :disabled="disabled"
-    :placeholder="placeholder"
+    :placeholder="resolvedPlaceholder"
     :pt="selectParts"
     @update:model-value="$emit('update:modelValue', $event)"
   />

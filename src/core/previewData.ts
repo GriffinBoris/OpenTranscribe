@@ -108,6 +108,7 @@ export function createPreviewSnapshot(
           unit: "audio_ms",
           message: "Transcribing 32:00 of 1:21:00",
         },
+        estimated_cost_usd: null,
         attempt: 1,
         error_message: null,
         created_at: new Date(now - 120_000).toISOString(),

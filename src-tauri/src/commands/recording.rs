@@ -6,7 +6,6 @@ use serde::Deserialize;
 use super::events::publish_recording_levels;
 use super::{ActiveRecordingIntent, AppState, send_event, with_repository};
 use crate::audio::{AudioDevices, RecordingStatus, StartRecordingOptions};
-use crate::credentials::OpenAiCredentials;
 use crate::error::{AppError, AppResult};
 use crate::jobs;
 use crate::transcription::OpenAiRealtimeController;
@@ -53,7 +52,7 @@ pub fn create_recording(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Session> {
     let realtime_api_key = if request.recording_mode == RecordingMode::OpenAiLive {
-        Some(OpenAiCredentials::read()?)
+        Some(state.openai_credentials.read()?)
     } else {
         None
     };

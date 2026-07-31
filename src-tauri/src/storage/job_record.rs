@@ -10,8 +10,14 @@ use crate::error::AppResult;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum JobRequest {
-    TranscribeLocal { model_id: String },
-    TranscribeOpenAi { model_id: String },
+    TranscribeLocal {
+        model_id: String,
+    },
+    TranscribeOpenAi {
+        model_id: String,
+        #[serde(default)]
+        live_stream_count: u8,
+    },
 }
 
 impl JobRequest {

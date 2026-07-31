@@ -309,11 +309,6 @@ onMounted(async () => {
               />
             </div>
           </AppSurface>
-
-          <div
-            class="h-[calc(100dvh-var(--layout-titlebar-height))]"
-            aria-hidden="true"
-          />
         </div>
       </div>
     </div>

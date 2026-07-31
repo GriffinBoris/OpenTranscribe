@@ -102,7 +102,10 @@ function emitPostRecordingJob(sessionId: string, mode: RecordingMode) {
     return;
   }
 
-  if (mode === "local_live" && !localModels.some((model) => model.installed)) {
+  if (
+    mode === "local_after_recording" &&
+    !localModels.some((model) => model.installed)
+  ) {
     previewAppEventListener?.({
       type: "attention_required",
       payload: t("shell.installLocalModel"),
@@ -127,6 +130,7 @@ function emitPostRecordingJob(sessionId: string, mode: RecordingMode) {
       kind: mode === "open_ai_live" ? "transcribe_open_ai" : "transcribe_local",
       state: "queued",
       progress: null,
+      estimated_cost_usd: null,
       attempt: 1,
       error_message: null,
       created_at: timestamp,
@@ -141,7 +145,10 @@ function previewSnapshot(path?: string) {
     "recordingMode",
   );
 
-  if (recordingMode === "local_live" || recordingMode === "open_ai_live") {
+  if (
+    recordingMode === "local_after_recording" ||
+    recordingMode === "open_ai_live"
+  ) {
     snapshot.settings.recording_mode = recordingMode;
   }
 
@@ -405,6 +412,7 @@ export const previewNative: NativeBridge = {
       kind: provider === "open_ai" ? "transcribe_open_ai" : "transcribe_local",
       state: "queued",
       progress: null,
+      estimated_cost_usd: null,
       attempt: 1,
       error_message: null,
       created_at: timestamp,

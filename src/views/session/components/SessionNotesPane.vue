@@ -30,18 +30,20 @@ const renderedNotes = computed(() =>
 
 <template>
   <section
-    class="@container grid min-h-0 grid-rows-[auto_1fr]"
+    class="@container grid min-h-0 grid-rows-[var(--layout-pane-toolbar-height)_minmax(0,1fr)]"
     :class="{ 'max-[900px]:hidden': !active }"
     :aria-label="t('session.notes')"
   >
     <div
-      class="notes-toolbar text-ink-muted flex min-h-0 items-center justify-between gap-3 border-b border-[var(--divider)] px-[18px] py-[9px] text-xs"
+      class="notes-toolbar session-pane-toolbar text-ink-muted flex h-[var(--layout-pane-toolbar-height)] min-h-0 items-center justify-between gap-3 border-b border-[var(--divider)] px-[18px] py-[9px] text-xs"
     >
       <div class="flex items-center gap-1.5">
         <strong class="text-md text-ink">{{ t("session.notes") }}</strong>
         <span class="text-success">{{ notesState }}</span>
       </div>
-      <div class="ml-auto flex shrink-0 items-center gap-2">
+      <div
+        class="notes-toolbar__actions ml-auto flex shrink-0 items-center gap-2"
+      >
         <AppButton
           size="small"
           variant="ghost"

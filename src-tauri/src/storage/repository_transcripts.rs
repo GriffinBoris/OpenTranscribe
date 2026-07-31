@@ -20,6 +20,7 @@ impl LibraryRepository {
         let artifact = [
             ArtifactKind::Mixed,
             ArtifactKind::Microphone,
+            ArtifactKind::System,
             ArtifactKind::ImportedAudio,
             ArtifactKind::ImportedOriginal,
         ]

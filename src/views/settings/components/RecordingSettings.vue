@@ -35,7 +35,7 @@ const microphoneOptions = computed(
 );
 const recordingModeOptions = computed(() => [
   { label: t("recording.recordOnly"), value: "record_only" },
-  { label: t("home.recordLocal"), value: "local_live" },
+  { label: t("home.recordLocal"), value: "local_after_recording" },
   { label: t("home.recordOpenAi"), value: "open_ai_live" },
 ]);
 const cloudModelOptions = computed(() => openAiModelOptions(t));

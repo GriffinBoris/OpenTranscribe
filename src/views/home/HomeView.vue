@@ -40,7 +40,7 @@ let stopListeningForMediaDrops: (() => void) | null = null;
 const recordingOptions = computed(() => [
   {
     label: t("home.recordLocal"),
-    value: "local_live",
+    value: "local_after_recording",
     disabled: localModels.installedModels.length === 0,
   },
   {

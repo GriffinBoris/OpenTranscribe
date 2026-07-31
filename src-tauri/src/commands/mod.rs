@@ -11,6 +11,7 @@ use opentranscribe_domain::{AppEvent, AppSettings, OpenAiTranscriptionModel, Rec
 use tauri::ipc::Channel;
 
 use crate::audio::RecordingController;
+use crate::credentials::OpenAiCredentials;
 use crate::error::{AppError, AppResult};
 use crate::storage::LibraryRepository;
 use crate::transcription::OpenAiRealtimeController;
@@ -30,6 +31,7 @@ pub struct AppState {
     pub(crate) settings: Mutex<AppSettings>,
     pub(crate) canceled_jobs: Mutex<HashSet<String>>,
     pub(crate) recorder: RecordingController,
+    pub(crate) openai_credentials: OpenAiCredentials,
     pub(crate) active_recording_intent: Mutex<Option<ActiveRecordingIntent>>,
     pub(crate) live_transcription: Mutex<Option<OpenAiRealtimeController>>,
 }

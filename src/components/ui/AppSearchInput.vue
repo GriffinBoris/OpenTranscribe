@@ -8,14 +8,16 @@ import AppInputText from "@/components/ui/AppInputText.vue";
 
 defineOptions({ inheritAttrs: false });
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     modelValue?: string;
     disabled?: boolean;
+    fullWidth?: boolean;
   }>(),
   {
     modelValue: "",
     disabled: false,
+    fullWidth: false,
   },
 );
 
@@ -29,20 +31,21 @@ const attrs = useAttrs();
 <template>
   <IconField
     unstyled
-    class="app-search-input relative block w-full max-w-[460px]"
+    class="app-search-input relative block w-full"
+    :class="props.fullWidth ? 'max-w-none' : 'max-w-[460px]'"
   >
     <InputIcon
       unstyled
-      class="app-search-input__icon text-ink-muted pointer-events-none absolute top-1/2 left-3 z-1 grid -translate-y-1/2 place-items-center"
+      class="app-search-input__icon text-ink-muted pointer-events-none absolute top-1/2 left-3 z-1 grid size-4 shrink-0 -translate-y-1/2 place-items-center"
     >
-      <Search :size="16" />
+      <Search class="block size-4" :stroke-width="2" />
     </InputIcon>
     <AppInputText
       v-bind="attrs"
       class="pl-[calc(var(--space-3)+16px+var(--space-2))]"
       type="search"
-      :model-value="modelValue"
-      :disabled="disabled"
+      :model-value="props.modelValue"
+      :disabled="props.disabled"
       @update:model-value="$emit('update:modelValue', $event)"
     />
   </IconField>

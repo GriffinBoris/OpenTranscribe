@@ -76,7 +76,6 @@ const projectOptions = computed(() => [
 const canTranscribe = computed(
   () =>
     !recording.activeRecording &&
-    !savedTranscript.value &&
     Boolean(session.value?.duration_ms || session.value?.source === "import"),
 );
 const savedTranscript = computed(
@@ -339,6 +338,7 @@ onBeforeUnmount(() => {
       :is-exporting="isExporting"
       :recoverable="recoverable"
       :recovering="isRecovering"
+      :transcript-run="sessionStore.transcriptRuns[sessionId] ?? null"
       @recover="recoverRecording"
       @rename="openRenameDialog"
       @search="searchOpen = true"

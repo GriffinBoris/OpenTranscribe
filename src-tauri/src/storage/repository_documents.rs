@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use opentranscribe_domain::{SearchFilters, SearchPage, SearchResult, Session, Transcript};
+use opentranscribe_domain::{
+    SearchFilters, SearchPage, SearchResult, Session, Transcript, TranscriptRun,
+};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -29,6 +31,7 @@ pub struct SessionWorkspace {
     pub notes: String,
     pub notes_hash: String,
     pub transcript: Option<Transcript>,
+    pub transcript_run: Option<TranscriptRun>,
 }
 
 impl LibraryRepository {
@@ -101,10 +104,20 @@ impl LibraryRepository {
         let session = serde_json::from_slice(&fs::read(directory.join("session.json"))?)?;
         let notes_bytes = fs::read(directory.join("notes.md"))?;
         let transcript_path = directory.join("transcripts/transcript.json");
-        let transcript = if transcript_path.exists() {
+        let transcript: Option<Transcript> = if transcript_path.exists() {
             Some(serde_json::from_slice(&fs::read(transcript_path)?)?)
         } else {
             None
+        };
+        let transcript_run_path = transcript.as_ref().map(|transcript| {
+            directory
+                .join("transcripts/runs")
+                .join(&transcript.source_run_id)
+                .join("run.json")
+        });
+        let transcript_run = match transcript_run_path {
+            Some(path) if path.exists() => Some(serde_json::from_slice(&fs::read(path)?)?),
+            _ => None,
         };
 
         Ok(SessionWorkspace {
@@ -113,6 +126,7 @@ impl LibraryRepository {
                 .map_err(|error| AppError::Io(std::io::Error::other(error)))?,
             notes_hash: hash_bytes(&notes_bytes),
             transcript,
+            transcript_run,
         })
     }
 

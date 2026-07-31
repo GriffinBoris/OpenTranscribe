@@ -1,13 +1,31 @@
-use serde::{Deserialize, Serialize};
+use serde::de::Error;
+use serde::{Deserialize, Deserializer, Serialize};
 use ts_rs::TS;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
+#[derive(Clone, Debug, PartialEq, Serialize, TS)]
 #[ts(export)]
 #[serde(rename_all = "snake_case")]
 pub enum RecordingMode {
     RecordOnly,
-    LocalLive,
+    LocalAfterRecording,
     OpenAiLive,
+}
+
+impl<'de> Deserialize<'de> for RecordingMode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match String::deserialize(deserializer)?.as_str() {
+            "record_only" => Ok(Self::RecordOnly),
+            "local_after_recording" | "local_live" => Ok(Self::LocalAfterRecording),
+            "open_ai_live" => Ok(Self::OpenAiLive),
+            value => Err(D::Error::unknown_variant(
+                value,
+                &["record_only", "local_after_recording", "open_ai_live"],
+            )),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, TS)]
@@ -112,7 +130,19 @@ impl Default for AppSettings {
 
 #[cfg(test)]
 mod tests {
-    use super::{AppSettings, OpenAiTranscriptionModel, RecordingProjectSelection};
+    use super::{AppSettings, OpenAiTranscriptionModel, RecordingMode, RecordingProjectSelection};
+
+    #[test]
+    fn migrates_the_legacy_local_live_recording_mode_name() {
+        let mode: RecordingMode =
+            serde_json::from_str(r#""local_live""#).expect("legacy mode should deserialize");
+
+        assert_eq!(mode, RecordingMode::LocalAfterRecording);
+        assert_eq!(
+            serde_json::to_string(&mode).expect("mode should serialize"),
+            r#""local_after_recording""#
+        );
+    }
 
     #[test]
     fn reads_existing_settings_without_a_recording_project_selection() {

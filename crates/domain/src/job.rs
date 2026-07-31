@@ -74,6 +74,8 @@ pub struct Job {
     pub kind: JobKind,
     pub state: JobState,
     pub progress: Option<JobProgress>,
+    #[serde(default)]
+    pub estimated_cost_usd: Option<f64>,
     pub attempt: u8,
     pub error_message: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -90,6 +92,7 @@ impl Job {
             kind,
             state: JobState::Queued,
             progress: None,
+            estimated_cost_usd: None,
             attempt: 1,
             error_message: None,
             created_at: timestamp,

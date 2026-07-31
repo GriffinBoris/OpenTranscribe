@@ -230,7 +230,7 @@ export const messages = {
   },
   recordingDock: {
     localAfterStop: "Transcribes locally after stop",
-    openAiAfterStop: "Live captions · saves transcript after stop",
+    openAiLive: "Live captions",
     saveToDisk: "Recording safely to disk",
     paused: "Paused",
     recording: "Recording",
@@ -315,6 +315,13 @@ export const messages = {
     openAi: "OpenAI",
     waiting: "Waiting to start",
     transcribingProgress: "Transcribing {completed} of {total}",
+    estimatedCost: "Estimated cost {cost}",
+    totalEstimatedCost: "Estimated cloud cost {cost}",
+    costUnavailable: "Cost estimate unavailable",
+    aboutMinutesRemaining: "About {minutes} min remaining",
+    lessThanMinuteRemaining: "Less than a minute remaining",
+    pricingDisclaimer:
+      "Estimate based on OpenAI's published per-minute pricing, last checked July 31, 2026. Actual API billing may vary.",
     retry: "Retry",
     cancel: "Cancel",
     empty: "Nothing is processing",
@@ -401,6 +408,7 @@ export const messages = {
     export: "Export",
     exporting: "Exporting…",
     exportFormat: "Export format",
+    exportUnavailable: "Complete a transcription before exporting.",
     exportSaved: "Saved {filename}",
     meetingNotes: "Meeting notes",
     addTimestamp: "Add timestamp",
@@ -425,8 +433,10 @@ export const messages = {
     },
     localModel: "Local transcription model",
     openAiModel: "OpenAI transcription model",
+    transcriptionTarget: "Transcription target",
     localOption: "Local · {model}",
     transcribe: "Transcribe",
+    retranscribe: "Retranscribe",
     openAi: "Transcribe with OpenAI",
     setUpTranscription: "Set up transcription",
     imported: "Imported",
@@ -466,5 +476,6 @@ export const messages = {
   },
   controls: {
     moreRecordingOptions: "More recording options",
+    selectOption: "Select an option",
   },
 };

@@ -40,19 +40,45 @@ test("opens the utility shell and starts a preview recording", async ({
   await expect(
     page.getByRole("dialog", { name: "Search library" }),
   ).toBeVisible();
+  await page
+    .getByRole("dialog", { name: "Search library" })
+    .evaluate(async (dialog) =>
+      Promise.all(
+        dialog
+          .getAnimations({ subtree: true })
+          .map((animation) => animation.finished),
+      ),
+    );
   const librarySearch = page.getByPlaceholder(
     "Search sessions, transcripts, and notes",
   );
+  const librarySearchForm = page.locator(".library-search");
+  const searchButton = page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Search" });
+  const [formBox, inputBox, buttonBox] = await Promise.all([
+    librarySearchForm.boundingBox(),
+    librarySearch.boundingBox(),
+    searchButton.boundingBox(),
+  ]);
+  expect(formBox).not.toBeNull();
+  expect(inputBox).not.toBeNull();
+  expect(buttonBox).not.toBeNull();
+  expect(Math.round(inputBox!.x)).toBe(Math.round(formBox!.x));
+  expect(Math.round(buttonBox!.x + buttonBox!.width)).toBe(
+    Math.round(formBox!.x + formBox!.width),
+  );
+  expect(Math.round(inputBox!.height)).toBe(Math.round(buttonBox!.height));
   await expect(page.locator(".app-search-input__icon")).toHaveCSS(
     "position",
     "absolute",
   );
+  const searchIcon = page.locator(".app-search-input__icon svg");
+  await expect(searchIcon).toHaveCSS("width", "16px");
+  await expect(searchIcon).toHaveCSS("height", "16px");
   await expect(librarySearch).toHaveCSS("padding-left", "36px");
   await librarySearch.fill("weekly");
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Search" })
-    .click();
+  await searchButton.click();
   await expect(
     page
       .getByRole("dialog")
@@ -73,10 +99,7 @@ test("opens the utility shell and starts a preview recording", async ({
     .toBe(14);
 
   await librarySearch.fill("no matching session");
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Search" })
-    .click();
+  await searchButton.click();
   const noMatches = page.locator(".library-search + .empty-setting");
   await expect(noMatches).toBeVisible();
   await expect
@@ -197,6 +220,20 @@ test("keeps notes toolbar controls inside a constrained pane", async ({
     toolbar.getByRole("button", { name: "Preview", exact: true }),
   ).toBeVisible();
 
+  const paneToolbars = page.locator(".session-pane-toolbar");
+  await expect(paneToolbars).toHaveCount(2);
+  const toolbarBounds = await paneToolbars.evaluateAll((elements) =>
+    elements.map((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { bottom: bounds.bottom, height: bounds.height };
+    }),
+  );
+
+  expect(toolbarBounds.every(({ height }) => height === 52)).toBe(true);
+  expect(
+    Math.abs(toolbarBounds[0].bottom - toolbarBounds[1].bottom),
+  ).toBeLessThan(0.5);
+
   await expect
     .poll(() =>
       toolbar.evaluate((element) => {
@@ -217,6 +254,119 @@ test("keeps notes toolbar controls inside a constrained pane", async ({
     .toBe(true);
 });
 
+test("keeps the session toolbar aligned across viewport sizes", async ({
+  page,
+}) => {
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  const header = page.locator(".session-header");
+  const metadata = page.locator(".session-header__metadata");
+  const controls = page.locator(".session-header__controls");
+  await expect(header).toBeVisible();
+  await expect(metadata).toBeVisible();
+  await expect(controls).toBeVisible();
+
+  for (const width of [2200, 1900, 1200, 800]) {
+    await page.setViewportSize({ width, height: 800 });
+
+    const layout = await header.evaluate((headerElement) => {
+      const headerBounds = headerElement.getBoundingClientRect();
+      const metadataBounds = headerElement
+        .querySelector(".session-header__metadata")
+        ?.getBoundingClientRect();
+      const controlsBounds = headerElement
+        .querySelector(".session-header__controls")
+        ?.getBoundingClientRect();
+      const controls = Array.from(
+        headerElement.querySelectorAll<HTMLElement>(
+          ".session-header__controls button, .session-header__controls .app-select",
+        ),
+      );
+
+      return {
+        metadataAboveControls:
+          metadataBounds !== undefined &&
+          controlsBounds !== undefined &&
+          metadataBounds.bottom <= controlsBounds.top,
+        metadataSharesControlsRow:
+          metadataBounds !== undefined &&
+          controlsBounds !== undefined &&
+          metadataBounds.top < controlsBounds.bottom &&
+          controlsBounds.top < metadataBounds.bottom,
+        controlsFit: controls.every((control) => {
+          const bounds = control.getBoundingClientRect();
+
+          return (
+            bounds.left >= headerBounds.left &&
+            bounds.right <= headerBounds.right &&
+            bounds.top >= headerBounds.top &&
+            bounds.bottom <= headerBounds.bottom
+          );
+        }),
+        controlHeights: controls.map(
+          (control) => control.getBoundingClientRect().height,
+        ),
+      };
+    });
+
+    if (width > 900) {
+      expect(layout.metadataSharesControlsRow).toBe(true);
+    } else {
+      expect(layout.metadataAboveControls).toBe(true);
+    }
+    expect(layout.controlsFit).toBe(true);
+    expect(
+      layout.controlHeights.every((height) => Math.abs(height - 38) < 1.5),
+    ).toBe(true);
+  }
+});
+
+test("uses one transcription menu for local and OpenAI targets", async ({
+  page,
+}) => {
+  await page.goto("/settings#models");
+
+  await page
+    .getByRole("group", { name: "Fast" })
+    .getByRole("button", { name: "Download" })
+    .click();
+  await page.getByPlaceholder("sk-…").fill("sk-preview-transcription");
+  await page.getByRole("button", { name: "Save to keychain" }).click();
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await page.getByText("Weekly product sync", { exact: true }).click();
+
+  await expect(
+    page.getByRole("button", { name: "Transcribe", exact: true }),
+  ).toHaveCount(1);
+  await page.getByRole("button", { name: "Transcription target" }).click();
+  await expect(
+    page.getByRole("menuitem", { name: "Local · Fast" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("menuitem", { name: "OpenAI · GPT Transcribe" }),
+  ).toBeVisible();
+});
+
+test("opens export choices from the header utility icon", async ({ page }) => {
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  const exportButton = page.getByRole("button", { name: "Export" });
+  await expect(exportButton).toBeEnabled();
+  await exportButton.click();
+
+  const exportDialog = page.getByRole("dialog", { name: "Export" });
+  await expect(exportDialog).toBeVisible();
+  await expect(exportDialog.getByLabel("Export format")).toContainText(
+    "Markdown",
+  );
+  await expect(
+    exportDialog.getByText("Complete a transcription before exporting."),
+  ).toBeVisible();
+  await expect(
+    exportDialog.getByRole("button", { name: "Export" }),
+  ).toBeVisible();
+});
+
 test("starts a session with customized recording options", async ({ page }) => {
   await page.goto("/");
 
@@ -230,7 +380,9 @@ test("starts a session with customized recording options", async ({ page }) => {
   await expect(dialog.getByLabel("Project")).toBeVisible();
   await expect(dialog.getByLabel("Microphone")).toBeVisible();
   await expect(dialog.getByLabel("Transcription")).toBeVisible();
-  await expect(dialog.getByLabel("Spoken language")).toBeVisible();
+  await expect(dialog.getByLabel("Spoken language")).toContainText(
+    "Automatic detection",
+  );
 
   await dialog.getByRole("button", { name: "Start recording" }).click();
 
@@ -399,7 +551,7 @@ test("uses quieter one-pixel dividers in settings", async ({ page }) => {
   expect(dividerStyle.color).not.toBe(controlStyle.color);
 });
 
-test("offsets settings navigation below the scroll pane edge", async ({
+test("keeps settings navigation within the natural scroll range", async ({
   page,
 }) => {
   await page.goto("/settings");
@@ -409,7 +561,6 @@ test("offsets settings navigation below the scroll pane edge", async ({
     ["Local models", "models"],
     ["OpenAI", "openai"],
     ["Shortcuts", "shortcuts"],
-    ["Appearance", "appearance"],
   ]) {
     await page.getByRole("button", { name, exact: true }).click();
 
@@ -432,6 +583,25 @@ test("offsets settings navigation below the scroll pane edge", async ({
       /settings-content-frame--scrolled/,
     );
   }
+
+  await page.getByRole("button", { name: "Appearance", exact: true }).click();
+  await expect
+    .poll(() =>
+      page.locator(".settings-content").evaluate((scrollPane) => ({
+        atBottom:
+          Math.round(scrollPane.scrollTop) ===
+          Math.round(scrollPane.scrollHeight - scrollPane.clientHeight),
+        trailingSpace: Math.round(
+          scrollPane.scrollHeight -
+            (document.getElementById("appearance")!.offsetTop +
+              document.getElementById("appearance")!.offsetHeight),
+        ),
+      })),
+    )
+    .toEqual({
+      atBottom: true,
+      trailingSpace: 0,
+    });
 
   await page.getByRole("button", { name: "Recording", exact: true }).click();
 

@@ -148,6 +148,7 @@ fn prevents_parallel_transcriptions_for_one_session() {
             session.id,
             JobRequest::TranscribeOpenAi {
                 model_id: "gpt-transcribe".to_owned(),
+                live_stream_count: 0,
             },
         )
         .expect_err("second job should be rejected");
@@ -182,6 +183,7 @@ fn canceled_jobs_leave_the_session_available_for_another_transcription() {
             session.id,
             JobRequest::TranscribeOpenAi {
                 model_id: "gpt-transcribe".to_owned(),
+                live_stream_count: 0,
             },
         )
         .expect("a replacement job should be queued");
@@ -598,6 +600,48 @@ fn finalizes_microphone_and_system_tracks_separately() {
     );
     assert!(finalized.microphone.is_some());
     assert!(finalized.system_output.is_some());
+}
+
+#[test]
+fn selects_system_audio_for_transcription_when_it_is_the_only_recorded_track() {
+    let directory = tempdir().expect("temporary directory should exist");
+    let repository =
+        LibraryRepository::initialize(directory.path()).expect("library should initialize");
+    let session = repository
+        .create_session(
+            "Playback capture".to_owned(),
+            None,
+            SessionSource::Recording,
+        )
+        .expect("session should be created");
+    let session_directory = repository
+        .session_directory_path(&session.id)
+        .expect("session directory should resolve");
+    let system_path = session_directory.join("audio/system.wav");
+    write_recovery_chunk(&system_path, 2, 10, 20);
+    let system_relative_path = relative_path(directory.path(), &system_path);
+    repository
+        .update_session(&session.id, |session| {
+            session.artifacts.push(Artifact {
+                id: new_id(),
+                kind: ArtifactKind::System,
+                relative_path: system_relative_path,
+                codec: Codec::WavPcm24,
+                sample_rate_hz: Some(10),
+                channels: Some(2),
+                duration_ms: Some(1_000),
+                byte_count: 0,
+                sha256: String::new(),
+            });
+        })
+        .expect("system artifact should be saved");
+
+    let input = repository
+        .transcription_input(&session.id)
+        .expect("transcription input should resolve");
+
+    assert_eq!(input.artifact_kind, Some(ArtifactKind::System));
+    assert_eq!(input.audio_files, vec![system_path]);
 }
 
 #[test]

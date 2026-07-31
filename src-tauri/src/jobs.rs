@@ -1,11 +1,10 @@
 use opentranscribe_domain::{
-    AppEvent, Job, JobProgress, JobStage, JobState, ProgressUnit, RecordingMode,
+    AppEvent, ArtifactKind, Job, JobProgress, JobStage, JobState, ProgressUnit, RecordingMode,
 };
 use serde::Deserialize;
 use tauri::Manager;
 
 use crate::commands::{AppState, send_event, with_repository};
-use crate::credentials::OpenAiCredentials;
 use crate::error::{AppError, AppResult};
 use crate::local_models::{
     LocalTranscriptionService, installed_path, preferred_installed_model_id,
@@ -35,7 +34,7 @@ pub(crate) fn enqueue_post_recording_transcription(
 ) -> AppResult<Option<Job>> {
     let request = match mode {
         RecordingMode::RecordOnly => return Ok(None),
-        RecordingMode::LocalLive => EnqueueTranscriptionRequest {
+        RecordingMode::LocalAfterRecording => EnqueueTranscriptionRequest {
             session_id: session_id.to_owned(),
             provider: TranscriptionProvider::Local,
             model_id: preferred_installed_model_id(app)?,
@@ -47,7 +46,13 @@ pub(crate) fn enqueue_post_recording_transcription(
         },
     };
 
-    enqueue_transcription_job(request, app.clone(), app.state()).map(Some)
+    enqueue_transcription_job(
+        request,
+        mode == RecordingMode::OpenAiLive,
+        app.clone(),
+        app.state(),
+    )
+    .map(Some)
 }
 
 #[tauri::command]
@@ -56,11 +61,12 @@ pub fn enqueue_transcription(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Job> {
-    enqueue_transcription_job(request, app, state)
+    enqueue_transcription_job(request, false, app, state)
 }
 
 fn enqueue_transcription_job(
     request: EnqueueTranscriptionRequest,
+    includes_live_transcription: bool,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Job> {
@@ -74,6 +80,25 @@ fn enqueue_transcription_job(
         ));
     }
 
+    let live_stream_count = if includes_live_transcription {
+        1 + u8::from(
+            input
+                .session
+                .artifacts
+                .iter()
+                .any(|artifact| artifact.kind == ArtifactKind::System),
+        )
+    } else {
+        0
+    };
+    let estimated_cost_usd = match request.provider {
+        TranscriptionProvider::Local => None,
+        TranscriptionProvider::OpenAi => crate::transcription::estimate_openai_cost(
+            &request.model_id,
+            input.session.duration_ms,
+            live_stream_count,
+        ),
+    };
     let job_request = match request.provider {
         TranscriptionProvider::Local => {
             installed_path(&app, &request.model_id)?;
@@ -82,14 +107,18 @@ fn enqueue_transcription_job(
             }
         }
         TranscriptionProvider::OpenAi => {
-            OpenAiCredentials::read()?;
+            state.openai_credentials.read()?;
             JobRequest::TranscribeOpenAi {
                 model_id: request.model_id,
+                live_stream_count,
             }
         }
     };
     let record = with_repository(&state, |repository| {
-        repository.create_job(request.session_id, job_request)
+        let record = repository.create_job(request.session_id, job_request)?;
+        repository.update_job(&record.job.id, |job| {
+            job.estimated_cost_usd = estimated_cost_usd;
+        })
     })?;
     send_event(&state, AppEvent::JobStateChanged(record.job.clone()));
     spawn_job(app, record.clone());
@@ -159,9 +188,14 @@ pub fn cancel_job(job_id: String, state: tauri::State<'_, AppState>) -> AppResul
 
 fn spawn_job(app: tauri::AppHandle, record: JobRecord) {
     match record.request.clone() {
-        JobRequest::TranscribeOpenAi { model_id } => {
+        JobRequest::TranscribeOpenAi {
+            model_id,
+            live_stream_count,
+        } => {
             tauri::async_runtime::spawn_blocking(move || {
-                if let Err(error) = run_openai_job(&app, &record.job.id, model_id) {
+                if let Err(error) =
+                    run_openai_job(&app, &record.job.id, model_id, live_stream_count)
+                {
                     fail_job(&app, &record.job.id, error);
                 }
             });
@@ -176,13 +210,19 @@ fn spawn_job(app: tauri::AppHandle, record: JobRecord) {
     }
 }
 
-fn run_openai_job(app: &tauri::AppHandle, job_id: &str, model_id: String) -> AppResult<()> {
+fn run_openai_job(
+    app: &tauri::AppHandle,
+    job_id: &str,
+    model_id: String,
+    live_stream_count: u8,
+) -> AppResult<()> {
     let input = prepare_job(app, job_id)?;
-    let api_key = OpenAiCredentials::read()?;
+    let api_key = app.state::<AppState>().openai_credentials.read()?;
     let bundle = OpenAiTranscriptionService::run(
         input,
         &api_key,
         model_id,
+        live_stream_count,
         |completed, total| {
             report_progress(
                 app,

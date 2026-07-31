@@ -40,12 +40,12 @@ const systemLevel = computed(() => ({
   "--audio-level": String(Math.min(recording.status?.system_peak ?? 0, 1)),
 }));
 const recordingOutcome = computed(() => {
-  if (recording.activeMode === "local_live") {
+  if (recording.activeMode === "local_after_recording") {
     return t("recordingDock.localAfterStop");
   }
 
   if (recording.activeMode === "open_ai_live") {
-    return t("recordingDock.openAiAfterStop");
+    return t("recordingDock.openAiLive");
   }
 
   return t("recordingDock.saveToDisk");

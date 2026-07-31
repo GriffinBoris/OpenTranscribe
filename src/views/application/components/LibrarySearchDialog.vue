@@ -98,15 +98,22 @@ function resultIcon(kind: SearchResult["kind"]) {
     @update:open="emit('update:open', $event)"
   >
     <form
-      class="library-search mb-[var(--space-3-5)] flex items-center gap-2"
+      class="library-search mb-[var(--space-3-5)] grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 max-[520px]:grid-cols-1"
       @submit.prevent="searchLibrary"
     >
       <AppSearchInput
         v-model="query"
+        full-width
+        class="min-w-0"
         :placeholder="t('librarySearch.placeholder')"
         autofocus
       />
-      <AppButton type="submit" variant="primary" :disabled="!canSearch">
+      <AppButton
+        class="max-[520px]:w-full"
+        type="submit"
+        variant="primary"
+        :disabled="!canSearch"
+      >
         {{ t("librarySearch.action") }}
       </AppButton>
     </form>

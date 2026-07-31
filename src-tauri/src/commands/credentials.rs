@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::credentials::{CredentialStatus, OpenAiCredentials};
+use super::AppState;
+use crate::credentials::CredentialStatus;
 use crate::error::AppResult;
 use crate::transcription::OpenAiFileTranscriber;
 
@@ -16,23 +17,28 @@ pub struct ConnectionTestResult {
 }
 
 #[tauri::command]
-pub fn openai_credential_status() -> AppResult<CredentialStatus> {
-    OpenAiCredentials::status()
+pub fn openai_credential_status(state: tauri::State<'_, AppState>) -> AppResult<CredentialStatus> {
+    state.openai_credentials.status()
 }
 
 #[tauri::command]
-pub fn save_openai_api_key(request: SaveOpenAiKeyRequest) -> AppResult<CredentialStatus> {
-    OpenAiCredentials::save(&request.api_key)
+pub fn save_openai_api_key(
+    request: SaveOpenAiKeyRequest,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<CredentialStatus> {
+    state.openai_credentials.save(&request.api_key)
 }
 
 #[tauri::command]
-pub fn remove_openai_api_key() -> AppResult<CredentialStatus> {
-    OpenAiCredentials::remove()
+pub fn remove_openai_api_key(state: tauri::State<'_, AppState>) -> AppResult<CredentialStatus> {
+    state.openai_credentials.remove()
 }
 
 #[tauri::command]
-pub fn test_openai_connection() -> AppResult<ConnectionTestResult> {
-    let api_key = OpenAiCredentials::read()?;
+pub fn test_openai_connection(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<ConnectionTestResult> {
+    let api_key = state.openai_credentials.read()?;
     OpenAiFileTranscriber::new().test_connection(&api_key)?;
     Ok(ConnectionTestResult {
         connected: true,

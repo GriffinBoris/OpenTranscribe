@@ -24,7 +24,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-22.04]
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis,msi
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: appimage,deb
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
@@ -40,6 +52,7 @@ jobs:
         uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
         with:
           toolchain: 1.92.0
+          targets: ${{ matrix.target }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
@@ -55,26 +68,26 @@ jobs:
 
       - name: Prepare local transcription sidecar
         if: inputs.bundle != true
-        run: npm run prepare:sidecar:debug
+        run: npm run prepare:sidecar:debug -- --target ${{ matrix.target }}
 
       - name: Compile native workspace
         if: inputs.bundle != true
-        run: cargo check --workspace --locked
+        run: cargo check --workspace --locked --target ${{ matrix.target }}
 
       - name: Build unsigned installers
         if: inputs.bundle
-        run: npm run tauri -- build --ci --no-sign -- --locked
+        run: npm run tauri -- build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci --no-sign -- --locked
 
       - name: Upload unsigned installers
         if: inputs.bundle
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: opentranscribe-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+          name: opentranscribe-${{ matrix.target }}-${{ github.sha }}
           path: |
-            target/release/bundle/**/*.AppImage
-            target/release/bundle/**/*.deb
-            target/release/bundle/**/*.dmg
-            target/release/bundle/**/*.exe
-            target/release/bundle/**/*.msi
+            target/${{ matrix.target }}/release/bundle/**/*.AppImage
+            target/${{ matrix.target }}/release/bundle/**/*.deb
+            target/${{ matrix.target }}/release/bundle/**/*.dmg
+            target/${{ matrix.target }}/release/bundle/**/*.exe
+            target/${{ matrix.target }}/release/bundle/**/*.msi
           if-no-files-found: error
           retention-days: 7

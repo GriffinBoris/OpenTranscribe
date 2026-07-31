@@ -30,17 +30,22 @@ pub fn build_bundle(
 ) -> TranscriptionBundle {
     let run_id = opentranscribe_domain::new_id();
     let is_import = input.session.source == SessionSource::Import;
-    let is_mixed = input.artifact_kind == Some(ArtifactKind::Mixed);
     let (audio_source, default_speaker_name, default_speaker_source) = if is_import {
         (
             AudioSource::Imported,
             "Imported audio",
             SpeakerSource::Imported,
         )
-    } else if is_mixed {
-        (AudioSource::Mixed, "Meeting audio", SpeakerSource::Mixed)
     } else {
-        (AudioSource::Microphone, "Me", SpeakerSource::Microphone)
+        match input.artifact_kind {
+            Some(ArtifactKind::Mixed) => {
+                (AudioSource::Mixed, "Meeting audio", SpeakerSource::Mixed)
+            }
+            Some(ArtifactKind::System) => {
+                (AudioSource::System, "System audio", SpeakerSource::System)
+            }
+            _ => (AudioSource::Microphone, "Me", SpeakerSource::Microphone),
+        }
     };
     let mut speakers = Vec::new();
     let mut speaker_ids: HashMap<String, String> = HashMap::new();
@@ -190,6 +195,39 @@ mod tests {
         assert_ne!(
             bundle.transcript.segments[0].speaker_id,
             bundle.transcript.segments[1].speaker_id
+        );
+    }
+
+    #[test]
+    fn labels_system_only_transcripts_as_system_audio() {
+        let input = TranscriptionInput {
+            session: Session::new(
+                "Playback capture".to_owned(),
+                None,
+                SessionSource::Recording,
+            ),
+            audio_files: Vec::new(),
+            artifact_kind: Some(ArtifactKind::System),
+        };
+        let bundle = build_bundle(
+            input,
+            TranscriptSource::OpenAi,
+            "gpt-transcribe".to_owned(),
+            vec![TranscriptionSegmentInput {
+                start_ms: 0,
+                end_ms: 1_000,
+                text: "System playback".to_owned(),
+                speaker_label: None,
+            }],
+            None,
+            serde_json::Value::Null,
+        );
+
+        assert_eq!(bundle.transcript.speakers[0].display_name, "System audio");
+        assert_eq!(bundle.transcript.speakers[0].source, SpeakerSource::System);
+        assert_eq!(
+            bundle.transcript.segments[0].source,
+            opentranscribe_domain::AudioSource::System
         );
     }
 }

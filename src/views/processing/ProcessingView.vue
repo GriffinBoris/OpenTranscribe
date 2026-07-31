@@ -9,6 +9,7 @@ import AppSurface from "@/components/ui/AppSurface.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import type { Job } from "@/types/domain";
 import { useApplicationStore } from "@/views/application/applicationStore";
+import { jobEstimateDetails } from "@/views/application/jobEstimates";
 
 const application = useApplicationStore();
 const { t } = useI18n();
@@ -69,6 +70,12 @@ function progressMessage(job: Job) {
   }
 
   return t(`processing.stages.${stage}`);
+}
+
+function estimateDetails(job: Job) {
+  return jobEstimateDetails(job, (key, parameters) =>
+    parameters ? t(key, parameters) : t(key),
+  ).join(" · ");
 }
 </script>
 
@@ -133,6 +140,12 @@ function progressMessage(job: Job) {
                 :value="progressValue(job)"
                 :accessible-label="progressMessage(job)"
               />
+              <small
+                v-if="estimateDetails(job)"
+                class="text-ink-muted mt-1.5 block text-xs"
+              >
+                {{ estimateDetails(job) }}
+              </small>
             </div>
             <div
               class="processing-row__status flex items-center gap-1.5 justify-self-end max-[700px]:justify-self-start"

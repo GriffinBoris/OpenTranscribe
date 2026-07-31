@@ -68,11 +68,14 @@ export function useFirstRunSetup() {
   });
   const recordingModeOptions = computed(() => [
     { label: t("firstRun.decideLater"), value: "record_only" },
-    { label: t("firstRun.transcribeLocal"), value: "local_live" },
+    {
+      label: t("firstRun.transcribeLocal"),
+      value: "local_after_recording",
+    },
     { label: t("firstRun.transcribeOpenAi"), value: "open_ai_live" },
   ]);
   const providerReady = computed(() => {
-    if (recordingMode.value === "local_live") {
+    if (recordingMode.value === "local_after_recording") {
       return localModels.installedModels.length > 0;
     }
 
