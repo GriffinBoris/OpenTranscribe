@@ -1,0 +1,11 @@
+[package]
+name = "opentranscribe-local-transcriber"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+opentranscribe-transcriber-protocol = { path = "../../crates/transcriber-protocol" }
+symphonia = { version = "0.6.0", features = ["all"] }
+whisper-rs = "0.16.0"

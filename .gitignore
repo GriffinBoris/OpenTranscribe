@@ -1,5 +1,9 @@
 # Node artifact files
 node_modules/
+.vite/
+playwright-report/
+test-results/
+coverage/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -78,6 +82,12 @@ docs/_build/
 # PyBuilder
 .pybuilder/
 target/
+src-tauri/gen/
+src-tauri/binaries/
+*.tsbuildinfo
+src/**/*.vue.js
+src/**/*.vue.d.ts
+crates/domain/bindings/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -167,6 +177,15 @@ cython_debug/
 .fleet/
 **/db.sqlite3
 frontend/test-results/
+
+# Desktop application artifacts
+*.dmg
+*.msi
+*.AppImage
+*.deb
+*.sig
+latest.json
+.opentranscribe-dev/
 
 .env.secret
 .env.secret.*

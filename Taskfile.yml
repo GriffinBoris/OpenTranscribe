@@ -5,25 +5,97 @@ includes:
     taskfile: ./tasks/ai.yml
     dir: .
 
-  docker:
-    taskfile: ./tasks/docker.yml
-    dir: .
-
-  local:
-    taskfile: ./tasks/local.yml
-    dir: .
-
-  github:
-    taskfile: ./tasks/github.yml
-    dir: .
-
-  setup:
-    taskfile: ./tasks/setup.yml
-    dir: .
-
 tasks:
   default:
     desc: Show available tasks
     cmds:
       - task --list
     silent: true
+
+  install:
+    desc: Install locked frontend dependencies
+    cmds:
+      - npm ci
+
+  dev:
+    desc: Run the Tauri desktop application in development mode
+    cmds:
+      - npm run tauri dev
+
+  dev:web:
+    desc: Run the Vue frontend without the native shell
+    cmds:
+      - npm run dev
+
+  format:
+    desc: Format frontend and Rust sources
+    cmds:
+      - npm run format
+      - cargo fmt --all
+
+  format:check:
+    desc: Check frontend and Rust formatting
+    cmds:
+      - npm run format:check
+      - cargo fmt --all --check
+
+  lint:
+    desc: Lint frontend and Rust sources
+    cmds:
+      - npm run lint
+      - cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  typecheck:
+    desc: Type-check the Vue application
+    cmds:
+      - npm run typecheck
+
+  test:
+    desc: Run frontend, workspace UI, and Rust tests
+    cmds:
+      - npm run test
+      - npm run test:ui
+      - cargo test --workspace --locked
+
+  test:ui:
+    desc: Run the workspace UI tests
+    cmds:
+      - npm run test:ui
+
+  check:
+    desc: Run every non-mutating quality gate
+    deps: [format:check, lint, typecheck, test]
+
+  build:
+    desc: Build the web frontend and Rust workspace
+    cmds:
+      - npm run build
+      - cargo build --workspace --locked
+
+  build:native:
+    desc: Compile the native desktop application without packaging installers
+    cmds:
+      - npm run tauri build -- --no-bundle
+
+  build:signed:macos:
+    desc: Build and verify a Developer ID-signed macOS app and DMG
+    platforms: [darwin]
+    cmds:
+      - npm run verify:signing:macos
+      - npm run tauri build -- --bundles app,dmg
+      - npm run verify:signing:macos -- target/release/bundle/macos/OpenTranscribe.app
+
+  agents:generate:
+    desc: Regenerate repository agent targets from authored guidance
+    cmds:
+      - python3 agents/build_agents.py --target opencode --out . --layout in-place
+      - python3 agents/build_agents.py --target claude --out . --layout in-place
+      - python3 agents/build_agents.py --target copilot --out . --layout in-place
+      - python3 agents/build_agents.py --target codex --out . --layout in-place
+      - python3 agents/build_agents.py --target gemini --out . --layout in-place
+
+  agents:check:
+    desc: Verify generated repository guidance is current
+    cmds:
+      - task agents:generate
+      - git diff --exit-code

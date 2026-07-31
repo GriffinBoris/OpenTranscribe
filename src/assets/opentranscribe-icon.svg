@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="surface" x1="128" y1="96" x2="896" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#788669" />
+      <stop offset="1" stop-color="#5E6D50" />
+    </linearGradient>
+    <linearGradient id="paper" x1="256" y1="256" x2="384" y2="744" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF7" />
+      <stop offset="1" stop-color="#F1EEE5" />
+    </linearGradient>
+    <linearGradient id="recording" x1="512" y1="276" x2="512" y2="748" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF6757" />
+      <stop offset="1" stop-color="#ED5041" />
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="992" height="992" rx="228" fill="url(#surface)" />
+  <path
+    d="M204 324C204 286.445 234.445 256 272 256H320C359.765 256 392 288.235 392 328V731.373C392 745.628 374.762 752.767 364.682 742.688L337.737 715.742C326.554 704.559 311.725 697.753 295.952 696.565L268.887 694.526C232.355 691.775 204 661.216 204 624.58V324Z"
+    fill="url(#paper)"
+  />
+  <rect x="442" y="276" width="140" height="472" rx="70" fill="url(#recording)" />
+  <path
+    d="M820 324C820 286.445 789.555 256 752 256H704C664.235 256 632 288.235 632 328V731.373C632 745.628 649.238 752.767 659.318 742.688L686.263 715.742C697.446 704.559 712.275 697.753 728.048 696.565L755.113 694.526C791.645 691.775 820 661.216 820 624.58V324Z"
+    fill="url(#paper)"
+  />
+</svg>
