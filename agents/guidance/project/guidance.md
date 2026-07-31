@@ -56,6 +56,9 @@ order: 0
   - ScreenCaptureKit on macOS
   - WASAPI loopback on Windows
   - PipeWire on Linux
+- Linux compilation requires PipeWire/SPA 1.0 or newer development headers;
+  keep Linux CI on Ubuntu 24.04 or newer so bindgen sees the API expected by
+  `pipewire-rs` 0.10.
 - Keep the macOS deployment target at 14.0 in both Cargo and Tauri bundle
   configuration. The ScreenCaptureKit Rust adapter includes a Swift bridge, so
   `build.rs` derives the active toolchain's Swift runtime library path through

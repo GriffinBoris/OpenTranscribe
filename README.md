@@ -46,7 +46,7 @@ Requirements:
 - Rust 1.92
 - CMake 3.20 or newer for the bundled whisper.cpp sidecar
 - Tauri's operating-system prerequisites
-- Linux builds also need the PipeWire development headers
+- Linux builds also need PipeWire 1.0 or newer development headers
 - Go Task is optional; every task delegates to npm or Cargo
 
 ```bash
