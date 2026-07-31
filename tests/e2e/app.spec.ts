@@ -58,6 +58,37 @@ test("opens the utility shell and starts a preview recording", async ({
       .getByRole("dialog")
       .getByRole("button", { name: /Weekly product sync/ }),
   ).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator(".library-search__results").evaluate((results) => {
+        const form = results.previousElementSibling;
+        return form
+          ? Math.round(
+              results.getBoundingClientRect().top -
+                form.getBoundingClientRect().bottom,
+            )
+          : 0;
+      }),
+    )
+    .toBe(14);
+
+  await librarySearch.fill("no matching session");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Search" })
+    .click();
+  const noMatches = page.locator(".library-search + .empty-setting");
+  await expect(noMatches).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator(".library-search").evaluate((form) => {
+        const noMatchesBox = form.nextElementSibling?.getBoundingClientRect();
+        return noMatchesBox
+          ? Math.round(noMatchesBox.top - form.getBoundingClientRect().bottom)
+          : 0;
+      }),
+    )
+    .toBe(14);
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: "Start recording" }).click();

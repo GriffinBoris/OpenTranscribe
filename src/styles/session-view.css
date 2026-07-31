@@ -276,6 +276,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-bottom: var(--space-3-5);
 }
 
 .library-search .app-search-input {
@@ -288,7 +289,6 @@
   display: grid;
   max-height: min(480px, 60vh);
   gap: var(--space-1);
-  margin-top: 14px;
   overflow: auto;
 }
 
