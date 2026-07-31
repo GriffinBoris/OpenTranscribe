@@ -5,6 +5,7 @@ import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
 import AppDialog from "@/components/ui/AppDialog.vue";
+import AppInputText from "@/components/ui/AppInputText.vue";
 import AppTabs from "@/components/ui/AppTabs.vue";
 import { native } from "@/core/native";
 import type { ExportFormat, SessionAudioSource } from "@/types/domain";
@@ -40,10 +41,13 @@ const exportFormat = ref<ExportFormat>("markdown");
 const exportMessage = ref<string | null>(null);
 const isExporting = ref(false);
 const searchOpen = ref(false);
+const renameOpen = ref(false);
 const trashConfirmOpen = ref(false);
 const isTrashing = ref(false);
 const isRecovering = ref(false);
 const isMovingSession = ref(false);
+const isRenamingSession = ref(false);
+const titleDraft = ref("");
 const audioSources = ref<SessionAudioSource[]>([]);
 const waveform = ref<number[]>([]);
 const sessionError = ref<string | null>(null);
@@ -199,6 +203,36 @@ async function moveToProject(projectId: string) {
   isMovingSession.value = false;
 }
 
+function openRenameDialog() {
+  titleDraft.value = session.value?.title ?? "";
+  renameOpen.value = true;
+}
+
+async function renameSession() {
+  const title = titleDraft.value.trim();
+
+  if (!title) {
+    return;
+  }
+
+  isRenamingSession.value = true;
+  sessionError.value = null;
+  const renamed = await sessionStore.renameSession(sessionId.value, title);
+
+  if (!renamed) {
+    sessionError.value =
+      application.operationError ?? t("session.rename.failed");
+  } else {
+    if (recording.activeRecording?.id === renamed.id) {
+      recording.activeRecording = renamed;
+    }
+
+    renameOpen.value = false;
+  }
+
+  isRenamingSession.value = false;
+}
+
 async function recoverRecording() {
   isRecovering.value = true;
   sessionError.value = null;
@@ -242,6 +276,10 @@ watch(notes, () => {
 watch(
   () => application.libraryRevision,
   () => {
+    if (isTrashing.value) {
+      return;
+    }
+
     void sessionStore.loadWorkspace(sessionId.value);
   },
 );
@@ -273,7 +311,10 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleShortcut);
   if (notesTimer !== undefined) {
     window.clearTimeout(notesTimer);
-    void persistNotes();
+
+    if (!isTrashing.value) {
+      void persistNotes();
+    }
   }
 });
 </script>
@@ -294,6 +335,7 @@ onBeforeUnmount(() => {
       :recoverable="recoverable"
       :recovering="isRecovering"
       @recover="recoverRecording"
+      @rename="openRenameDialog"
       @search="searchOpen = true"
       @trash="trashConfirmOpen = true"
       @move-to-project="moveToProject"
@@ -364,6 +406,41 @@ onBeforeUnmount(() => {
       @seek="seekPlayback"
       @show-notes="activeTab = 'notes'"
     />
+
+    <AppDialog
+      :open="renameOpen"
+      :title="t('session.rename.title')"
+      @update:open="renameOpen = $event"
+    >
+      <form id="rename-session-form" @submit.prevent="renameSession">
+        <label class="dialog-field">
+          <span>{{ t("session.rename.label") }}</span>
+          <AppInputText
+            v-model="titleDraft"
+            autocomplete="off"
+            :disabled="isRenamingSession"
+          />
+        </label>
+      </form>
+      <template #footer>
+        <AppButton
+          variant="ghost"
+          :disabled="isRenamingSession"
+          @click="renameOpen = false"
+        >
+          {{ t("session.cancel") }}
+        </AppButton>
+        <AppButton
+          form="rename-session-form"
+          type="submit"
+          variant="primary"
+          :disabled="!titleDraft.trim()"
+          :loading="isRenamingSession"
+        >
+          {{ t("session.rename.save") }}
+        </AppButton>
+      </template>
+    </AppDialog>
 
     <AppDialog
       :open="trashConfirmOpen"

@@ -81,6 +81,7 @@ export interface NativeBridge {
   sessionWaveform(sessionId: string): Promise<number[]>;
   recoverRecording(sessionId: string): Promise<Session>;
   revealSession(sessionId: string): Promise<void>;
+  renameSession(sessionId: string, title: string): Promise<Session>;
   moveSession(sessionId: string, projectId: string | null): Promise<Session>;
   trashedSessions(): Promise<Session[]>;
   trashSession(sessionId: string): Promise<Session>;

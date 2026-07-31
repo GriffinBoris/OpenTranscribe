@@ -12,6 +12,18 @@ pub enum RecordingMode {
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, TS)]
 #[ts(export)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum RecordingProjectSelection {
+    #[default]
+    Automatic,
+    Inbox,
+    Project {
+        project_id: String,
+    },
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "snake_case")]
 pub enum GlobalShortcutPreset {
     #[default]
@@ -48,6 +60,8 @@ pub struct AppSettings {
     #[serde(default)]
     pub capture_system_audio: bool,
     #[serde(default)]
+    pub recording_project_selection: RecordingProjectSelection,
+    #[serde(default)]
     pub global_shortcut_enabled: bool,
     #[serde(default)]
     pub global_shortcut: GlobalShortcutPreset,
@@ -62,6 +76,7 @@ impl Default for AppSettings {
             recording_mode: RecordingMode::RecordOnly,
             microphone_device_id: None,
             capture_system_audio: false,
+            recording_project_selection: RecordingProjectSelection::default(),
             global_shortcut_enabled: false,
             global_shortcut: GlobalShortcutPreset::default(),
             appearance: Appearance {
@@ -69,5 +84,32 @@ impl Default for AppSettings {
                 reduced_motion: false,
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AppSettings, RecordingProjectSelection};
+
+    #[test]
+    fn reads_existing_settings_without_a_recording_project_selection() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+                "revision": 1,
+                "setup_completed": true,
+                "recording_mode": "record_only",
+                "microphone_device_id": null,
+                "capture_system_audio": false,
+                "global_shortcut_enabled": false,
+                "global_shortcut": "command_or_control_shift_r",
+                "appearance": { "theme": "system", "reduced_motion": false }
+            }"#,
+        )
+        .expect("existing settings should deserialize");
+
+        assert_eq!(
+            settings.recording_project_selection,
+            RecordingProjectSelection::Automatic
+        );
     }
 }

@@ -73,7 +73,10 @@ export const useRecordingStore = defineStore("recording", () => {
               timeStyle: "short",
             }).format(new Date()),
           }),
-        projectId: options.projectId ?? null,
+        projectId:
+          options.projectId === undefined
+            ? application.defaultRecordingProjectId()
+            : options.projectId,
         microphoneDeviceId:
           options.microphoneDeviceId ??
           application.settings?.microphone_device_id ??

@@ -33,9 +33,12 @@ const elapsed = computed(() => {
     .join(":");
 });
 
-const microphoneLevel = computed(
-  () => `${Math.min((recording.status?.microphone_peak ?? 0) * 100, 100)}%`,
-);
+const microphoneLevel = computed(() => ({
+  "--audio-level": String(Math.min(recording.status?.microphone_peak ?? 0, 1)),
+}));
+const systemLevel = computed(() => ({
+  "--audio-level": String(Math.min(recording.status?.system_peak ?? 0, 1)),
+}));
 const recordingOutcome = computed(() => {
   if (recording.activeMode === "local_live") {
     return t("recordingDock.localAfterStop");
@@ -66,15 +69,9 @@ const recordingOutcome = computed(() => {
       class="recording-dock__levels"
       :aria-label="t('recordingDock.inputLevels')"
     >
-      <span class="level-meter"
-        ><span :style="{ width: microphoneLevel }"></span
-      ></span>
+      <span class="level-meter"><span :style="microphoneLevel"></span></span>
       <span v-if="recording.status?.captures_system_audio" class="level-meter">
-        <span
-          :style="{
-            width: `${Math.min((recording.status?.system_peak ?? 0) * 100, 100)}%`,
-          }"
-        ></span>
+        <span :style="systemLevel"></span>
       </span>
       <small v-if="recording.status?.dropped_packets">
         {{

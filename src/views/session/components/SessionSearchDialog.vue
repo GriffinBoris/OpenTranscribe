@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { FileText, MessageSquareText, Search } from "@lucide/vue";
+import { FileText, MessageSquareText } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
 import AppDialog from "@/components/ui/AppDialog.vue";
-import AppInputText from "@/components/ui/AppInputText.vue";
+import AppSearchInput from "@/components/ui/AppSearchInput.vue";
 import type { Speaker, TranscriptSegment } from "@/types/domain";
 
 const props = defineProps<{
@@ -109,15 +109,11 @@ function showNote(timestampMs: number | null) {
     @update:open="emit('update:open', $event)"
   >
     <div class="session-search">
-      <div class="search-field">
-        <Search :size="16" />
-        <AppInputText
-          v-model="query"
-          type="search"
-          :placeholder="t('session.search.placeholder')"
-          autofocus
-        />
-      </div>
+      <AppSearchInput
+        v-model="query"
+        :placeholder="t('session.search.placeholder')"
+        autofocus
+      />
 
       <p v-if="normalizedQuery" class="session-search__summary">
         {{ t("session.search.resultCount", { count: resultCount }) }}

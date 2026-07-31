@@ -446,7 +446,7 @@ Use a 4 px spacing base with most layout rhythm on 8, 12, 16, 24, and 32 px.
 The user's library is the durable source of truth. A rebuildable SQLite index may provide fast search and job recovery, but the sessions must remain intelligible without the database.
 
 ```text
-OpenTranscribe Library/
+OpenTranscribe/
   Product/
     2026-07-29 1030 Weekly product sync/
       session.json

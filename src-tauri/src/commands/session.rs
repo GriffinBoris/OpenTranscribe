@@ -27,6 +27,12 @@ pub struct MoveSessionRequest {
 }
 
 #[derive(Deserialize)]
+pub struct RenameSessionRequest {
+    pub session_id: String,
+    pub title: String,
+}
+
+#[derive(Deserialize)]
 pub struct UpdateTranscriptSegmentRequest {
     pub session_id: String,
     pub segment_id: String,
@@ -128,6 +134,26 @@ pub fn reveal_session(session_id: String, state: tauri::State<'_, AppState>) -> 
     })?;
     tauri_plugin_opener::reveal_item_in_dir(path)
         .map_err(|error| AppError::Application(error.to_string()))
+}
+
+#[tauri::command]
+pub fn rename_session(
+    request: RenameSessionRequest,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Session> {
+    let title = request.title.trim().to_owned();
+
+    if title.is_empty() {
+        return Err(AppError::Application(
+            "meeting title cannot be empty".to_owned(),
+        ));
+    }
+
+    let session = with_repository(&state, |repository| {
+        repository.rename_session(&request.session_id, title)
+    })?;
+    send_event(&state, AppEvent::LibraryChanged);
+    Ok(session)
 }
 
 #[tauri::command]

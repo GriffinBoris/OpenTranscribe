@@ -139,10 +139,14 @@ onBeforeUnmount(() => window.removeEventListener("keydown", handleShortcut));
         v-for="project in application.projects"
         :key="project.id"
         :to="`/projects/${project.id}`"
+        :aria-label="project.name"
         class="sidebar__link sidebar__link--project"
       >
         <Folder :size="16" />
         <span>{{ project.name }}</span>
+        <span class="sidebar__project-count" aria-hidden="true">
+          {{ application.projectSessionCounts.get(project.id) ?? 0 }}
+        </span>
       </RouterLink>
       <AppButton
         class="sidebar__new-project"

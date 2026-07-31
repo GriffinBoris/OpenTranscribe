@@ -1,5 +1,11 @@
 import { createPreviewSnapshot } from "@/core/previewData";
 
+test("uses Documents/OpenTranscribe as the preview default", () => {
+  expect(createPreviewSnapshot().library?.path).toBe(
+    "~/Documents/OpenTranscribe",
+  );
+});
+
 test("uses the requested library path", () => {
   const snapshot = createPreviewSnapshot("/Volumes/Meetings");
 

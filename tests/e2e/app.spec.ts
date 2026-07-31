@@ -16,24 +16,39 @@ test("opens the utility shell and starts a preview recording", async ({
       brandIcon.evaluate((image: HTMLImageElement) => image.naturalWidth),
     )
     .toBeGreaterThan(0);
-  await expect(page.locator(".window-titlebar")).toHaveAttribute(
+  await expect(page.locator(".window-titlebar")).not.toHaveAttribute(
     "data-tauri-drag-region",
-    "",
   );
+  const dragRegion = page.locator(".window-titlebar__drag-region");
+  await expect(dragRegion).toHaveAttribute("data-tauri-drag-region", "");
+  await expect(dragRegion).toHaveCSS("left", "88px");
+  await expect(dragRegion).toHaveCSS("right", "120px");
   await expect(page.locator(".window-titlebar__handle")).toBeVisible();
-  await expect(page.locator(".window-titlebar__handle")).toHaveAttribute(
-    "data-tauri-drag-region",
-    "",
-  );
   await expect(page.getByText("Recent sessions")).toBeVisible();
+  await expect(
+    page
+      .getByRole("link", { name: "Product", exact: true })
+      .locator(".sidebar__project-count"),
+  ).toHaveText("2");
+  await expect(
+    page
+      .getByRole("link", { name: "Customer interviews", exact: true })
+      .locator(".sidebar__project-count"),
+  ).toHaveText("0");
 
   await page.keyboard.press("Control+K");
   await expect(
     page.getByRole("dialog", { name: "Search library" }),
   ).toBeVisible();
-  await page
-    .getByPlaceholder("Search sessions, transcripts, and notes")
-    .fill("weekly");
+  const librarySearch = page.getByPlaceholder(
+    "Search sessions, transcripts, and notes",
+  );
+  await expect(page.locator(".app-search-input__icon")).toHaveCSS(
+    "position",
+    "absolute",
+  );
+  await expect(librarySearch).toHaveCSS("padding-left", "36px");
+  await librarySearch.fill("weekly");
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Search" })
@@ -111,6 +126,66 @@ test("recovers an interrupted session from its crash-safe chunks", async ({
   await expect(search).not.toBeVisible();
 });
 
+test("renders Markdown notes in preview mode", async ({ page }) => {
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  const notesPane = page.locator(".notes-pane");
+  const notes = notesPane.getByRole("textbox", { name: "Meeting notes" });
+  await notes.fill("# Design review\n\n**Owner:** Rowan\n\n- Follow up");
+  await notesPane.getByRole("button", { name: "Preview", exact: true }).click();
+
+  await expect(
+    notesPane.getByRole("heading", { name: "Design review" }),
+  ).toBeVisible();
+  await expect(notesPane.locator(".notes-preview__content strong")).toHaveText(
+    "Owner:",
+  );
+  await expect(notesPane.getByRole("listitem")).toHaveText("Follow up");
+  await expect(notes).not.toBeVisible();
+
+  await notesPane.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(notes).toHaveValue(
+    "# Design review\n\n**Owner:** Rowan\n\n- Follow up",
+  );
+});
+
+test("keeps notes toolbar controls inside a constrained pane", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1000, height: 800 });
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  const toolbar = page.locator(".notes-toolbar");
+  await expect(
+    toolbar.getByRole("button", { name: "Add timestamp" }),
+  ).toBeVisible();
+  await expect(
+    toolbar.getByRole("button", { name: "Edit", exact: true }),
+  ).toBeVisible();
+  await expect(
+    toolbar.getByRole("button", { name: "Preview", exact: true }),
+  ).toBeVisible();
+
+  await expect
+    .poll(() =>
+      toolbar.evaluate((element) => {
+        const toolbarBounds = element.getBoundingClientRect();
+        return Array.from(
+          element.querySelectorAll<HTMLButtonElement>(
+            ".notes-toolbar__actions button",
+          ),
+        ).every((button) => {
+          const buttonBounds = button.getBoundingClientRect();
+          return (
+            buttonBounds.left >= toolbarBounds.left &&
+            buttonBounds.right <= toolbarBounds.right
+          );
+        });
+      }),
+    )
+    .toBe(true);
+});
+
 test("starts a session with customized recording options", async ({ page }) => {
   await page.goto("/");
 
@@ -134,6 +209,55 @@ test("starts a session with customized recording options", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
 });
 
+test("defaults recording to the first project and remembers the last selection", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Recording options", exact: true })
+    .click();
+
+  const dialog = page.getByRole("dialog", { name: "Recording options" });
+  const project = dialog.getByLabel("Project");
+  await expect(project).toContainText("Product");
+  await project.click();
+  await page.getByRole("option", { name: "Customer interviews" }).click();
+  await expect(project).toContainText("Customer interviews");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+
+  await page
+    .getByRole("button", { name: "Recording options", exact: true })
+    .click();
+  await expect(dialog.getByLabel("Project")).toContainText(
+    "Customer interviews",
+  );
+});
+
+test("uses quick workspace motion and respects reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await page
+    .getByRole("button", { name: "Recording options", exact: true })
+    .click();
+
+  const dialog = page.getByRole("dialog", { name: "Recording options" });
+  await expect(dialog).toHaveCSS("transition-duration", "0.16s, 0.16s");
+
+  await page.evaluate(() => {
+    document.documentElement.dataset.reducedMotion = "true";
+  });
+
+  await expect
+    .poll(() =>
+      dialog.evaluate((element) =>
+        Number.parseFloat(getComputedStyle(element).transitionDuration),
+      ),
+    )
+    .toBeLessThan(0.001);
+});
+
 test("opens the session workspace from the sidebar recording action", async ({
   page,
 }) => {
@@ -146,16 +270,43 @@ test("opens the session workspace from the sidebar recording action", async ({
   await expect(
     page.getByRole("textbox", { name: "Meeting notes" }),
   ).toBeVisible();
+  await expect(page.getByLabel("Move to project")).toContainText("Product");
   await expect(page.getByText("Recovery needed")).not.toBeVisible();
+});
+
+test("keeps playback inside the session workspace", async ({ page }) => {
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  const workspace = page.locator(".session-workspace");
+  await expect(workspace).toHaveCSS("overflow-y", "hidden");
+
+  await workspace.evaluate((element) => {
+    const playback = document.createElement("footer");
+    playback.className = "playback-bar";
+    playback.dataset.testid = "playback-layout-probe";
+    element.append(playback);
+  });
+
+  const playback = page.getByTestId("playback-layout-probe");
+  await expect(playback).toBeVisible();
+
+  const [workspaceBox, playbackBox] = await Promise.all([
+    workspace.boundingBox(),
+    playback.boundingBox(),
+  ]);
+
+  expect(workspaceBox).not.toBeNull();
+  expect(playbackBox).not.toBeNull();
+  expect(playbackBox!.y + playbackBox!.height).toBeLessThanOrEqual(
+    workspaceBox!.y + workspaceBox!.height + 1,
+  );
 });
 
 test("shows storage and shortcut utilities in settings", async ({ page }) => {
   await page.goto("/settings#storage");
 
   await expect(page.getByRole("heading", { name: "Storage" })).toBeVisible();
-  await expect(
-    page.getByText("~/Documents/OpenTranscribe Library"),
-  ).toBeVisible();
+  await expect(page.getByText("~/Documents/OpenTranscribe")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Change folder" }),
   ).toBeVisible();
@@ -191,6 +342,116 @@ test("shows storage and shortcut utilities in settings", async ({ page }) => {
     window.dispatchEvent(new Event("opentranscribe:preview-global-shortcut"));
   });
   await expect(page.getByRole("button", { name: "Stop" })).not.toBeVisible();
+});
+
+test("uses quieter one-pixel dividers in settings", async ({ page }) => {
+  await page.goto("/settings");
+
+  const divider = page.locator(".setting-field").first();
+  const control = page.locator(".app-input").first();
+  await expect(divider).toBeVisible();
+  await expect(control).toBeVisible();
+
+  const [dividerStyle, controlStyle] = await Promise.all([
+    divider.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { color: style.borderTopColor, width: style.borderTopWidth };
+    }),
+    control.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { color: style.borderTopColor, width: style.borderTopWidth };
+    }),
+  ]);
+
+  expect(dividerStyle.width).toBe(controlStyle.width);
+  expect(dividerStyle.width).toBe("1px");
+  expect(dividerStyle.color).not.toBe(controlStyle.color);
+});
+
+test("offsets settings navigation below the scroll pane edge", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+
+  for (const [name, id] of [
+    ["Storage", "storage"],
+    ["Local models", "models"],
+    ["OpenAI", "openai"],
+    ["Shortcuts", "shortcuts"],
+    ["Appearance", "appearance"],
+  ]) {
+    await page.getByRole("button", { name, exact: true }).click();
+
+    await expect
+      .poll(() =>
+        page.locator(`#${id}`).evaluate((section) => {
+          const scrollPane = document.querySelector(".settings-content");
+          if (!scrollPane) {
+            return 0;
+          }
+
+          return Math.round(
+            section.getBoundingClientRect().top -
+              scrollPane.getBoundingClientRect().top,
+          );
+        }),
+      )
+      .toBe(20);
+    await expect(page.locator(".settings-content-frame")).toHaveClass(
+      /settings-content-frame--scrolled/,
+    );
+  }
+
+  await page.getByRole("button", { name: "Recording", exact: true }).click();
+
+  await expect
+    .poll(() =>
+      page
+        .locator(".settings-content")
+        .evaluate((scrollPane) => scrollPane.scrollTop),
+    )
+    .toBe(0);
+  await expect(page.locator(".settings-content-frame")).not.toHaveClass(
+    /settings-content-frame--scrolled/,
+  );
+});
+
+test("keeps route scrolling inside each workspace", async ({ page }) => {
+  await page.goto("/settings");
+
+  await expect(page.locator(".application-main")).toHaveCSS(
+    "overflow-y",
+    "hidden",
+  );
+  await expect(page.locator(".settings-nav")).toHaveCSS("overflow-y", "auto");
+  await expect(page.locator(".settings-content")).toHaveCSS(
+    "overflow-y",
+    "auto",
+  );
+  await expect
+    .poll(() =>
+      page.locator(".settings-content-frame").evaluate((element) => {
+        const style = getComputedStyle(element, "::before");
+        return {
+          backdropFilter: style.backdropFilter,
+          hasGradientMask: style.maskImage.includes("linear-gradient"),
+        };
+      }),
+    )
+    .toEqual({
+      backdropFilter: "blur(4px)",
+      hasGradientMask: true,
+    });
+
+  for (const path of ["/inbox", "/projects/01KDEMOPROJECT", "/processing"]) {
+    await page.goto(path);
+    const scrollFrame = page.locator(
+      path === "/processing"
+        ? ".processing-page__scroll"
+        : ".library-page__scroll",
+    );
+    await expect(scrollFrame).toHaveCSS("overflow-y", "auto");
+  }
 });
 
 test("surfaces a global shortcut registration conflict", async ({ page }) => {
@@ -237,6 +498,22 @@ test("shows macOS system-audio permission status and recovery accurately", async
   await expect(page.locator(".shell-state--error")).not.toBeVisible();
 });
 
+test("enables system output when macOS capture is ready", async ({ page }) => {
+  await page.goto("/settings?systemAudioPermission=granted");
+
+  const systemOutput = page.getByRole("switch", {
+    name: "Capture system output",
+  });
+  await expect(systemOutput).toBeEnabled();
+  await expect(systemOutput).not.toBeChecked();
+
+  await systemOutput.click();
+
+  await expect(systemOutput).toBeChecked();
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(page.getByText("System output · On")).toBeVisible();
+});
+
 test("filters sessions within a project", async ({ page }) => {
   await page.goto("/projects/01KDEMOPROJECT");
 
@@ -265,6 +542,37 @@ test("renders substantial smoothly composited processing progress", async ({
     .not.toBe("none");
 });
 
+test("keeps inline form controls on the medium design-token tier", async ({
+  page,
+}) => {
+  await page.goto("/settings#openai");
+
+  const apiKeyForm = page.locator(".openai-key-form");
+  const input = apiKeyForm.locator(".app-input");
+  const button = apiKeyForm.getByRole("button", { name: "Save to keychain" });
+  const mediumControlHeight = await page.evaluate(() =>
+    getComputedStyle(document.documentElement)
+      .getPropertyValue("--control-height-medium")
+      .trim(),
+  );
+
+  expect(mediumControlHeight).toBe("38px");
+  await expect(input).toHaveCSS("min-height", mediumControlHeight);
+  await expect(button).toHaveCSS("min-height", mediumControlHeight);
+  await expect
+    .poll(async () => {
+      const [inputBox, buttonBox] = await Promise.all([
+        input.boundingBox(),
+        button.boundingBox(),
+      ]);
+      return [inputBox?.height, buttonBox?.height];
+    })
+    .toEqual([
+      Number.parseFloat(mediumControlHeight),
+      Number.parseFloat(mediumControlHeight),
+    ]);
+});
+
 test("moves a session between a project and the inbox", async ({ page }) => {
   await page.goto("/sessions/01KDEMOSESSION1");
 
@@ -283,6 +591,74 @@ test("moves a session between a project and the inbox", async ({ page }) => {
 
   await page.getByRole("link", { name: "Inbox", exact: true }).click();
   await expect(page.getByText("Weekly product sync")).toBeVisible();
+
+  const inboxRowProject = page.getByLabel(
+    "Move Customer discovery — Rowan to a project or Inbox",
+  );
+  await expect(inboxRowProject).toContainText("Inbox");
+  await inboxRowProject.click();
+  await page.getByRole("option", { name: "Product", exact: true }).click();
+  await expect(page.getByText("Customer discovery — Rowan")).not.toBeVisible();
+  await expect(
+    page
+      .getByRole("link", { name: "Product", exact: true })
+      .locator(".sidebar__project-count"),
+  ).toHaveText("2");
+
+  await page.getByRole("link", { name: "Product", exact: true }).click();
+  await expect(page.getByText("Customer discovery — Rowan")).toBeVisible();
+
+  const projectRowProject = page.getByLabel(
+    "Move Customer discovery — Rowan to a project or Inbox",
+  );
+  await expect(projectRowProject).toContainText("Product");
+  await projectRowProject.click();
+  await page.getByRole("option", { name: "Inbox", exact: true }).click();
+  await expect(page.getByText("Customer discovery — Rowan")).not.toBeVisible();
+  await expect(
+    page
+      .getByRole("link", { name: "Product", exact: true })
+      .locator(".sidebar__project-count"),
+  ).toHaveText("1");
+
+  await page.getByRole("link", { name: "Inbox", exact: true }).click();
+  await expect(page.getByText("Customer discovery — Rowan")).toBeVisible();
+});
+
+test("renames a meeting from its workspace", async ({ page }) => {
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  await page.getByRole("button", { name: "Rename meeting" }).click();
+  const renameDialog = page.getByRole("dialog", { name: "Rename meeting" });
+  await renameDialog.getByRole("textbox").fill("Weekly design review");
+  await renameDialog.getByRole("button", { name: "Save name" }).click();
+
+  await expect(renameDialog).not.toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Weekly design review" }),
+  ).toBeVisible();
+
+  await page.getByRole("link", { name: "Inbox", exact: true }).click();
+  await expect(page.getByText("Weekly design review")).toBeVisible();
+});
+
+test("deletes a session without showing a missing-item error", async ({
+  page,
+}) => {
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  await page.getByRole("button", { name: "Move session to trash" }).click();
+  await page.getByRole("button", { name: "Move to trash" }).click();
+
+  await expect(page).toHaveURL("/inbox");
+  await expect(page.getByText("Weekly product sync")).not.toBeVisible();
+  await expect(page.locator(".shell-operation-error")).not.toBeVisible();
+
+  await page.getByRole("link", { name: "Trash", exact: true }).click();
+  await expect(page.getByText("Weekly product sync")).toBeVisible();
+  await expect(
+    page.getByText("The requested item does not exist."),
+  ).not.toBeVisible();
 });
 
 test("supports keyboard activation for recording and stop", async ({

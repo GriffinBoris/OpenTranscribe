@@ -871,6 +871,43 @@ fn searches_session_titles_notes_and_transcript_timestamps_after_reopening() {
 }
 
 #[test]
+fn renames_a_session_and_updates_the_search_index() {
+    let directory = tempdir().expect("temporary directory should exist");
+    let repository =
+        LibraryRepository::initialize(directory.path()).expect("library should initialize");
+    let session = repository
+        .create_session(
+            "Untitled recording".to_owned(),
+            None,
+            SessionSource::Recording,
+        )
+        .expect("session should be created");
+
+    let renamed = repository
+        .rename_session(&session.id, "Weekly design review".to_owned())
+        .expect("session should be renamed");
+
+    assert_eq!(renamed.title, "Weekly design review");
+    assert_eq!(renamed.revision, session.revision + 1);
+    assert_eq!(
+        repository
+            .session_workspace(&session.id)
+            .expect("workspace should remain readable")
+            .session
+            .title,
+        "Weekly design review"
+    );
+    assert_eq!(
+        repository
+            .search("design", &SearchFilters::default())
+            .expect("renamed title should be searchable")
+            .results[0]
+            .session_title,
+        "Weekly design review"
+    );
+}
+
+#[test]
 fn rejects_stale_note_saves_after_an_external_edit() {
     let directory = tempdir().expect("temporary directory should exist");
     let repository =

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { FileText, MessageSquareText, Search } from "@lucide/vue";
+import { FileText, MessageSquareText } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import AppButton from "@/components/ui/AppButton.vue";
 import AppDialog from "@/components/ui/AppDialog.vue";
-import AppInputText from "@/components/ui/AppInputText.vue";
+import AppSearchInput from "@/components/ui/AppSearchInput.vue";
 import { native } from "@/core/native";
 import type { SearchResult } from "@/types/domain";
 
@@ -98,15 +98,11 @@ function resultIcon(kind: SearchResult["kind"]) {
     @update:open="emit('update:open', $event)"
   >
     <form class="library-search" @submit.prevent="searchLibrary">
-      <div class="search-field">
-        <Search :size="16" aria-hidden="true" />
-        <AppInputText
-          v-model="query"
-          type="search"
-          :placeholder="t('librarySearch.placeholder')"
-          autofocus
-        />
-      </div>
+      <AppSearchInput
+        v-model="query"
+        :placeholder="t('librarySearch.placeholder')"
+        autofocus
+      />
       <AppButton type="submit" variant="primary" :disabled="!canSearch">
         {{ t("librarySearch.action") }}
       </AppButton>

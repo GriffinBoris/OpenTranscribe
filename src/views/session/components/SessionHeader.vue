@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Download, RotateCcw, Search, Trash2 } from "@lucide/vue";
+import { Download, Pencil, RotateCcw, Search, Trash2 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
@@ -25,6 +25,7 @@ defineProps<{
 
 const emit = defineEmits<{
   recover: [];
+  rename: [];
   search: [];
   trash: [];
   export: [];
@@ -37,12 +38,23 @@ const { t } = useI18n();
 
 <template>
   <header class="session-header">
-    <div>
+    <div class="session-title-row">
       <h1 class="session-title">
         {{ session?.title ?? t("session.untitledRecording") }}
       </h1>
+      <AppButton
+        class="session-title__edit"
+        size="small"
+        variant="ghost"
+        :aria-label="t('session.rename.action')"
+        @click="emit('rename')"
+      >
+        <Pencil :size="15" />
+      </AppButton>
+    </div>
+    <div class="session-header__controls">
       <div class="session-meta">
-        <span>{{
+        <span class="session-meta__date">{{
           session
             ? new Date(session.created_at).toLocaleString()
             : t("session.justNow")
@@ -58,65 +70,62 @@ const { t } = useI18n();
           @update:model-value="emit('move-to-project', $event)"
         />
         <StatusPill
-          :tone="recording ? 'recording' : recoverable ? 'warning' : 'local'"
+          v-if="recording || recoverable"
+          :tone="recording ? 'recording' : 'warning'"
         >
           {{
-            recording
-              ? t("session.recording")
-              : recoverable
-                ? t("session.recovery.needed")
-                : t("session.storedLocally")
+            recording ? t("session.recording") : t("session.recovery.needed")
           }}
         </StatusPill>
       </div>
-    </div>
-    <div class="session-header__actions">
-      <AppButton
-        v-if="recoverable"
-        variant="primary"
-        :loading="recovering"
-        :disabled="recovering"
-        @click="emit('recover')"
-      >
-        <RotateCcw :size="16" />
-        {{ t("session.recovery.action") }}
-      </AppButton>
-      <AppButton
-        variant="ghost"
-        :aria-label="t('session.search.title')"
-        @click="emit('search')"
-      >
-        <Search :size="16" />
-        {{ t("session.search.action") }}
-      </AppButton>
-      <AppButton
-        v-if="!recording"
-        variant="ghost"
-        :aria-label="t('session.trash.action')"
-        @click="emit('trash')"
-      >
-        <Trash2 :size="16" />
-      </AppButton>
-      <SessionTranscriptionActions
-        :can-transcribe="canTranscribe"
-        :session-id="sessionId"
-      />
-      <div class="export-actions">
-        <AppSelect
-          :model-value="exportFormat"
-          :options="exportOptions"
-          :accessible-label="t('session.exportFormat')"
-          @update:model-value="emit('update:export-format', $event)"
-        />
+      <div class="session-header__actions">
         <AppButton
-          variant="secondary"
-          :disabled="!hasTranscript || isExporting"
-          :loading="isExporting"
-          @click="emit('export')"
+          v-if="recoverable"
+          variant="primary"
+          :loading="recovering"
+          :disabled="recovering"
+          @click="emit('recover')"
         >
-          <Download :size="15" />
-          {{ isExporting ? t("session.exporting") : t("session.export") }}
+          <RotateCcw :size="16" />
+          {{ t("session.recovery.action") }}
         </AppButton>
+        <AppButton
+          variant="ghost"
+          :aria-label="t('session.search.title')"
+          @click="emit('search')"
+        >
+          <Search :size="16" />
+          {{ t("session.search.action") }}
+        </AppButton>
+        <AppButton
+          v-if="!recording"
+          variant="ghost"
+          :aria-label="t('session.trash.action')"
+          @click="emit('trash')"
+        >
+          <Trash2 :size="16" />
+        </AppButton>
+        <SessionTranscriptionActions
+          :can-transcribe="canTranscribe"
+          :session-id="sessionId"
+        />
+        <div class="export-actions">
+          <AppSelect
+            :model-value="exportFormat"
+            :options="exportOptions"
+            :accessible-label="t('session.exportFormat')"
+            @update:model-value="emit('update:export-format', $event)"
+          />
+          <AppButton
+            variant="secondary"
+            :disabled="!hasTranscript || isExporting"
+            :loading="isExporting"
+            @click="emit('export')"
+          >
+            <Download :size="15" />
+            {{ isExporting ? t("session.exporting") : t("session.export") }}
+          </AppButton>
+        </div>
       </div>
     </div>
   </header>

@@ -114,7 +114,6 @@ async function merge() {
             :aria-label="t('session.speakers.name')"
           />
           <AppButton
-            size="small"
             variant="secondary"
             :disabled="
               !names[speaker.id]?.trim() ||
@@ -144,7 +143,6 @@ async function merge() {
             :accessible-label="t('session.speakers.mergeTarget')"
           />
           <AppButton
-            size="small"
             variant="secondary"
             :disabled="!sourceSpeakerId || !targetSpeakerId"
             :loading="isMerging"

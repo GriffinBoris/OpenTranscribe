@@ -36,9 +36,17 @@ pub fn bootstrap(
     let mut repository = state.repository.lock().expect("app state lock poisoned");
 
     if repository.is_none() {
-        *repository = remembered_library(&app)?
-            .map(|path| LibraryRepository::initialize(&path))
-            .transpose()?;
+        let (path, remember_path) = match remembered_library(&app)? {
+            Some(path) => (path, false),
+            None => (default_library_path(&app)?, true),
+        };
+        let initialized_repository = LibraryRepository::initialize(&path)?;
+
+        if remember_path {
+            remember_library(&app, &path)?;
+        }
+
+        *repository = Some(initialized_repository);
     }
 
     let Some(repository) = repository.as_ref() else {
@@ -151,6 +159,13 @@ fn remembered_library(app: &tauri::AppHandle) -> AppResult<Option<PathBuf>> {
 
     let selection: LibrarySelection = serde_json::from_slice(&std::fs::read(path)?)?;
     Ok(Some(selection.path))
+}
+
+fn default_library_path(app: &tauri::AppHandle) -> AppResult<PathBuf> {
+    app.path()
+        .document_dir()
+        .map(|directory| directory.join("OpenTranscribe"))
+        .map_err(|error| AppError::Application(error.to_string()))
 }
 
 fn load_settings(app: &tauri::AppHandle) -> AppResult<AppSettings> {

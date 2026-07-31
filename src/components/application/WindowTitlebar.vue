@@ -7,12 +7,13 @@ function startDragging() {
 </script>
 
 <template>
-  <div
-    class="window-titlebar"
-    data-tauri-drag-region
-    aria-hidden="true"
-    @mousedown.left.prevent="startDragging"
-  >
-    <span class="window-titlebar__handle" data-tauri-drag-region></span>
+  <div class="window-titlebar" aria-hidden="true">
+    <div
+      class="window-titlebar__drag-region"
+      data-tauri-drag-region
+      @mousedown.left.prevent="startDragging"
+    >
+      <span class="window-titlebar__handle"></span>
+    </div>
   </div>
 </template>

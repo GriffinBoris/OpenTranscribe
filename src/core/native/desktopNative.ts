@@ -246,6 +246,14 @@ export const desktopNative: NativeBridge = {
     await invoke("reveal_session", { sessionId });
   },
 
+  renameSession: (sessionId: string, title: string) =>
+    invoke<Session>("rename_session", {
+      request: {
+        session_id: sessionId,
+        title,
+      },
+    }),
+
   moveSession: (sessionId: string, projectId: string | null) =>
     invoke<Session>("move_session", {
       request: {

@@ -124,7 +124,7 @@ watch(
         error
         @retry="application.bootstrap"
       />
-      <template v-else>
+      <div v-else class="application-main__content">
         <p
           v-if="application.operationError"
           class="shell-state shell-state--error shell-operation-error"
@@ -132,8 +132,14 @@ watch(
         >
           {{ application.operationError }}
         </p>
-        <RouterView :key="$route.fullPath" />
-      </template>
+        <div class="application-main__route">
+          <RouterView v-slot="{ Component }">
+            <Transition name="workspace-fade" mode="out-in">
+              <component :is="Component" :key="$route.fullPath" />
+            </Transition>
+          </RouterView>
+        </div>
+      </div>
     </main>
 
     <RecordingDock

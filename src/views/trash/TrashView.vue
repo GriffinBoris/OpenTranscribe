@@ -18,7 +18,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page library-page trash-page">
     <header class="page-header page-header--compact">
       <div>
         <p class="eyebrow">{{ t("trash.library") }}</p>
@@ -26,49 +26,51 @@ onMounted(() => {
         <p>{{ t("trash.description") }}</p>
       </div>
     </header>
-    <AppSurface :padded="false">
-      <AppStatusState
-        v-if="trash.isLoading"
-        :title="t('trash.loading')"
-        loading
-      />
-      <AppStatusState
-        v-else-if="trash.error"
-        :title="t('trash.loadFailed')"
-        :message="trash.error"
-        :retry-label="t('trash.retry')"
-        error
-        @retry="trash.load"
-      />
-      <div v-else-if="trash.sessions.length" class="session-list">
-        <div
-          v-for="session in trash.sessions"
-          :key="session.id"
-          class="session-row"
-        >
-          <span class="session-row__icon"><Trash2 :size="18" /></span>
-          <span class="session-row__body">
-            <strong>{{ session.title }}</strong>
-            <small>{{ new Date(session.created_at).toLocaleString() }}</small>
-          </span>
-          <AppButton
-            size="small"
-            variant="secondary"
-            :loading="trash.restoringSessionId === session.id"
-            @click="trash.restore(session.id)"
+    <AppSurface class="library-page__sessions" :padded="false">
+      <div class="library-page__scroll">
+        <AppStatusState
+          v-if="trash.isLoading"
+          :title="t('trash.loading')"
+          loading
+        />
+        <AppStatusState
+          v-else-if="trash.error"
+          :title="t('trash.loadFailed')"
+          :message="trash.error"
+          :retry-label="t('trash.retry')"
+          error
+          @retry="trash.load"
+        />
+        <div v-else-if="trash.sessions.length" class="session-list">
+          <div
+            v-for="session in trash.sessions"
+            :key="session.id"
+            class="session-row"
           >
-            <RotateCcw :size="14" />
-            {{ t("trash.restore") }}
-          </AppButton>
+            <span class="session-row__icon"><Trash2 :size="18" /></span>
+            <span class="session-row__body">
+              <strong>{{ session.title }}</strong>
+              <small>{{ new Date(session.created_at).toLocaleString() }}</small>
+            </span>
+            <AppButton
+              size="small"
+              variant="secondary"
+              :loading="trash.restoringSessionId === session.id"
+              @click="trash.restore(session.id)"
+            >
+              <RotateCcw :size="14" />
+              {{ t("trash.restore") }}
+            </AppButton>
+          </div>
         </div>
+        <AppEmptyState
+          v-else
+          :title="t('trash.empty')"
+          :message="t('trash.emptyDescription')"
+        >
+          <template #icon><Trash2 :size="21" /></template>
+        </AppEmptyState>
       </div>
-      <AppEmptyState
-        v-else
-        :title="t('trash.empty')"
-        :message="t('trash.emptyDescription')"
-      >
-        <template #icon><Trash2 :size="21" /></template>
-      </AppEmptyState>
     </AppSurface>
   </div>
 </template>

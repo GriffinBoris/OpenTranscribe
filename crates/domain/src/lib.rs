@@ -17,7 +17,10 @@ pub use project::Project;
 pub use session::{
     CaptureDevice, GapEvent, PauseEvent, RecoveryState, Session, SessionLifecycle, SessionSource,
 };
-pub use settings::{AppSettings, Appearance, GlobalShortcutPreset, RecordingMode, ThemePreference};
+pub use settings::{
+    AppSettings, Appearance, GlobalShortcutPreset, RecordingMode, RecordingProjectSelection,
+    ThemePreference,
+};
 pub use transcript::{
     Speaker, SpeakerSource, Transcript, TranscriptRun, TranscriptRunStatus, TranscriptSegment,
     TranscriptSource,

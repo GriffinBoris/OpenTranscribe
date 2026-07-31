@@ -138,7 +138,6 @@ defineExpose({ seek });
     />
     <AppButton
       variant="secondary"
-      size="small"
       :aria-label="isPlaying ? t('playback.pause') : t('playback.play')"
       @click="togglePlayback"
     >
@@ -165,7 +164,7 @@ defineExpose({ seek });
       />
     </div>
     <span class="playback-time">{{ formatTime(duration) }}</span>
-    <AppButton variant="ghost" size="small" @click="$emit('reveal')">
+    <AppButton variant="ghost" @click="$emit('reveal')">
       <FolderOpen :size="15" aria-hidden="true" />
       {{ t("playback.reveal") }}
     </AppButton>

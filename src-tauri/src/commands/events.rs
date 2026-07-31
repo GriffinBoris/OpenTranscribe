@@ -14,7 +14,7 @@ pub(crate) fn publish_recording_levels(app: tauri::AppHandle, session_id: String
         .name("recording-level-events".to_owned())
         .spawn(move || {
             loop {
-                std::thread::sleep(std::time::Duration::from_millis(100));
+                std::thread::sleep(std::time::Duration::from_millis(50));
                 let state = app.state::<AppState>();
                 let Some(status) = state.recorder.status() else {
                     return;

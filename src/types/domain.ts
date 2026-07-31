@@ -1,4 +1,8 @@
 export type RecordingMode = "record_only" | "local_live" | "open_ai_live";
+export type RecordingProjectSelection =
+  | { kind: "automatic" }
+  | { kind: "inbox" }
+  | { kind: "project"; project_id: string };
 
 export interface CreateRecordingRequest {
   title: string;
@@ -110,6 +114,7 @@ export interface AppSettings {
   recording_mode: RecordingMode;
   microphone_device_id: string | null;
   capture_system_audio: boolean;
+  recording_project_selection: RecordingProjectSelection;
   global_shortcut_enabled: boolean;
   global_shortcut: GlobalShortcutPreset;
   appearance: {

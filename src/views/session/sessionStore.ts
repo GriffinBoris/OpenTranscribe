@@ -199,17 +199,11 @@ export const useSessionStore = defineStore("session", () => {
   }
 
   async function moveSession(sessionId: string, projectId: string | null) {
-    application.operationError = null;
+    return application.moveSession(sessionId, projectId);
+  }
 
-    try {
-      const session = await native.moveSession(sessionId, projectId);
-      application.replaceRecentSession(session);
-      return session;
-    } catch (reason) {
-      application.operationError =
-        reason instanceof Error ? reason.message : String(reason);
-      return null;
-    }
+  async function renameSession(sessionId: string, title: string) {
+    return application.renameSession(sessionId, title);
   }
 
   async function recoverRecording(sessionId: string) {
@@ -253,6 +247,7 @@ export const useSessionStore = defineStore("session", () => {
     renameSpeaker,
     mergeSpeakers,
     recoverRecording,
+    renameSession,
     moveSession,
     trashSession,
     exportSession,

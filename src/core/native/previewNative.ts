@@ -14,6 +14,7 @@ import type {
   RecordingMode,
   RecordingStatus,
   SearchFilters,
+  Session,
 } from "@/types/domain";
 
 const { t } = i18n.global;
@@ -25,10 +26,16 @@ let pausedStartedAt = 0;
 let pausedDurationMs = 0;
 let previewGlobalShortcutListener: (() => void) | null = null;
 let previewAppEventListener: ((event: AppEvent) => void) | null = null;
+let previewSystemAudioPermission: "granted" | "required" | null = null;
 const previewSessionMoves = new Map<
   string,
   { projectId: string | null; revision: number }
 >();
+const previewSessionTitles = new Map<
+  string,
+  { title: string; revision: number }
+>();
+const previewTrashedSessions = new Map<string, Session>();
 let credential: CredentialStatus = {
   configured: false,
   masked_key: null,
@@ -149,15 +156,26 @@ function previewSnapshot(path?: string) {
 
   snapshot.recent_sessions = snapshot.recent_sessions.map((session) => {
     const moved = previewSessionMoves.get(session.id);
+    const renamed = previewSessionTitles.get(session.id);
 
-    return moved
-      ? {
-          ...session,
-          project_id: moved.projectId,
-          revision: moved.revision,
-        }
-      : session;
+    if (!moved && !renamed) {
+      return session;
+    }
+
+    return {
+      ...session,
+      ...(moved ? { project_id: moved.projectId } : {}),
+      ...(renamed ? { title: renamed.title } : {}),
+      revision: Math.max(
+        session.revision,
+        moved?.revision ?? 0,
+        renamed?.revision ?? 0,
+      ),
+    };
   });
+  snapshot.recent_sessions = snapshot.recent_sessions.filter(
+    (session) => !previewTrashedSessions.has(session.id),
+  );
 
   return snapshot;
 }
@@ -176,7 +194,7 @@ export const previewNative: NativeBridge = {
   },
 
   async chooseLibrary() {
-    return "/Users/you/Documents/OpenTranscribe Library";
+    return "/Users/you/Documents/OpenTranscribe";
   },
 
   async createProject(name: string) {
@@ -257,9 +275,17 @@ export const previewNative: NativeBridge = {
   },
 
   async audioDevices(): Promise<AudioDevices> {
-    const permissionState = new URLSearchParams(window.location.search).get(
+    const requestedPermission = new URLSearchParams(window.location.search).get(
       "systemAudioPermission",
     );
+    if (
+      requestedPermission === "granted" ||
+      requestedPermission === "required"
+    ) {
+      previewSystemAudioPermission = requestedPermission;
+    }
+
+    const permissionState = previewSystemAudioPermission;
     const permissionSettingsAvailable = permissionState !== null;
 
     return {
@@ -449,7 +475,11 @@ export const previewNative: NativeBridge = {
     };
   },
 
-  async sessionWorkspace() {
+  async sessionWorkspace(sessionId: string) {
+    if (previewTrashedSessions.has(sessionId)) {
+      throw new Error(t("native.requestedItemMissing"));
+    }
+
     return null;
   },
 
@@ -479,6 +509,34 @@ export const previewNative: NativeBridge = {
 
   async revealSession() {},
 
+  async renameSession(sessionId: string, title: string) {
+    const session = previewSnapshot().recent_sessions.find(
+      (candidate) => candidate.id === sessionId,
+    );
+
+    if (!session) {
+      return desktopOnly(t("native.editingDesktopOnly"));
+    }
+
+    const normalizedTitle = title.trim();
+
+    if (!normalizedTitle) {
+      throw new Error("meeting title cannot be empty");
+    }
+
+    const renamed = {
+      ...session,
+      title: normalizedTitle,
+      revision: session.revision + 1,
+    };
+    previewSessionTitles.set(sessionId, {
+      title: renamed.title,
+      revision: renamed.revision,
+    });
+    previewAppEventListener?.({ type: "library_changed" });
+    return renamed;
+  },
+
   async moveSession(sessionId: string, projectId: string | null) {
     const session = previewSnapshot().recent_sessions.find(
       (candidate) => candidate.id === sessionId,
@@ -502,15 +560,47 @@ export const previewNative: NativeBridge = {
   },
 
   async trashedSessions() {
-    return [];
+    return [...previewTrashedSessions.values()];
   },
 
-  async trashSession() {
-    return desktopOnly(t("native.editingDesktopOnly"));
+  async trashSession(sessionId: string) {
+    const session = previewSnapshot().recent_sessions.find(
+      (candidate) => candidate.id === sessionId,
+    );
+
+    if (!session) {
+      throw new Error(t("native.requestedItemMissing"));
+    }
+
+    const trashed = {
+      ...session,
+      lifecycle: "trashed" as const,
+      revision: session.revision + 1,
+    };
+    previewTrashedSessions.set(sessionId, trashed);
+    previewAppEventListener?.({ type: "library_changed" });
+    return trashed;
   },
 
-  async restoreSession() {
-    return desktopOnly(t("native.editingDesktopOnly"));
+  async restoreSession(sessionId: string) {
+    const session = previewTrashedSessions.get(sessionId);
+
+    if (!session) {
+      throw new Error(t("native.requestedItemMissing"));
+    }
+
+    const restored = {
+      ...session,
+      lifecycle: "ready" as const,
+      revision: session.revision + 1,
+    };
+    previewTrashedSessions.delete(sessionId);
+    previewSessionMoves.set(sessionId, {
+      projectId: restored.project_id,
+      revision: restored.revision,
+    });
+    previewAppEventListener?.({ type: "library_changed" });
+    return restored;
   },
 
   async saveNotes() {
@@ -526,6 +616,6 @@ export const previewNative: NativeBridge = {
       }
 
       onEvent({ type: "recording_levels", payload: status });
-    }, 100);
+    }, 50);
   },
 };

@@ -11,11 +11,11 @@ import {
 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
-import SessionRow from "@/components/session/SessionRow.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppProgressBar from "@/components/ui/AppProgressBar.vue";
 import AppSplitButton from "@/components/ui/AppSplitButton.vue";
 import type { Job, RecordingMode } from "@/types/domain";
+import MovableSessionRow from "@/views/application/components/MovableSessionRow.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { useOpenAiStore } from "@/views/application/openAiStore";
 import {
@@ -258,7 +258,7 @@ onBeforeUnmount(() => {
             >
               {{ t("home.noSessions") }}
             </p>
-            <SessionRow
+            <MovableSessionRow
               v-for="session in application.recentSessions.slice(0, 4)"
               :key="session.id"
               :session="session"

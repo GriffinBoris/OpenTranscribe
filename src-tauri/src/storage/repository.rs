@@ -167,6 +167,12 @@ impl LibraryRepository {
         self.session_directory(session_id)
     }
 
+    pub fn rename_session(&self, session_id: &str, title: String) -> AppResult<Session> {
+        self.update_session(session_id, |session| {
+            session.title = title;
+        })
+    }
+
     pub(super) fn update_session(
         &self,
         session_id: &str,

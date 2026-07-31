@@ -35,6 +35,8 @@ const reducedMotion = ref(
 );
 const apiKey = ref("");
 const activeSection = ref("recording");
+const settingsContent = ref<HTMLElement | null>(null);
+const isContentScrolled = ref(false);
 
 const themeOptions = computed(() => [
   { label: t("settings.appearance.system"), value: "system" },
@@ -73,7 +75,32 @@ async function saveApiKey() {
 function selectSection(section: string) {
   activeSection.value = section;
   window.history.replaceState({ ...window.history.state }, "", `#${section}`);
-  document.getElementById(section)?.scrollIntoView({ behavior: "smooth" });
+
+  const scrollPane = settingsContent.value!;
+
+  if (section === "recording") {
+    isContentScrolled.value = false;
+    scrollPane.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
+  const target = document.getElementById(section)!;
+  const offset = Number.parseFloat(
+    getComputedStyle(scrollPane).getPropertyValue("--space-5"),
+  );
+
+  scrollPane.scrollTo({
+    behavior: "smooth",
+    top:
+      scrollPane.scrollTop +
+      target.getBoundingClientRect().top -
+      scrollPane.getBoundingClientRect().top -
+      offset,
+  });
+}
+
+function updateContentScroll(event: Event) {
+  isContentScrolled.value = (event.currentTarget as HTMLElement).scrollTop > 0;
 }
 
 onMounted(async () => {
@@ -140,93 +167,102 @@ onMounted(async () => {
         >
       </nav>
 
-      <div class="settings-content">
-        <RecordingSettings />
+      <div
+        class="settings-content-frame"
+        :class="{ 'settings-content-frame--scrolled': isContentScrolled }"
+      >
+        <div
+          ref="settingsContent"
+          class="settings-content"
+          @scroll="updateContentScroll"
+        >
+          <RecordingSettings />
 
-        <StorageSettings />
+          <StorageSettings />
 
-        <LocalModelsSettings />
+          <LocalModelsSettings />
 
-        <AppSurface id="openai">
-          <div class="section-heading">
-            <div>
-              <h2>{{ t("settings.navigation.openAi") }}</h2>
-              <p class="setting-description">
-                {{ t("settings.openAi.description") }}
-              </p>
+          <AppSurface id="openai">
+            <div class="section-heading">
+              <div>
+                <h2>{{ t("settings.navigation.openAi") }}</h2>
+                <p class="setting-description">
+                  {{ t("settings.openAi.description") }}
+                </p>
+              </div>
+              <StatusPill v-if="openAi.credential?.configured" tone="success">
+                {{ t("settings.openAi.configured") }}
+              </StatusPill>
             </div>
-            <StatusPill v-if="openAi.credential?.configured" tone="success">
-              {{ t("settings.openAi.configured") }}
-            </StatusPill>
-          </div>
-          <div v-if="openAi.credential?.configured" class="model-row">
-            <KeyRound :size="22" />
-            <span
-              ><strong>{{ t("settings.openAi.defaultProfile") }}</strong
-              ><small>{{ openAi.credential.masked_key }}</small></span
+            <div v-if="openAi.credential?.configured" class="model-row">
+              <KeyRound :size="22" />
+              <span
+                ><strong>{{ t("settings.openAi.defaultProfile") }}</strong
+                ><small>{{ openAi.credential.masked_key }}</small></span
+              >
+              <AppButton size="small" @click="openAi.testConnection">
+                {{ t("settings.openAi.testConnection") }}
+              </AppButton>
+              <AppButton
+                size="small"
+                variant="danger"
+                @click="openAi.removeApiKey"
+              >
+                {{ t("settings.openAi.remove") }}
+              </AppButton>
+            </div>
+            <form
+              v-else
+              class="setting-field openai-key-form"
+              @submit.prevent="saveApiKey"
             >
-            <AppButton size="small" @click="openAi.testConnection">
-              {{ t("settings.openAi.testConnection") }}
-            </AppButton>
-            <AppButton
-              size="small"
-              variant="danger"
-              @click="openAi.removeApiKey"
-            >
-              {{ t("settings.openAi.remove") }}
-            </AppButton>
-          </div>
-          <form
-            v-else
-            class="setting-field openai-key-form"
-            @submit.prevent="saveApiKey"
-          >
-            <span>{{ t("settings.openAi.apiKey") }}</span>
-            <AppInputText
-              v-model="apiKey"
-              type="password"
-              autocomplete="off"
-              placeholder="sk-…"
-              required
-            />
-            <AppButton type="submit" size="small">
-              {{ t("settings.openAi.save") }}
-            </AppButton>
-          </form>
-          <p v-if="openAi.connectionMessage" role="status">
-            {{ openAi.connectionMessage }}
-          </p>
-        </AppSurface>
+              <span>{{ t("settings.openAi.apiKey") }}</span>
+              <AppInputText
+                v-model="apiKey"
+                type="password"
+                autocomplete="off"
+                placeholder="sk-…"
+                required
+              />
+              <AppButton type="submit">
+                {{ t("settings.openAi.save") }}
+              </AppButton>
+            </form>
+            <p v-if="openAi.connectionMessage" role="status">
+              {{ openAi.connectionMessage }}
+            </p>
+          </AppSurface>
 
-        <ShortcutsSettings />
+          <ShortcutsSettings />
 
-        <AppSurface id="appearance">
-          <div class="section-heading">
-            <h2>{{ t("settings.navigation.appearance") }}</h2>
-          </div>
-          <label class="setting-field">
-            <span>{{ t("settings.appearance.theme") }}</span>
-            <AppSelect
-              :model-value="theme"
-              :options="themeOptions"
-              :accessible-label="t('settings.appearance.theme')"
-              @update:model-value="updateTheme"
-            />
-          </label>
-          <div class="setting-field setting-toggle-row">
-            <span>
-              <strong>{{ t("settings.appearance.reducedMotion") }}</strong>
-              <small>{{
-                t("settings.appearance.reducedMotionDescription")
-              }}</small>
-            </span>
-            <AppToggleSwitch
-              :model-value="reducedMotion"
-              :accessible-label="t('settings.appearance.reducedMotion')"
-              @update:model-value="updateReducedMotion"
-            />
-          </div>
-        </AppSurface>
+          <AppSurface id="appearance">
+            <div class="section-heading">
+              <h2>{{ t("settings.navigation.appearance") }}</h2>
+            </div>
+            <label class="setting-field">
+              <span>{{ t("settings.appearance.theme") }}</span>
+              <AppSelect
+                :model-value="theme"
+                :options="themeOptions"
+                :accessible-label="t('settings.appearance.theme')"
+                @update:model-value="updateTheme"
+              />
+            </label>
+            <div class="setting-field setting-toggle-row">
+              <span>
+                <strong>{{ t("settings.appearance.reducedMotion") }}</strong>
+                <small>{{
+                  t("settings.appearance.reducedMotionDescription")
+                }}</small>
+              </span>
+              <AppToggleSwitch
+                :model-value="reducedMotion"
+                :accessible-label="t('settings.appearance.reducedMotion')"
+                @update:model-value="updateReducedMotion"
+              />
+            </div>
+          </AppSurface>
+        </div>
       </div>
     </div>
   </div>

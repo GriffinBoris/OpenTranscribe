@@ -1,4 +1,94 @@
 :root {
+  /* Typography */
+  --font-family-sans:
+    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-size-2xs: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-base: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 16px;
+  --font-size-2xl: 18px;
+  --font-size-3xl: 20px;
+  --font-size-display: 34px;
+  --font-size-page-title: clamp(28px, 3vw, var(--font-size-display));
+  --font-weight-regular: 400;
+  --font-weight-medium: 560;
+  --font-weight-semibold: 650;
+  --font-weight-bold: 700;
+  --font-weight-heavy: 760;
+  --line-height-tight: 1.1;
+  --line-height-heading: 1.2;
+  --line-height-body: 1.45;
+  --line-height-reading: 1.55;
+  --line-height-editor: 1.65;
+  --line-height-solid: 1;
+
+  /* Spacing follows a four-pixel base with half steps for compact desktop UI. */
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-3-5: 14px;
+  --space-4: 16px;
+  --space-4-5: 18px;
+  --space-5: 20px;
+  --space-5-5: 22px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-12: 48px;
+  --space-13: 52px;
+  --space-14: 56px;
+
+  /* Layout and component sizing */
+  --layout-sidebar-width: 228px;
+  --layout-titlebar-height: 34px;
+  --layout-page-gutter: clamp(var(--space-6), 3vw, var(--space-12));
+  --layout-pane-toolbar-height: 52px;
+  --control-height-small: 32px;
+  --control-height-medium: 38px;
+  --control-height-large: 46px;
+  --control-width-project: 156px;
+
+  /* Shape */
+  --border-width: 1px;
+  --radius-xs: 7px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-standard: 140ms;
+  --duration-slow: 160ms;
+  --duration-meter: 65ms;
+  --easing-standard: ease;
+  --easing-linear: linear;
+
+  /* Layering */
+  --layer-content: 1;
+  --layer-dock: 20;
+  --layer-titlebar: 30;
+  --layer-drag-overlay: 50;
+  --layer-popover: 1100;
+  --layer-dialog: 1200;
+
+  /* Interaction */
+  --opacity-disabled: 0.52;
+  --opacity-muted: 0.6;
+  --focus-outline-width: 2px;
+  --focus-outline-offset: 2px;
+
+  /* Semantic color */
   --canvas: #f7f5f0;
   --canvas-subtle: #f1efe9;
   --sidebar: #e5e9dc;
@@ -9,6 +99,7 @@
   --text-faint: #6f716b;
   --border: #deddd6;
   --border-strong: #cac9c1;
+  --divider: color-mix(in srgb, var(--border) 70%, var(--surface));
   --accent: #c4473b;
   --accent-hover: #ad3b31;
   --accent-contrast: #ffffff;
@@ -22,14 +113,14 @@
   --success: #3f6745;
   --shadow: 0 12px 32px rgb(53 49 40 / 8%);
   --shadow-pane: 0 1px 4px rgb(45 43 37 / 5%);
+  --shadow-brand: 0 1px 2px rgb(36 37 33 / 14%);
   --shadow-surface: 0 1px 0 rgb(255 255 255 / 35%);
   --shadow-dialog: 0 24px 70px rgb(30 29 25 / 24%);
   --shadow-dock: 0 18px 50px rgb(34 27 22 / 18%);
+  --shadow-action: 0 8px 18px color-mix(in srgb, var(--accent) 20%, transparent);
+  --shadow-focus: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
   --control-divider: rgb(255 255 255 / 22%);
   --dialog-mask: rgb(26 27 23 / 28%);
-  --radius-small: 8px;
-  --radius-medium: 12px;
-  --radius-large: 18px;
 }
 
 :root[data-theme="dark"] {

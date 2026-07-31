@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { FolderOpen, Search } from "@lucide/vue";
+import { FolderOpen } from "@lucide/vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 
-import SessionRow from "@/components/session/SessionRow.vue";
 import AppEmptyState from "@/components/ui/AppEmptyState.vue";
-import AppInputText from "@/components/ui/AppInputText.vue";
+import AppSearchInput from "@/components/ui/AppSearchInput.vue";
 import AppSurface from "@/components/ui/AppSurface.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import MovableSessionRow from "@/views/application/components/MovableSessionRow.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 
 const application = useApplicationStore();
@@ -37,7 +37,7 @@ const projectHasSessions = computed(() =>
 </script>
 
 <template>
-  <div class="page">
+  <div class="page library-page">
     <header class="page-header page-header--compact">
       <div>
         <p class="eyebrow">{{ t("projects.label") }}</p>
@@ -50,38 +50,33 @@ const projectHasSessions = computed(() =>
       </div>
     </header>
 
-    <div class="search-field">
-      <Search :size="16" />
-      <AppInputText
-        v-model="query"
-        type="search"
-        :placeholder="t('projects.search')"
-      />
-    </div>
+    <AppSearchInput v-model="query" :placeholder="t('projects.search')" />
 
-    <AppSurface :padded="false">
-      <div v-if="sessions.length" class="session-list">
-        <SessionRow
-          v-for="session in sessions"
-          :key="session.id"
-          :session="session"
-        />
+    <AppSurface class="library-page__sessions" :padded="false">
+      <div class="library-page__scroll">
+        <div v-if="sessions.length" class="session-list">
+          <MovableSessionRow
+            v-for="session in sessions"
+            :key="session.id"
+            :session="session"
+          />
+        </div>
+        <AppEmptyState
+          v-else
+          :title="
+            projectHasSessions && query.trim()
+              ? t('projects.noMatches')
+              : t('projects.empty')
+          "
+          :message="
+            projectHasSessions && query.trim()
+              ? t('projects.noMatchesDescription')
+              : t('projects.emptyDescription')
+          "
+        >
+          <template #icon><FolderOpen :size="21" /></template>
+        </AppEmptyState>
       </div>
-      <AppEmptyState
-        v-else
-        :title="
-          projectHasSessions && query.trim()
-            ? t('projects.noMatches')
-            : t('projects.empty')
-        "
-        :message="
-          projectHasSessions && query.trim()
-            ? t('projects.noMatchesDescription')
-            : t('projects.emptyDescription')
-        "
-      >
-        <template #icon><FolderOpen :size="21" /></template>
-      </AppEmptyState>
     </AppSurface>
   </div>
 </template>

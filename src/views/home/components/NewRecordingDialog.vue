@@ -83,7 +83,7 @@ const canStart = computed(
 
 function reset() {
   title.value = "";
-  projectId.value = "";
+  projectId.value = application.defaultRecordingProjectId() ?? "";
   microphoneDeviceId.value =
     application.settings?.microphone_device_id ??
     application.audioDevices?.microphones.find((device) => device.is_default)
@@ -94,6 +94,11 @@ function reset() {
     application.settings?.capture_system_audio ?? false;
   recordingMode.value = application.settings?.recording_mode ?? "record_only";
   languageHint.value = "";
+}
+
+function updateProject(value: string) {
+  projectId.value = value;
+  void application.saveRecordingProjectSelection(value || null);
 }
 
 function startRecording() {
@@ -139,9 +144,10 @@ watch(
       <label class="dialog-field">
         <span>{{ t("recordingOptions.project") }}</span>
         <AppSelect
-          v-model="projectId"
+          :model-value="projectId"
           :options="projectOptions"
           :accessible-label="t('recordingOptions.project')"
+          @update:model-value="updateProject"
         />
       </label>
       <label class="dialog-field">

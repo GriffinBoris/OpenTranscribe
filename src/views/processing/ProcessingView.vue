@@ -73,76 +73,80 @@ function progressMessage(job: Job) {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page processing-page">
     <header class="page-header page-header--compact">
       <h1>{{ t("processing.title") }}</h1>
     </header>
 
-    <AppSurface :padded="false">
-      <template v-if="application.activeJobs.length">
-        <div class="processing-table__header">
-          <span>{{ t("processing.job") }}</span
-          ><span>{{ t("processing.provider") }}</span
-          ><span>{{ t("processing.progress") }}</span
-          ><span>{{ t("processing.status") }}</span>
-        </div>
-        <div
-          v-for="job in application.activeJobs"
-          :key="job.id"
-          class="processing-row"
-        >
-          <div class="processing-row__title">
-            <CircleDashed :size="18" class="spin" />
-            <span
-              ><strong>{{ sessionTitle(job.session_id) }}</strong
-              ><small>{{ jobKind(job) }}</small></span
-            >
+    <AppSurface class="processing-page__jobs" :padded="false">
+      <div class="processing-page__scroll">
+        <template v-if="application.activeJobs.length">
+          <div class="processing-table__header">
+            <span>{{ t("processing.job") }}</span
+            ><span>{{ t("processing.provider") }}</span
+            ><span>{{ t("processing.progress") }}</span
+            ><span>{{ t("processing.status") }}</span>
           </div>
-          <StatusPill :tone="isCloudJob(job) ? 'cloud' : 'local'">
-            {{
-              isCloudJob(job) ? t("processing.openAi") : t("processing.local")
-            }}
-          </StatusPill>
-          <div>
-            <div class="progress-label">
-              <span>{{ progressMessage(job) }}</span>
-              <strong v-if="progressLabel(job) !== undefined">
-                {{ progressLabel(job) }}%
-              </strong>
+          <div
+            v-for="job in application.activeJobs"
+            :key="job.id"
+            class="processing-row"
+          >
+            <div class="processing-row__title">
+              <CircleDashed :size="18" class="spin" />
+              <span
+                ><strong>{{ sessionTitle(job.session_id) }}</strong
+                ><small>{{ jobKind(job) }}</small></span
+              >
             </div>
-            <AppProgressBar
-              :value="progressValue(job)"
-              :accessible-label="progressMessage(job)"
-            />
+            <StatusPill :tone="isCloudJob(job) ? 'cloud' : 'local'">
+              {{
+                isCloudJob(job) ? t("processing.openAi") : t("processing.local")
+              }}
+            </StatusPill>
+            <div>
+              <div class="progress-label">
+                <span>{{ progressMessage(job) }}</span>
+                <strong v-if="progressLabel(job) !== undefined">
+                  {{ progressLabel(job) }}%
+                </strong>
+              </div>
+              <AppProgressBar
+                :value="progressValue(job)"
+                :accessible-label="progressMessage(job)"
+              />
+            </div>
+            <div class="processing-row__status">
+              <StatusPill tone="neutral">{{ jobState(job) }}</StatusPill>
+              <AppButton
+                v-if="job.state === 'failed'"
+                size="small"
+                variant="secondary"
+                @click="application.retryJob(job.id)"
+              >
+                {{ t("processing.retry") }}
+              </AppButton>
+              <AppButton
+                v-else-if="
+                  ['queued', 'preparing', 'running'].includes(job.state)
+                "
+                size="small"
+                variant="ghost"
+                @click="application.cancelJob(job.id)"
+              >
+                {{ t("processing.cancel") }}
+              </AppButton>
+            </div>
           </div>
-          <div class="processing-row__status">
-            <StatusPill tone="neutral">{{ jobState(job) }}</StatusPill>
-            <AppButton
-              v-if="job.state === 'failed'"
-              size="small"
-              variant="secondary"
-              @click="application.retryJob(job.id)"
-            >
-              {{ t("processing.retry") }}
-            </AppButton>
-            <AppButton
-              v-else-if="['queued', 'preparing', 'running'].includes(job.state)"
-              size="small"
-              variant="ghost"
-              @click="application.cancelJob(job.id)"
-            >
-              {{ t("processing.cancel") }}
-            </AppButton>
-          </div>
-        </div>
-      </template>
-      <AppEmptyState
-        v-else
-        :title="t('processing.empty')"
-        :message="t('processing.emptyDescription')"
-      >
-        <template #icon><CircleCheck :size="21" /></template>
-      </AppEmptyState>
+        </template>
+        <AppEmptyState
+          v-else
+          :title="t('processing.empty')"
+          :message="t('processing.emptyDescription')"
+        >
+          <template #icon><CircleCheck :size="21" /></template>
+        </AppEmptyState>
+      </div>
     </AppSurface>
   </div>
 </template>

@@ -56,6 +56,7 @@ pub fn run() {
             commands::session::session_waveform,
             commands::session::recover_recording,
             commands::session::reveal_session,
+            commands::session::rename_session,
             commands::session::move_session,
             commands::session::trashed_sessions,
             commands::session::trash_session,

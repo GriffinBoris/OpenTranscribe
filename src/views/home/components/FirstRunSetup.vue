@@ -161,14 +161,12 @@ const {
         </div>
         <AppButton
           v-if="recordingMode === 'local_live' && !providerReady"
-          size="small"
           @click="openSettings('models')"
         >
           {{ t("firstRun.configureLocal") }}
         </AppButton>
         <AppButton
           v-if="recordingMode === 'open_ai_live' && !providerReady"
-          size="small"
           @click="openSettings('openai')"
         >
           {{ t("firstRun.configureOpenAi") }}

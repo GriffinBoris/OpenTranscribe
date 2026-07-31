@@ -250,6 +250,7 @@ export const messages = {
       "OpenAI transcription requires the native desktop runtime.",
     editingDesktopOnly:
       "Transcript editing requires the native desktop runtime.",
+    requestedItemMissing: "The requested item does not exist.",
     unknownLocalModel: "Unknown local model.",
     downloadComplete: "Download complete",
     localDesktopOnly:
@@ -335,7 +336,6 @@ export const messages = {
     untitledRecording: "Untitled recording",
     justNow: "Just now",
     recording: "Recording",
-    storedLocally: "Stored locally",
     transcript: "Transcript",
     notes: "Notes",
     segmentCount: "{count} segment | {count} segments",
@@ -393,9 +393,23 @@ export const messages = {
     meetingNotes: "Meeting notes",
     addTimestamp: "Add timestamp",
     addTimestampShortcut: "Add timestamp (Command or Control + Shift + M)",
+    notesMode: {
+      label: "Notes view",
+      edit: "Edit",
+      preview: "Preview",
+      empty: "Write a note to see its formatted preview.",
+    },
     moveProject: {
       label: "Move to project",
+      recordingLabel: "Move {title} to a project or Inbox",
       failed: "This session could not be moved.",
+    },
+    rename: {
+      action: "Rename meeting",
+      title: "Rename meeting",
+      label: "Meeting title",
+      save: "Save name",
+      failed: "This meeting could not be renamed.",
     },
     localModel: "Local transcription model",
     localOption: "Local · {model}",

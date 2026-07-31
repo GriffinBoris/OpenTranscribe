@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { Search } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
-import SessionRow from "@/components/session/SessionRow.vue";
 import AppButton from "@/components/ui/AppButton.vue";
-import AppInputText from "@/components/ui/AppInputText.vue";
+import AppSearchInput from "@/components/ui/AppSearchInput.vue";
 import AppSurface from "@/components/ui/AppSurface.vue";
+import MovableSessionRow from "@/views/application/components/MovableSessionRow.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 
 const application = useApplicationStore();
@@ -35,7 +34,7 @@ async function importMedia() {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page library-page">
     <header class="page-header page-header--compact">
       <h1>{{ t("library.inbox") }}</h1>
       <AppButton variant="secondary" @click="importMedia">
@@ -43,21 +42,17 @@ async function importMedia() {
       </AppButton>
     </header>
 
-    <div class="search-field">
-      <Search :size="16" /><AppInputText
-        v-model="query"
-        type="search"
-        :placeholder="t('library.search')"
-      />
-    </div>
+    <AppSearchInput v-model="query" :placeholder="t('library.search')" />
 
-    <AppSurface :padded="false">
-      <div class="session-list">
-        <SessionRow
-          v-for="session in sessions"
-          :key="session.id"
-          :session="session"
-        />
+    <AppSurface class="library-page__sessions" :padded="false">
+      <div class="library-page__scroll">
+        <div class="session-list">
+          <MovableSessionRow
+            v-for="session in sessions"
+            :key="session.id"
+            :session="session"
+          />
+        </div>
       </div>
     </AppSurface>
   </div>

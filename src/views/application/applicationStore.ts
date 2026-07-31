@@ -3,7 +3,12 @@ import { defineStore } from "pinia";
 
 import { native } from "@/core/native";
 import { i18n } from "@/i18n";
-import type { AppSnapshot, AudioDevices, Session } from "@/types/domain";
+import type {
+  AppSnapshot,
+  AudioDevices,
+  RecordingProjectSelection,
+  Session,
+} from "@/types/domain";
 import { useRecordingStore } from "@/views/application/recordingStore";
 
 export const useApplicationStore = defineStore("application", () => {
@@ -19,6 +24,19 @@ export const useApplicationStore = defineStore("application", () => {
 
   const projects = computed(() => snapshot.value?.projects ?? []);
   const recentSessions = computed(() => snapshot.value?.recent_sessions ?? []);
+  const projectSessionCounts = computed(() => {
+    const counts = new Map<string, number>();
+
+    for (const session of recentSessions.value) {
+      if (!session.project_id) {
+        continue;
+      }
+
+      counts.set(session.project_id, (counts.get(session.project_id) ?? 0) + 1);
+    }
+
+    return counts;
+  });
   const activeJobs = computed(() => snapshot.value?.active_jobs ?? []);
   const runningJobs = computed(() =>
     activeJobs.value.filter((job) =>
@@ -186,6 +204,33 @@ export const useApplicationStore = defineStore("application", () => {
     return project;
   }
 
+  function defaultRecordingProjectId() {
+    const selection = settings.value?.recording_project_selection;
+
+    if (selection?.kind === "inbox") {
+      return null;
+    }
+
+    if (
+      selection?.kind === "project" &&
+      projects.value.some((project) => project.id === selection.project_id)
+    ) {
+      return selection.project_id;
+    }
+
+    return projects.value[0]?.id ?? null;
+  }
+
+  async function saveRecordingProjectSelection(projectId: string | null) {
+    const recordingProjectSelection: RecordingProjectSelection = projectId
+      ? { kind: "project", project_id: projectId }
+      : { kind: "inbox" };
+
+    return saveSettings({
+      recording_project_selection: recordingProjectSelection,
+    });
+  }
+
   async function importMedia(path?: string) {
     operationError.value = null;
 
@@ -244,6 +289,34 @@ export const useApplicationStore = defineStore("application", () => {
     }
   }
 
+  async function renameSession(sessionId: string, title: string) {
+    operationError.value = null;
+
+    try {
+      const session = await native.renameSession(sessionId, title);
+      replaceRecentSession(session);
+      return session;
+    } catch (reason) {
+      operationError.value =
+        reason instanceof Error ? reason.message : String(reason);
+      return null;
+    }
+  }
+
+  async function moveSession(sessionId: string, projectId: string | null) {
+    operationError.value = null;
+
+    try {
+      const session = await native.moveSession(sessionId, projectId);
+      replaceRecentSession(session);
+      return session;
+    } catch (reason) {
+      operationError.value =
+        reason instanceof Error ? reason.message : String(reason);
+      return null;
+    }
+  }
+
   function applyTheme(theme: "system" | "light" | "dark") {
     document.documentElement.dataset.theme = theme;
   }
@@ -260,14 +333,18 @@ export const useApplicationStore = defineStore("application", () => {
     }
 
     operationError.value = null;
+    const previousSettings = snapshot.value.settings;
+    const nextSettings = {
+      ...previousSettings,
+      ...updates,
+    };
+    snapshot.value.settings = nextSettings;
 
     try {
-      snapshot.value.settings = await native.saveSettings({
-        ...snapshot.value.settings,
-        ...updates,
-      });
+      snapshot.value.settings = await native.saveSettings(nextSettings);
       return true;
     } catch (reason) {
+      snapshot.value.settings = previousSettings;
       operationError.value =
         reason instanceof Error ? reason.message : String(reason);
       return false;
@@ -284,16 +361,21 @@ export const useApplicationStore = defineStore("application", () => {
     importRequestRevision,
     projects,
     recentSessions,
+    projectSessionCounts,
     activeJobs,
     runningJobs,
     settings,
     bootstrap,
     chooseLibrary,
     createProject,
+    defaultRecordingProjectId,
+    saveRecordingProjectSelection,
     importMedia,
     loadAudioDevices,
     openSystemAudioPermissionSettings,
     replaceRecentSession,
+    renameSession,
+    moveSession,
     upsertJob,
     retryJob,
     cancelJob,

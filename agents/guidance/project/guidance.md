@@ -134,7 +134,12 @@ order: 0
   Raw `button`, `dialog`, `input`, `select`, and `textarea` elements are linted
   as errors so focus behavior, overlays, disabled states, and visual treatment
   stay consistent across the desktop app.
-- Use semantic tokens from `src/styles/tokens.css`; do not hardcode theme colors in components.
+- Use semantic tokens from `src/styles/tokens.css`; do not hardcode theme colors
+  in components. Reuse the shared typography, spacing, control-size, radius,
+  shadow, motion, opacity, layering, and shell-layout scales whenever a value
+  participates in app-wide visual consistency. Keep intrinsic media dimensions,
+  responsive breakpoints, and genuinely component-specific geometry local
+  instead of creating a token for every pixel value.
 - Keep global CSS ordered through `src/styles/main.css`, with base, shared
   component, and focused view styles split into named files before any one
   stylesheet becomes a catch-all.

@@ -60,7 +60,7 @@ const sessions: Session[] = [
 ];
 
 export function createPreviewSnapshot(
-  path = "~/Documents/OpenTranscribe Library",
+  path = "~/Documents/OpenTranscribe",
   setupCompleted = true,
 ): AppSnapshot {
   return {
@@ -120,6 +120,7 @@ export function createPreviewSnapshot(
       recording_mode: "record_only",
       microphone_device_id: null,
       capture_system_audio: false,
+      recording_project_selection: { kind: "automatic" },
       global_shortcut_enabled: false,
       global_shortcut: "command_or_control_shift_r",
       appearance: {
