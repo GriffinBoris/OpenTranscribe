@@ -66,6 +66,10 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Build frontend
+        if: inputs.bundle != true
+        run: npm run build
+
       - name: Prepare local transcription sidecar
         if: inputs.bundle != true
         run: npm run prepare:sidecar:debug -- --target ${{ matrix.target }}
