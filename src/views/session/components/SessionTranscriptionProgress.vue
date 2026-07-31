@@ -28,7 +28,7 @@ const progressValue = computed(() => {
 <template>
   <div
     v-if="activeJob"
-    class="session-progress"
+    class="bg-canvas-subtle text-ink-muted grid grid-cols-[minmax(160px,320px)_auto] items-center gap-3 border-b border-[var(--divider)] px-6 py-[9px] text-sm max-[700px]:grid-cols-1"
     role="status"
     aria-live="polite"
   >

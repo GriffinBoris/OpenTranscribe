@@ -108,56 +108,68 @@ function showNote(timestampMs: number | null) {
     :title="t('session.search.title')"
     @update:open="emit('update:open', $event)"
   >
-    <div class="session-search">
+    <div class="grid gap-3">
       <AppSearchInput
         v-model="query"
         :placeholder="t('session.search.placeholder')"
         autofocus
       />
 
-      <p v-if="normalizedQuery" class="session-search__summary">
+      <p v-if="normalizedQuery" class="text-ink-muted m-0 text-sm">
         {{ t("session.search.resultCount", { count: resultCount }) }}
       </p>
 
-      <div v-if="resultCount" class="session-search__results">
+      <div
+        v-if="resultCount"
+        class="grid max-h-[min(480px,60vh)] gap-1 overflow-auto"
+      >
         <AppButton
           v-for="segment in transcriptResults"
           :key="segment.id"
-          class="session-search__result"
+          class="w-full items-start justify-start p-2.5 text-left"
           variant="ghost"
           @click="seek(segment.start_ms)"
         >
           <FileText :size="15" />
-          <span>
+          <span class="grid min-w-0 gap-1">
             <strong>
               {{ timestamp(segment.start_ms) }} · {{ speakerName(segment) }}
             </strong>
-            <small>{{ segment.text }}</small>
+            <small
+              class="text-ink-muted overflow-hidden font-normal text-ellipsis whitespace-nowrap"
+              >{{ segment.text }}</small
+            >
           </span>
         </AppButton>
 
         <AppButton
           v-for="(result, index) in noteResults"
           :key="`${index}-${result.line}`"
-          class="session-search__result"
+          class="w-full items-start justify-start p-2.5 text-left"
           variant="ghost"
           @click="showNote(result.timestampMs)"
         >
           <MessageSquareText :size="15" />
-          <span>
+          <span class="grid min-w-0 gap-1">
             <strong>
               {{ t("session.notes") }}
               <template v-if="result.timestampMs !== null">
                 · {{ timestamp(result.timestampMs) }}
               </template>
             </strong>
-            <small>{{ result.line }}</small>
+            <small
+              class="text-ink-muted overflow-hidden font-normal text-ellipsis whitespace-nowrap"
+              >{{ result.line }}</small
+            >
           </span>
         </AppButton>
       </div>
 
-      <div v-else-if="normalizedQuery" class="empty-setting">
-        <span>
+      <div
+        v-else-if="normalizedQuery"
+        class="rounded-app-md border-line-strong text-ink-muted flex items-center gap-3 border border-dashed p-[18px]"
+      >
+        <span class="grid gap-1">
           <strong>{{ t("session.search.empty") }}</strong>
           <small>{{ t("session.search.emptyDescription") }}</small>
         </span>

@@ -118,6 +118,7 @@ export function createPreviewSnapshot(
       revision: 1,
       setup_completed: setupCompleted,
       recording_mode: "record_only",
+      openai_transcription_model: "gpt_transcribe",
       microphone_device_id: null,
       capture_system_audio: false,
       recording_project_selection: { kind: "automatic" },

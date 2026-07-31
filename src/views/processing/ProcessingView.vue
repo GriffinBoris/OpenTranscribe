@@ -73,15 +73,28 @@ function progressMessage(job: Job) {
 </script>
 
 <template>
-  <div class="page processing-page">
-    <header class="page-header page-header--compact">
-      <h1>{{ t("processing.title") }}</h1>
+  <div
+    class="page processing-page grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden px-[var(--layout-page-gutter)] pt-[var(--space-13)] pb-[var(--space-14)]"
+  >
+    <header
+      class="page-header page-header--compact mb-[var(--space-5-5)] flex items-start justify-between gap-6"
+    >
+      <h1
+        class="text-display m-0 max-w-[730px] leading-[var(--line-height-tight)] font-bold tracking-[-0.035em]"
+      >
+        {{ t("processing.title") }}
+      </h1>
     </header>
 
-    <AppSurface class="processing-page__jobs" :padded="false">
-      <div class="processing-page__scroll">
+    <AppSurface
+      class="processing-page__jobs grid min-h-0 grid-rows-[minmax(0,1fr)]"
+      :padded="false"
+    >
+      <div class="processing-page__scroll min-h-0 overflow-auto">
         <template v-if="application.activeJobs.length">
-          <div class="processing-table__header">
+          <div
+            class="processing-table__header bg-canvas-subtle text-ink-muted sticky top-0 z-[var(--layer-content)] grid grid-cols-[minmax(0,1.2fr)_max-content_minmax(220px,1fr)_max-content] items-center gap-5 border-b border-[var(--divider)] px-[18px] py-[14px] text-xs font-bold tracking-[0.06em] uppercase max-[1100px]:hidden"
+          >
             <span>{{ t("processing.job") }}</span
             ><span>{{ t("processing.provider") }}</span
             ><span>{{ t("processing.progress") }}</span
@@ -90,11 +103,14 @@ function progressMessage(job: Job) {
           <div
             v-for="job in application.activeJobs"
             :key="job.id"
-            class="processing-row"
+            class="processing-row grid grid-cols-[minmax(0,1.2fr)_max-content_minmax(220px,1fr)_max-content] items-center gap-5 border-b border-[var(--divider)] px-[18px] py-[14px] last:border-b-0 max-[1100px]:grid-cols-[minmax(0,1fr)_max-content] max-[1100px]:gap-x-4 max-[1100px]:gap-y-3 max-[700px]:grid-cols-1"
           >
-            <div class="processing-row__title">
-              <CircleDashed :size="18" class="spin" />
-              <span
+            <div class="processing-row__title flex items-center gap-2.5">
+              <CircleDashed
+                :size="18"
+                class="animate-[spin_1.4s_linear_infinite]"
+              />
+              <span class="grid min-w-0 gap-1"
                 ><strong>{{ sessionTitle(job.session_id) }}</strong
                 ><small>{{ jobKind(job) }}</small></span
               >
@@ -104,8 +120,10 @@ function progressMessage(job: Job) {
                 isCloudJob(job) ? t("processing.openAi") : t("processing.local")
               }}
             </StatusPill>
-            <div>
-              <div class="progress-label">
+            <div class="min-w-0">
+              <div
+                class="progress-label text-ink-muted mb-[7px] flex justify-between gap-2.5 text-xs"
+              >
                 <span>{{ progressMessage(job) }}</span>
                 <strong v-if="progressLabel(job) !== undefined">
                   {{ progressLabel(job) }}%
@@ -116,7 +134,9 @@ function progressMessage(job: Job) {
                 :accessible-label="progressMessage(job)"
               />
             </div>
-            <div class="processing-row__status">
+            <div
+              class="processing-row__status flex items-center gap-1.5 justify-self-end max-[700px]:justify-self-start"
+            >
               <StatusPill tone="neutral">{{ jobState(job) }}</StatusPill>
               <AppButton
                 v-if="job.state === 'failed'"

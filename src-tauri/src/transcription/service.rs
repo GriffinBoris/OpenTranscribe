@@ -1,6 +1,6 @@
 use opentranscribe_domain::TranscriptSource;
 
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::storage::TranscriptionInput;
 
 use super::OpenAiFileTranscriber;
@@ -26,7 +26,7 @@ impl OpenAiTranscriptionService {
             on_progress,
             should_cancel,
         )?;
-        let segments = transcription_segments(&transcripts);
+        let segments = transcription_segments(&transcripts)?;
         let detected_language = transcripts
             .iter()
             .flat_map(|chunk| chunk.languages.iter())
@@ -45,7 +45,9 @@ impl OpenAiTranscriptionService {
     }
 }
 
-fn transcription_segments(transcripts: &[OpenAiChunkTranscript]) -> Vec<TranscriptionSegmentInput> {
+fn transcription_segments(
+    transcripts: &[OpenAiChunkTranscript],
+) -> AppResult<Vec<TranscriptionSegmentInput>> {
     let mut chunk_start_ms = 0_u64;
     let mut segments = Vec::new();
 
@@ -82,7 +84,13 @@ fn transcription_segments(transcripts: &[OpenAiChunkTranscript]) -> Vec<Transcri
         chunk_start_ms += chunk.duration_ms;
     }
 
-    segments
+    if segments.is_empty() {
+        return Err(AppError::Provider(
+            "OpenAI returned an empty transcript".to_owned(),
+        ));
+    }
+
+    Ok(segments)
 }
 
 fn seconds_to_milliseconds(seconds: f64) -> u64 {
@@ -121,7 +129,8 @@ mod tests {
             },
         ];
 
-        let segments = transcription_segments(&transcripts);
+        let segments = transcription_segments(&transcripts)
+            .expect("diarized segments should produce a transcript");
 
         assert_eq!(segments.len(), 2);
         assert_eq!(segments[0].start_ms, 100);
@@ -141,11 +150,32 @@ mod tests {
             duration_ms: 2_500,
         }];
 
-        let segments = transcription_segments(&transcripts);
+        let segments = transcription_segments(&transcripts)
+            .expect("text-only responses should produce a transcript");
 
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].start_ms, 0);
         assert_eq!(segments[0].end_ms, 2_500);
         assert_eq!(segments[0].speaker_label, None);
+    }
+
+    #[test]
+    fn rejects_empty_provider_responses() {
+        let transcripts = vec![OpenAiChunkTranscript {
+            text: String::new(),
+            languages: Vec::new(),
+            segments: Vec::new(),
+            duration_ms: 2_500,
+        }];
+
+        let error = match transcription_segments(&transcripts) {
+            Ok(_) => panic!("empty responses should fail the transcription job"),
+            Err(error) => error,
+        };
+
+        assert_eq!(
+            error.to_string(),
+            "provider request failed: OpenAI returned an empty transcript"
+        );
     }
 }

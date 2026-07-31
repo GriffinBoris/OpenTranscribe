@@ -37,12 +37,24 @@ const projectHasSessions = computed(() =>
 </script>
 
 <template>
-  <div class="page library-page">
-    <header class="page-header page-header--compact">
+  <div
+    class="page library-page grid h-full min-h-0 w-full grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden px-[var(--layout-page-gutter)] pt-[var(--space-13)] pb-[var(--space-14)]"
+  >
+    <header
+      class="page-header page-header--compact mb-[var(--space-5-5)] flex items-start justify-between gap-6"
+    >
       <div>
-        <p class="eyebrow">{{ t("projects.label") }}</p>
-        <h1>{{ project?.name ?? t("projects.fallbackTitle") }}</h1>
-        <div class="tag-row">
+        <p
+          class="eyebrow text-lichen mb-1.5 text-xs font-black tracking-[0.1em] uppercase"
+        >
+          {{ t("projects.label") }}
+        </p>
+        <h1
+          class="text-display m-0 max-w-[730px] leading-[var(--line-height-tight)] font-bold tracking-[-0.035em]"
+        >
+          {{ project?.name ?? t("projects.fallbackTitle") }}
+        </h1>
+        <div class="tag-row flex flex-wrap gap-1.5">
           <StatusPill v-for="term in project?.glossary" :key="term">{{
             term
           }}</StatusPill>
@@ -50,11 +62,18 @@ const projectHasSessions = computed(() =>
       </div>
     </header>
 
-    <AppSearchInput v-model="query" :placeholder="t('projects.search')" />
+    <AppSearchInput
+      class="mb-4"
+      v-model="query"
+      :placeholder="t('projects.search')"
+    />
 
-    <AppSurface class="library-page__sessions" :padded="false">
-      <div class="library-page__scroll">
-        <div v-if="sessions.length" class="session-list">
+    <AppSurface
+      class="library-page__sessions grid min-h-0 grid-rows-[minmax(0,1fr)]"
+      :padded="false"
+    >
+      <div class="library-page__scroll min-h-0 overflow-auto">
+        <div v-if="sessions.length" class="session-list grid">
           <MovableSessionRow
             v-for="session in sessions"
             :key="session.id"

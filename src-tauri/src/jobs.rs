@@ -31,6 +31,7 @@ pub(crate) fn enqueue_post_recording_transcription(
     app: &tauri::AppHandle,
     session_id: &str,
     mode: RecordingMode,
+    openai_model_id: String,
 ) -> AppResult<Option<Job>> {
     let request = match mode {
         RecordingMode::RecordOnly => return Ok(None),
@@ -42,7 +43,7 @@ pub(crate) fn enqueue_post_recording_transcription(
         RecordingMode::OpenAiLive => EnqueueTranscriptionRequest {
             session_id: session_id.to_owned(),
             provider: TranscriptionProvider::OpenAi,
-            model_id: "gpt-4o-transcribe-diarize".to_owned(),
+            model_id: openai_model_id,
         },
     };
 

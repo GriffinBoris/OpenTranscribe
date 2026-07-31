@@ -24,19 +24,23 @@ function formatDuration(durationMs: number) {
 </script>
 
 <template>
-  <div class="session-row">
+  <div
+    class="session-row hover:bg-canvas-subtle flex min-w-0 items-center gap-3 border-b border-[var(--divider)] px-[15px] py-[13px] last:border-b-0"
+  >
     <RouterLink
       :to="`/sessions/${session.id}`"
-      class="session-row__link"
+      class="session-row__link flex min-w-0 flex-1 items-center gap-3"
       :aria-label="session.title"
     >
-      <span class="session-row__icon">
+      <span
+        class="session-row__icon rounded-app-md bg-lichen-soft text-lichen grid size-[35px] shrink-0 place-items-center"
+      >
         <FileAudio v-if="session.source === 'import'" :size="18" />
         <Mic2 v-else :size="18" />
       </span>
-      <span class="session-row__body">
-        <strong>{{ session.title }}</strong>
-        <small>
+      <span class="session-row__body grid min-w-0 flex-1 gap-1">
+        <strong class="truncate">{{ session.title }}</strong>
+        <small class="text-ink-muted block">
           {{ new Date(session.created_at).toLocaleDateString() }} ·
           {{ formatDuration(session.duration_ms) }}
         </small>
@@ -68,7 +72,7 @@ function formatDuration(durationMs: number) {
       </StatusPill>
     </RouterLink>
     <AppSelect
-      class="session-row__project-select"
+      class="session-row__project-select w-[var(--control-width-project)] shrink-0 text-sm"
       :model-value="session.project_id ?? ''"
       :options="projectOptions"
       :accessible-label="

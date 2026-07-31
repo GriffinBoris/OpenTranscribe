@@ -81,10 +81,14 @@ async function updateGlobalShortcut(value: string) {
 
 <template>
   <AppSurface id="shortcuts">
-    <div class="section-heading">
+    <div
+      class="section-heading flex items-start justify-between gap-4 border-b border-[var(--divider)] pb-3.5"
+    >
       <div>
-        <h2>{{ t("settings.navigation.shortcuts") }}</h2>
-        <p class="setting-description">
+        <h2 class="mb-[5px] text-2xl">
+          {{ t("settings.navigation.shortcuts") }}
+        </h2>
+        <p class="text-ink-muted mt-[3px] leading-[var(--line-height-body)]">
           {{ t("settings.shortcuts.description") }}
         </p>
       </div>
@@ -92,8 +96,10 @@ async function updateGlobalShortcut(value: string) {
         {{ globalShortcutStatus.label }}
       </StatusPill>
     </div>
-    <div class="setting-field setting-toggle-row">
-      <span>
+    <div
+      class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+    >
+      <span class="grid gap-1">
         <strong>{{ t("settings.shortcuts.globalRecording") }}</strong>
         <small>{{ t("settings.shortcuts.globalDescription") }}</small>
       </span>
@@ -104,12 +110,15 @@ async function updateGlobalShortcut(value: string) {
         @update:model-value="updateGlobalShortcutEnabled"
       />
     </div>
-    <label v-if="globalShortcutEnabled" class="setting-field">
-      <span class="setting-field__copy">
+    <label
+      v-if="globalShortcutEnabled"
+      class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+    >
+      <span class="grid gap-1">
         <strong>{{ t("settings.shortcuts.globalShortcut") }}</strong>
         <small
           v-if="globalShortcut.errorMessage"
-          class="setting-field__error"
+          class="text-accent"
           role="alert"
         >
           {{
@@ -130,10 +139,13 @@ async function updateGlobalShortcut(value: string) {
     <div
       v-for="shortcut in shortcuts"
       :key="shortcut.label"
-      class="shortcut-row"
+      class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-t border-[var(--divider)] py-[11px]"
     >
       <span>{{ shortcut.label }}</span>
-      <kbd>{{ shortcut.keys }}</kbd>
+      <kbd
+        class="rounded-app-xs border-line bg-canvas-subtle text-ink-muted px-[7px] py-1 text-sm"
+        >{{ shortcut.keys }}</kbd
+      >
     </div>
   </AppSurface>
 </template>

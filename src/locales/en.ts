@@ -51,7 +51,8 @@ export const messages = {
     project: "Project",
     microphone: "Microphone",
     systemOutput: "Capture system output",
-    transcription: "After recording",
+    transcription: "Transcription",
+    openAiModel: "OpenAI file model",
     language: "Spoken language",
     start: "Start recording",
     languages: {
@@ -66,6 +67,11 @@ export const messages = {
       korean: "Korean",
       chinese: "Chinese",
     },
+  },
+  openAiModels: {
+    accurate: "OpenAI · GPT Transcribe",
+    speakers: "OpenAI · Speaker labels",
+    fast: "OpenAI · Fast",
   },
   home: {
     title: "Home",
@@ -83,8 +89,8 @@ export const messages = {
     on: "On",
     off: "Off",
     startRecording: "Start recording",
-    recordLocal: "Record and transcribe locally",
-    recordOpenAi: "Record and transcribe with OpenAI",
+    recordLocal: "Record, then transcribe locally",
+    recordOpenAi: "Record with OpenAI live captions",
     recentSessions: "Recent sessions",
     viewAll: "View all",
     noSessions: "No sessions yet.",
@@ -110,7 +116,7 @@ export const messages = {
     systemPermissionGranted: "Permission granted for this build.",
     systemPermissionRequired:
       "This build needs Screen & System Audio Recording access.",
-    transcription: "After recording",
+    transcription: "Transcription",
     decideLater: "Decide each time",
     transcribeLocal: "Transcribe locally",
     transcribeOpenAi: "Transcribe with OpenAI",
@@ -178,6 +184,9 @@ export const messages = {
     recording: {
       description: "Choose the sources used for new sessions.",
       defaultAction: "Default recording action",
+      openAiModel: "OpenAI file model",
+      openAiModelDescription:
+        "Live captions use GPT Live Transcribe. This model creates the saved transcript after stop.",
       microphone: "Microphone",
       noMicrophone: "No microphone found",
       systemOutput: "System output",
@@ -221,7 +230,7 @@ export const messages = {
   },
   recordingDock: {
     localAfterStop: "Transcribes locally after stop",
-    openAiAfterStop: "Transcribes with OpenAI after stop",
+    openAiAfterStop: "Live captions · saves transcript after stop",
     saveToDisk: "Recording safely to disk",
     paused: "Paused",
     recording: "Recording",
@@ -382,6 +391,9 @@ export const messages = {
     save: "Save",
     live: "Live",
     system: "System",
+    systemAudio: "System audio",
+    microphone: "Microphone",
+    liveTranscription: "Live transcription",
     listening: "Listening for the next thought…",
     saved: "Saved",
     saving: "Saving…",
@@ -412,6 +424,7 @@ export const messages = {
       failed: "This meeting could not be renamed.",
     },
     localModel: "Local transcription model",
+    openAiModel: "OpenAI transcription model",
     localOption: "Local · {model}",
     transcribe: "Transcribe",
     openAi: "Transcribe with OpenAI",

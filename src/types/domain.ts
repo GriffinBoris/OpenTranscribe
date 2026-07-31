@@ -1,4 +1,6 @@
 export type RecordingMode = "record_only" | "local_live" | "open_ai_live";
+export type OpenAiTranscriptionModel =
+  "gpt_transcribe" | "gpt_4o_transcribe_diarize" | "gpt_4o_mini_transcribe";
 export type RecordingProjectSelection =
   | { kind: "automatic" }
   | { kind: "inbox" }
@@ -11,6 +13,7 @@ export interface CreateRecordingRequest {
   captureSystemAudio: boolean;
   languageHint: string | null;
   recordingMode: RecordingMode;
+  openAiModel: OpenAiTranscriptionModel;
 }
 
 export type GlobalShortcutPreset =
@@ -112,6 +115,7 @@ export interface AppSettings {
   revision: number;
   setup_completed: boolean;
   recording_mode: RecordingMode;
+  openai_transcription_model: OpenAiTranscriptionModel;
   microphone_device_id: string | null;
   capture_system_audio: boolean;
   recording_project_selection: RecordingProjectSelection;
@@ -244,6 +248,15 @@ export interface SessionAudioSource {
   duration_ms: number | null;
 }
 
+export interface LiveTranscriptUpdate {
+  session_id: string;
+  item_id: string;
+  source: "microphone" | "system" | "mixed" | "imported";
+  text: string;
+  completed: boolean;
+  started_at_ms: number;
+}
+
 export type AppEvent =
   | {
       type: "job_progress";
@@ -263,6 +276,10 @@ export type AppEvent =
         elapsed_ms: number;
         dropped_packets: number;
       };
+    }
+  | {
+      type: "live_transcript_changed";
+      payload: LiveTranscriptUpdate;
     }
   | {
       type: "recording_state_changed";

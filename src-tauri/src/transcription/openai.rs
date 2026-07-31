@@ -60,7 +60,7 @@ impl OpenAiFileTranscriber {
     pub fn test_connection(&self, api_key: &str) -> AppResult<()> {
         let response = self
             .client
-            .get("https://api.openai.com/v1/models/gpt-4o-transcribe-diarize")
+            .get("https://api.openai.com/v1/models/gpt-transcribe")
             .bearer_auth(api_key)
             .send()
             .map_err(|error| AppError::Provider(error.to_string()))?;

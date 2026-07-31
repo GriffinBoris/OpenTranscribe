@@ -7,6 +7,7 @@ use crossbeam_channel::{Receiver, Sender, TrySendError};
 use hound::{SampleFormat as WavSampleFormat, WavSpec, WavWriter};
 
 use crate::error::{AppError, AppResult};
+use crate::transcription::LiveAudioSink;
 
 pub const CHUNK_SECONDS: u64 = 10;
 pub const PACKET_QUEUE_CAPACITY: usize = 128;
@@ -26,9 +27,15 @@ pub struct CaptureSignals {
     pub paused: Arc<AtomicBool>,
     pub peak: Arc<AtomicU32>,
     pub dropped_packets: Arc<AtomicU64>,
+    pub live_audio: Option<LiveAudioSink>,
 }
 
-pub fn enqueue_samples(samples: Vec<f32>, sender: &Sender<AudioPacket>, signals: &CaptureSignals) {
+pub fn enqueue_samples(
+    samples: Vec<f32>,
+    sender: &Sender<AudioPacket>,
+    signals: &CaptureSignals,
+    format: AudioFormat,
+) {
     if signals.paused.load(Ordering::Relaxed) {
         signals.peak.store(0, Ordering::Relaxed);
         return;
@@ -38,6 +45,10 @@ pub fn enqueue_samples(samples: Vec<f32>, sender: &Sender<AudioPacket>, signals:
         .iter()
         .fold(0.0_f32, |current, sample| current.max(sample.abs()));
     signals.peak.store(packet_peak.to_bits(), Ordering::Relaxed);
+
+    if let Some(live_audio) = &signals.live_audio {
+        live_audio.send(&samples, format.channels, format.sample_rate);
+    }
 
     if let Err(TrySendError::Full(_)) = sender.try_send(AudioPacket { samples }) {
         signals.dropped_packets.fetch_add(1, Ordering::Relaxed);

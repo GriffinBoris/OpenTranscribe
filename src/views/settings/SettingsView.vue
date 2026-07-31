@@ -37,6 +37,8 @@ const apiKey = ref("");
 const activeSection = ref("recording");
 const settingsContent = ref<HTMLElement | null>(null);
 const isContentScrolled = ref(false);
+const settingsNavButtonClass =
+  "w-full justify-start gap-2.5 rounded-app-sm px-2.5 py-[9px] text-ink-muted hover:bg-canvas-subtle hover:text-ink [&.active]:bg-canvas-subtle [&.active]:text-ink max-[900px]:w-auto";
 
 const themeOptions = computed(() => [
   { label: t("settings.appearance.system"), value: "system" },
@@ -110,16 +112,31 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="page settings-page">
-    <header class="page-header page-header--compact">
-      <h1>{{ t("settings.title") }}</h1>
+  <div
+    class="page settings-page grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden px-[var(--layout-page-gutter)] pt-[var(--space-13)] pb-[var(--space-14)]"
+  >
+    <header
+      class="page-header page-header--compact mb-[var(--space-5-5)] flex items-start justify-between gap-6"
+    >
+      <h1
+        class="text-display m-0 max-w-[730px] leading-[var(--line-height-tight)] font-bold tracking-[-0.035em]"
+      >
+        {{ t("settings.title") }}
+      </h1>
     </header>
 
-    <div class="settings-layout">
-      <nav class="settings-nav">
+    <div
+      class="settings-layout grid min-h-0 grid-cols-[190px_minmax(0,1fr)] items-stretch gap-6 max-[900px]:grid-cols-1 max-[900px]:grid-rows-[auto_minmax(0,1fr)] max-[900px]:gap-4"
+    >
+      <nav
+        class="settings-nav grid min-h-0 content-start gap-1 overflow-auto pr-1 max-[900px]:auto-cols-max max-[900px]:grid-flow-col max-[900px]:overflow-x-auto max-[900px]:overflow-y-hidden max-[900px]:pr-0"
+      >
         <AppButton
           variant="ghost"
-          :class="{ active: activeSection === 'recording' }"
+          :class="[
+            settingsNavButtonClass,
+            { active: activeSection === 'recording' },
+          ]"
           @click="selectSection('recording')"
           ><Volume2 :size="16" />{{
             t("settings.navigation.recording")
@@ -127,7 +144,10 @@ onMounted(async () => {
         >
         <AppButton
           variant="ghost"
-          :class="{ active: activeSection === 'storage' }"
+          :class="[
+            settingsNavButtonClass,
+            { active: activeSection === 'storage' },
+          ]"
           @click="selectSection('storage')"
           ><FolderOpen :size="16" />{{
             t("settings.navigation.storage")
@@ -135,7 +155,10 @@ onMounted(async () => {
         >
         <AppButton
           variant="ghost"
-          :class="{ active: activeSection === 'models' }"
+          :class="[
+            settingsNavButtonClass,
+            { active: activeSection === 'models' },
+          ]"
           @click="selectSection('models')"
           ><HardDrive :size="16" />{{
             t("settings.navigation.localModels")
@@ -143,7 +166,10 @@ onMounted(async () => {
         >
         <AppButton
           variant="ghost"
-          :class="{ active: activeSection === 'openai' }"
+          :class="[
+            settingsNavButtonClass,
+            { active: activeSection === 'openai' },
+          ]"
           @click="selectSection('openai')"
           ><KeyRound :size="16" />{{
             t("settings.navigation.openAi")
@@ -151,7 +177,10 @@ onMounted(async () => {
         >
         <AppButton
           variant="ghost"
-          :class="{ active: activeSection === 'shortcuts' }"
+          :class="[
+            settingsNavButtonClass,
+            { active: activeSection === 'shortcuts' },
+          ]"
           @click="selectSection('shortcuts')"
           ><Keyboard :size="16" />{{
             t("settings.navigation.shortcuts")
@@ -159,7 +188,10 @@ onMounted(async () => {
         >
         <AppButton
           variant="ghost"
-          :class="{ active: activeSection === 'appearance' }"
+          :class="[
+            settingsNavButtonClass,
+            { active: activeSection === 'appearance' },
+          ]"
           @click="selectSection('appearance')"
           ><Monitor :size="16" />{{
             t("settings.navigation.appearance")
@@ -168,12 +200,12 @@ onMounted(async () => {
       </nav>
 
       <div
-        class="settings-content-frame"
+        class="settings-content-frame relative min-h-0"
         :class="{ 'settings-content-frame--scrolled': isContentScrolled }"
       >
         <div
           ref="settingsContent"
-          class="settings-content"
+          class="settings-content grid h-full min-h-0 auto-rows-max content-start gap-4 overflow-auto pr-1"
           @scroll="updateContentScroll"
         >
           <RecordingSettings />
@@ -183,10 +215,16 @@ onMounted(async () => {
           <LocalModelsSettings />
 
           <AppSurface id="openai">
-            <div class="section-heading">
+            <div
+              class="section-heading flex items-start justify-between gap-4 border-b border-[var(--divider)] pb-3.5"
+            >
               <div>
-                <h2>{{ t("settings.navigation.openAi") }}</h2>
-                <p class="setting-description">
+                <h2 class="mb-[5px] text-2xl">
+                  {{ t("settings.navigation.openAi") }}
+                </h2>
+                <p
+                  class="text-ink-muted mt-[3px] leading-[var(--line-height-body)]"
+                >
                   {{ t("settings.openAi.description") }}
                 </p>
               </div>
@@ -194,9 +232,12 @@ onMounted(async () => {
                 {{ t("settings.openAi.configured") }}
               </StatusPill>
             </div>
-            <div v-if="openAi.credential?.configured" class="model-row">
+            <div
+              v-if="openAi.credential?.configured"
+              class="grid grid-cols-[minmax(220px,1fr)_auto_auto] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+            >
               <KeyRound :size="22" />
-              <span
+              <span class="grid gap-1"
                 ><strong>{{ t("settings.openAi.defaultProfile") }}</strong
                 ><small>{{ openAi.credential.masked_key }}</small></span
               >
@@ -213,7 +254,7 @@ onMounted(async () => {
             </div>
             <form
               v-else
-              class="setting-field openai-key-form"
+              class="openai-key-form grid grid-cols-[minmax(120px,0.5fr)_minmax(240px,1.3fr)_auto] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
               @submit.prevent="saveApiKey"
             >
               <span>{{ t("settings.openAi.apiKey") }}</span>
@@ -236,10 +277,14 @@ onMounted(async () => {
           <ShortcutsSettings />
 
           <AppSurface id="appearance">
-            <div class="section-heading">
-              <h2>{{ t("settings.navigation.appearance") }}</h2>
+            <div class="border-b border-[var(--divider)] pb-3.5">
+              <h2 class="mb-[5px] text-2xl">
+                {{ t("settings.navigation.appearance") }}
+              </h2>
             </div>
-            <label class="setting-field">
+            <label
+              class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+            >
               <span>{{ t("settings.appearance.theme") }}</span>
               <AppSelect
                 :model-value="theme"
@@ -248,8 +293,10 @@ onMounted(async () => {
                 @update:model-value="updateTheme"
               />
             </label>
-            <div class="setting-field setting-toggle-row">
-              <span>
+            <div
+              class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+            >
+              <span class="grid gap-1">
                 <strong>{{ t("settings.appearance.reducedMotion") }}</strong>
                 <small>{{
                   t("settings.appearance.reducedMotionDescription")
@@ -262,6 +309,11 @@ onMounted(async () => {
               />
             </div>
           </AppSurface>
+
+          <div
+            class="h-[calc(100dvh-var(--layout-titlebar-height))]"
+            aria-hidden="true"
+          />
         </div>
       </div>
     </div>

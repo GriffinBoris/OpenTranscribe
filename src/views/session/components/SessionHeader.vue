@@ -37,31 +37,51 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <header class="session-header">
-    <div class="session-title-row">
-      <h1 class="session-title">
-        {{ session?.title ?? t("session.untitledRecording") }}
-      </h1>
+  <header
+    class="grid min-h-[82px] gap-3 overflow-hidden border-b border-[var(--divider)] px-6 py-[var(--space-4-5)]"
+  >
+    <div class="flex min-w-0 items-center gap-1 overflow-hidden">
+      <div class="flex min-w-0 flex-1 items-center gap-1">
+        <h1
+          class="min-w-0 flex-1 overflow-hidden text-3xl leading-[var(--line-height-heading)] font-bold tracking-[-0.02em] text-ellipsis whitespace-nowrap"
+        >
+          {{ session?.title ?? t("session.untitledRecording") }}
+        </h1>
+        <AppButton
+          class="shrink-0 p-[var(--space-1-5)]"
+          size="small"
+          variant="ghost"
+          :aria-label="t('session.rename.action')"
+          @click="emit('rename')"
+        >
+          <Pencil :size="15" />
+        </AppButton>
+      </div>
       <AppButton
-        class="session-title__edit"
+        v-if="!recording"
+        class="shrink-0"
         size="small"
         variant="ghost"
-        :aria-label="t('session.rename.action')"
-        @click="emit('rename')"
+        :aria-label="t('session.trash.action')"
+        @click="emit('trash')"
       >
-        <Pencil :size="15" />
+        <Trash2 :size="16" />
       </AppButton>
     </div>
-    <div class="session-header__controls">
-      <div class="session-meta">
-        <span class="session-meta__date">{{
+    <div
+      class="flex min-w-0 items-center justify-between gap-[var(--space-4-5)] overflow-hidden max-[1200px]:flex-col max-[1200px]:items-stretch"
+    >
+      <div
+        class="text-ink-muted flex min-h-[var(--control-height-medium)] min-w-0 items-center gap-2 text-sm max-[720px]:flex-wrap"
+      >
+        <span class="whitespace-nowrap">{{
           session
             ? new Date(session.created_at).toLocaleString()
             : t("session.justNow")
         }}</span>
         <span>·</span>
         <AppSelect
-          class="session-project-select"
+          class="w-[var(--control-width-project)] shrink-0"
           :model-value="session?.project_id ?? ''"
           :options="projectOptions"
           :accessible-label="t('session.moveProject.label')"
@@ -78,9 +98,12 @@ const { t } = useI18n();
           }}
         </StatusPill>
       </div>
-      <div class="session-header__actions">
+      <div
+        class="flex min-w-0 shrink-0 items-center justify-end gap-2 max-[1200px]:grid max-[1200px]:w-full max-[1200px]:grid-cols-2 max-[1200px]:items-stretch max-[720px]:grid-cols-1"
+      >
         <AppButton
           v-if="recoverable"
+          class="max-[1200px]:w-full"
           variant="primary"
           :loading="recovering"
           :disabled="recovering"
@@ -90,6 +113,7 @@ const { t } = useI18n();
           {{ t("session.recovery.action") }}
         </AppButton>
         <AppButton
+          class="max-[1200px]:w-full"
           variant="ghost"
           :aria-label="t('session.search.title')"
           @click="emit('search')"
@@ -97,26 +121,23 @@ const { t } = useI18n();
           <Search :size="16" />
           {{ t("session.search.action") }}
         </AppButton>
-        <AppButton
-          v-if="!recording"
-          variant="ghost"
-          :aria-label="t('session.trash.action')"
-          @click="emit('trash')"
-        >
-          <Trash2 :size="16" />
-        </AppButton>
         <SessionTranscriptionActions
+          class="max-[1200px]:w-full"
           :can-transcribe="canTranscribe"
           :session-id="sessionId"
         />
-        <div class="export-actions">
+        <div
+          class="flex items-center gap-2 max-[1200px]:w-full max-[720px]:grid max-[720px]:grid-cols-1"
+        >
           <AppSelect
+            class="w-32 min-w-0 flex-1"
             :model-value="exportFormat"
             :options="exportOptions"
             :accessible-label="t('session.exportFormat')"
             @update:model-value="emit('update:export-format', $event)"
           />
           <AppButton
+            class="max-[720px]:w-full"
             variant="secondary"
             :disabled="!hasTranscript || isExporting"
             :loading="isExporting"

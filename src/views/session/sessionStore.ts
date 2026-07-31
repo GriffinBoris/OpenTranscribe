@@ -20,13 +20,13 @@ export const useSessionStore = defineStore("session", () => {
     return findActiveTranscriptionJob(application.activeJobs, sessionId);
   }
 
-  async function transcribeWithOpenAi(sessionId: string) {
+  async function transcribeWithOpenAi(sessionId: string, modelId: string) {
     application.operationError = null;
     try {
       const job = await native.enqueueTranscription(
         sessionId,
         "open_ai",
-        "gpt-4o-transcribe-diarize",
+        modelId,
       );
       application.upsertJob(job);
     } catch (reason) {

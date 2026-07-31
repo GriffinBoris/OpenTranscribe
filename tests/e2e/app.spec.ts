@@ -160,7 +160,7 @@ test("recovers an interrupted session from its crash-safe chunks", async ({
 test("renders Markdown notes in preview mode", async ({ page }) => {
   await page.goto("/sessions/01KDEMOSESSION1");
 
-  const notesPane = page.locator(".notes-pane");
+  const notesPane = page.getByRole("region", { name: "Notes" });
   const notes = notesPane.getByRole("textbox", { name: "Meeting notes" });
   await notes.fill("# Design review\n\n**Owner:** Rowan\n\n- Follow up");
   await notesPane.getByRole("button", { name: "Preview", exact: true }).click();
@@ -229,7 +229,7 @@ test("starts a session with customized recording options", async ({ page }) => {
   await dialog.getByLabel("Meeting title").fill("Quarterly planning review");
   await expect(dialog.getByLabel("Project")).toBeVisible();
   await expect(dialog.getByLabel("Microphone")).toBeVisible();
-  await expect(dialog.getByLabel("After recording")).toBeVisible();
+  await expect(dialog.getByLabel("Transcription")).toBeVisible();
   await expect(dialog.getByLabel("Spoken language")).toBeVisible();
 
   await dialog.getByRole("button", { name: "Start recording" }).click();
@@ -313,7 +313,7 @@ test("keeps playback inside the session workspace", async ({ page }) => {
 
   await workspace.evaluate((element) => {
     const playback = document.createElement("footer");
-    playback.className = "playback-bar";
+    playback.className = "playback-bar relative flex h-[66px]";
     playback.dataset.testid = "playback-layout-probe";
     element.append(playback);
   });
@@ -573,6 +573,49 @@ test("renders substantial smoothly composited processing progress", async ({
     .not.toBe("none");
 });
 
+test("keeps processing and session actions inside compact workspaces", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/processing");
+
+  const jobs = page.locator(".processing-page__jobs");
+  const cancel = page.getByRole("button", { name: "Cancel" });
+  const [jobsBox, cancelBox] = await Promise.all([
+    jobs.boundingBox(),
+    cancel.boundingBox(),
+  ]);
+
+  expect(jobsBox).not.toBeNull();
+  expect(cancelBox).not.toBeNull();
+  expect(cancelBox?.x + cancelBox?.width).toBeLessThanOrEqual(
+    jobsBox!.x + jobsBox!.width,
+  );
+
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  const title = page.getByRole("heading", { name: "Weekly product sync" });
+  const trash = page.getByRole("button", {
+    name: "Move session to trash",
+  });
+  const [titleBox, trashBox] = await Promise.all([
+    title.boundingBox(),
+    trash.boundingBox(),
+  ]);
+
+  expect(titleBox).not.toBeNull();
+  expect(trashBox).not.toBeNull();
+  expect(trashBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
+  expect(Math.abs(trashBox!.y - titleBox!.y)).toBeLessThan(12);
+  await page.setViewportSize({ width: 800, height: 760 });
+  await expect(
+    page.locator(".sidebar__primary-actions .app-button").first(),
+  ).toHaveCSS("width", "38px");
+  await expect(
+    page.getByText("New recording", { exact: true }),
+  ).not.toBeVisible();
+});
+
 test("keeps inline form controls on the medium design-token tier", async ({
   page,
 }) => {
@@ -714,9 +757,7 @@ test("queues the selected transcription when recording stops", async ({
 }) => {
   await page.goto("/settings#models");
 
-  const balancedModel = page.locator(".model-entry").filter({
-    has: page.getByText("Balanced", { exact: true }),
-  });
+  const balancedModel = page.getByRole("group", { name: "Balanced" });
   await balancedModel.getByRole("button", { name: "Download" }).click();
   await expect(
     balancedModel.getByText("Installed", { exact: true }),
@@ -725,7 +766,7 @@ test("queues the selected transcription when recording stops", async ({
   await page.getByRole("link", { name: "Home", exact: true }).click();
   await page.getByRole("button", { name: "More recording options" }).click();
   await page
-    .getByRole("menuitem", { name: "Record and transcribe locally" })
+    .getByRole("menuitem", { name: "Record, then transcribe locally" })
     .click();
 
   const stop = page.getByRole("button", { name: "Stop" });
@@ -742,7 +783,7 @@ test("keeps the recording when automatic transcription cannot start", async ({
   await page.goto("/settings");
   await page.getByLabel("Default recording action").click();
   await page
-    .getByRole("option", { name: "Record and transcribe locally" })
+    .getByRole("option", { name: "Record, then transcribe locally" })
     .click();
   await page.getByRole("button", { name: "New recording" }).click();
 

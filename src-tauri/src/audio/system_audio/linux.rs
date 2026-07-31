@@ -179,7 +179,15 @@ fn run_capture(
                     )
                 })
                 .collect();
-            enqueue_samples(samples, &user_data.packet_sender, &user_data.signals);
+            enqueue_samples(
+                samples,
+                &user_data.packet_sender,
+                &user_data.signals,
+                AudioFormat {
+                    channels: SYSTEM_CHANNELS,
+                    sample_rate: SYSTEM_SAMPLE_RATE,
+                },
+            );
         })
         .register()
         .map_err(pipewire_error)?;

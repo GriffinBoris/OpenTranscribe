@@ -102,14 +102,15 @@ async function merge() {
     :title="t('session.speakers.manage')"
     @update:open="emit('update:open', $event)"
   >
-    <div class="speaker-manager">
-      <div class="speaker-manager__list">
+    <div class="grid gap-[var(--space-5-5)]">
+      <div class="grid gap-2.5">
         <div
           v-for="speaker in speakers"
           :key="speaker.id"
-          class="speaker-manager__row"
+          class="flex items-center gap-2"
         >
           <AppInputText
+            class="flex-1"
             v-model="names[speaker.id]"
             :aria-label="t('session.speakers.name')"
           />
@@ -127,17 +128,24 @@ async function merge() {
         </div>
       </div>
 
-      <div v-if="speakers.length > 1" class="speaker-manager__merge">
+      <div
+        v-if="speakers.length > 1"
+        class="grid gap-2 border-t border-[var(--divider)] pt-[18px]"
+      >
         <strong>{{ t("session.speakers.merge") }}</strong>
-        <p>{{ t("session.speakers.mergeDescription") }}</p>
-        <div class="speaker-manager__merge-controls">
+        <p class="text-md text-ink-muted m-0">
+          {{ t("session.speakers.mergeDescription") }}
+        </p>
+        <div class="flex items-center gap-2 max-[600px]:flex-wrap">
           <AppSelect
+            class="flex-1"
             v-model="sourceSpeakerId"
             :options="speakerOptions"
             :accessible-label="t('session.speakers.mergeSource')"
           />
           <span aria-hidden="true">→</span>
           <AppSelect
+            class="flex-1"
             v-model="targetSpeakerId"
             :options="targetOptions"
             :accessible-label="t('session.speakers.mergeTarget')"

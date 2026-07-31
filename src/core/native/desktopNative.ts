@@ -63,6 +63,7 @@ export const desktopNative: NativeBridge = {
         capture_system_audio: request.captureSystemAudio,
         language_hint: request.languageHint,
         recording_mode: request.recordingMode,
+        openai_model: request.openAiModel,
       },
     });
   },

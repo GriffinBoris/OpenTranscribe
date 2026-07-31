@@ -37,11 +37,12 @@ const menuItems = computed<MenuItem[]>(() =>
 );
 
 const menuParts = {
-  root: "app-split-button__menu",
-  list: "app-split-button__menu-list",
-  item: "app-split-button__menu-item",
-  itemContent: "app-split-button__menu-item-content",
-  itemLink: "app-split-button__menu-item-link",
+  root: "z-[var(--layer-popover)] mt-[5px] min-w-[255px] overflow-hidden rounded-app-md border border-line bg-surface-raised text-ink shadow-app",
+  list: "grid list-none gap-0.5 p-[5px]",
+  item: "data-[p-disabled=true]:cursor-not-allowed data-[p-disabled=true]:text-ink-faint",
+  itemContent:
+    "rounded-app-xs hover:bg-canvas-subtle data-[p-focused=true]:bg-canvas-subtle",
+  itemLink: "flex p-2.5 text-inherit no-underline",
   itemLabel: "app-split-button__menu-item-label",
 };
 
@@ -51,10 +52,10 @@ function toggleMenu(event: Event) {
 </script>
 
 <template>
-  <div class="app-split-button">
+  <div class="inline-flex min-h-[var(--control-height-large)]">
     <Button
       unstyled
-      class="app-split-button__main"
+      class="rounded-l-app-sm bg-accent text-accent-contrast shadow-app-action hover:bg-accent-hover flex flex-1 items-center justify-center gap-2 border-0 px-[var(--space-4-5)] py-2.5 text-lg font-semibold transition-colors duration-[var(--duration-standard)] ease-[var(--easing-standard)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
       :disabled="disabled"
       :aria-label="accessibleLabel"
       @click="$emit('click', $event)"
@@ -63,7 +64,7 @@ function toggleMenu(event: Event) {
     </Button>
     <Button
       unstyled
-      class="app-split-button__dropdown"
+      class="rounded-r-app-sm bg-accent text-accent-contrast shadow-app-action hover:bg-accent-hover flex w-10 items-center justify-center border-0 border-l border-[var(--control-divider)] transition-colors duration-[var(--duration-standard)] ease-[var(--easing-standard)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
       :disabled="disabled"
       :aria-label="$t('controls.moreRecordingOptions')"
       aria-haspopup="menu"
@@ -71,13 +72,6 @@ function toggleMenu(event: Event) {
     >
       <ChevronDown :size="15" aria-hidden="true" />
     </Button>
-    <Menu
-      ref="menu"
-      popup
-      unstyled
-      class="app-split-button__menu"
-      :model="menuItems"
-      :pt="menuParts"
-    />
+    <Menu ref="menu" popup unstyled :model="menuItems" :pt="menuParts" />
   </div>
 </template>

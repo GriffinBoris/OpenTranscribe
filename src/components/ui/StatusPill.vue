@@ -1,5 +1,5 @@
 <script setup lang="ts">
-withDefaults(
+const props = withDefaults(
   defineProps<{
     tone?: "neutral" | "local" | "cloud" | "success" | "warning" | "recording";
   }>(),
@@ -7,10 +7,22 @@ withDefaults(
     tone: "neutral",
   },
 );
+
+const toneClasses = {
+  neutral: "bg-canvas-subtle text-ink-muted",
+  local: "bg-lichen-soft text-success",
+  cloud: "bg-cloud-soft text-cloud",
+  success: "bg-lichen-soft text-success",
+  warning: "bg-warning-soft text-warning",
+  recording: "bg-accent-soft text-accent",
+};
 </script>
 
 <template>
-  <span class="status-pill" :class="`status-pill--${tone}`">
+  <span
+    class="status-pill inline-flex w-fit items-center gap-1.5 rounded-full px-2 py-1 text-xs leading-none font-semibold whitespace-nowrap"
+    :class="toneClasses[props.tone]"
+  >
     <slot />
   </span>
 </template>

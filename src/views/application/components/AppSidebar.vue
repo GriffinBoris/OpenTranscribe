@@ -31,6 +31,8 @@ const projectName = ref("");
 const projectError = ref("");
 const isCreatingProject = ref(false);
 const isStartingRecording = ref(false);
+const sidebarLinkClass =
+  "sidebar__link flex min-h-[var(--control-height-small)] min-w-0 items-center gap-2 rounded-app-xs px-2 py-1.5 text-md font-medium text-[color-mix(in_srgb,var(--text)_82%,transparent)] hover:bg-surface/70 [&.router-link-active]:bg-surface/70 [&.router-link-active]:text-ink max-[900px]:justify-center";
 
 async function createProject() {
   const name = projectName.value.trim();
@@ -91,65 +93,94 @@ onBeforeUnmount(() => window.removeEventListener("keydown", handleShortcut));
 </script>
 
 <template>
-  <aside class="sidebar">
-    <div class="sidebar__brand">
+  <aside
+    class="sidebar relative col-start-1 row-start-2 flex min-w-0 flex-col bg-transparent px-2.5 pt-2 pb-2.5"
+  >
+    <div
+      class="sidebar__brand flex items-center gap-2 px-2 pt-0.5 pb-4 text-base font-bold max-[900px]:justify-center max-[900px]:px-0"
+    >
       <img
-        class="sidebar__logo"
+        class="sidebar__logo rounded-app-xs size-[26px] shadow-[var(--shadow-brand)]"
         src="@/assets/opentranscribe-icon.svg"
         alt=""
         data-testid="app-brand-icon"
       />
-      <span>{{ t("appName") }}</span>
+      <span class="max-[900px]:hidden">{{ t("appName") }}</span>
     </div>
 
-    <div class="sidebar__primary-actions">
+    <div class="sidebar__primary-actions mb-2.5 grid gap-1">
       <AppButton
+        class="w-full justify-start max-[900px]:size-[38px] max-[900px]:justify-self-center max-[900px]:p-0 max-[900px]:text-[0]"
         variant="primary"
         :loading="isStartingRecording"
         :disabled="Boolean(recording.activeRecording)"
         @click="startRecording"
       >
-        <Mic2 :size="16" />{{ t("navigation.newRecording") }}
+        <Mic2 :size="16" />
+        <span class="max-[900px]:hidden">
+          {{ t("navigation.newRecording") }}
+        </span>
       </AppButton>
-      <AppButton variant="ghost" @click="searchDialogOpen = true">
-        <Search :size="16" />{{ t("navigation.search") }}
-        <kbd>⌘K</kbd>
+      <AppButton
+        class="w-full justify-start max-[900px]:size-[38px] max-[900px]:justify-self-center max-[900px]:p-0 max-[900px]:text-[0] max-[900px]:[&>kbd]:hidden"
+        variant="ghost"
+        @click="searchDialogOpen = true"
+      >
+        <Search :size="16" />
+        <span class="max-[900px]:hidden">{{ t("navigation.search") }}</span>
+        <kbd class="text-ink-muted ml-auto text-xs max-[900px]:hidden">⌘K</kbd>
       </AppButton>
     </div>
 
-    <nav class="sidebar__nav" :aria-label="t('navigation.main')">
-      <RouterLink to="/" class="sidebar__link"
-        ><Home :size="17" />{{ t("navigation.home") }}</RouterLink
+    <nav class="sidebar__nav grid gap-1" :aria-label="t('navigation.main')">
+      <RouterLink to="/" :class="sidebarLinkClass"
+        ><Home :size="17" /><span class="truncate max-[900px]:hidden">{{
+          t("navigation.home")
+        }}</span></RouterLink
       >
-      <RouterLink to="/inbox" class="sidebar__link"
-        ><Inbox :size="17" />{{ t("navigation.inbox") }}</RouterLink
+      <RouterLink to="/inbox" :class="sidebarLinkClass"
+        ><Inbox :size="17" /><span class="truncate max-[900px]:hidden">{{
+          t("navigation.inbox")
+        }}</span></RouterLink
       >
-      <RouterLink to="/processing" class="sidebar__link">
+      <RouterLink to="/processing" :class="sidebarLinkClass">
         <ListTodo :size="17" />
-        {{ t("navigation.processing") }}
-        <span v-if="application.activeJobs.length" class="sidebar__count">
+        <span class="truncate max-[900px]:hidden">{{
+          t("navigation.processing")
+        }}</span>
+        <span
+          v-if="application.activeJobs.length"
+          class="sidebar__count bg-accent text-accent-contrast ml-auto min-w-5 rounded-full px-1.5 py-0.5 text-center text-xs max-[900px]:hidden"
+        >
           {{ application.activeJobs.length }}
         </span>
       </RouterLink>
     </nav>
 
-    <div class="sidebar__section">
-      <div class="sidebar__section-label">{{ t("navigation.projects") }}</div>
+    <div class="sidebar__section mt-4 grid min-h-0 gap-1 overflow-auto">
+      <div
+        class="sidebar__section-label text-2xs text-ink-muted px-2 pb-1.5 font-bold tracking-[0.07em] uppercase max-[900px]:hidden"
+      >
+        {{ t("navigation.projects") }}
+      </div>
       <RouterLink
         v-for="project in application.projects"
         :key="project.id"
         :to="`/projects/${project.id}`"
         :aria-label="project.name"
-        class="sidebar__link sidebar__link--project"
+        :class="sidebarLinkClass"
       >
         <Folder :size="16" />
-        <span>{{ project.name }}</span>
-        <span class="sidebar__project-count" aria-hidden="true">
+        <span class="truncate max-[900px]:hidden">{{ project.name }}</span>
+        <span
+          class="sidebar__project-count text-ink-muted ml-auto text-xs tabular-nums max-[900px]:hidden"
+          aria-hidden="true"
+        >
           {{ application.projectSessionCounts.get(project.id) ?? 0 }}
         </span>
       </RouterLink>
       <AppButton
-        class="sidebar__new-project"
+        class="sidebar__new-project text-ink-muted w-full justify-start px-2 py-[7px] text-left max-[900px]:hidden"
         variant="ghost"
         size="small"
         @click="openProjectDialog"
@@ -158,12 +189,16 @@ onBeforeUnmount(() => window.removeEventListener("keydown", handleShortcut));
       </AppButton>
     </div>
 
-    <div class="sidebar__footer">
-      <RouterLink to="/trash" class="sidebar__link"
-        ><Trash2 :size="17" />{{ t("navigation.trash") }}</RouterLink
+    <div class="sidebar__footer mt-auto grid gap-1 pt-2.5">
+      <RouterLink to="/trash" :class="sidebarLinkClass"
+        ><Trash2 :size="17" /><span class="truncate max-[900px]:hidden">{{
+          t("navigation.trash")
+        }}</span></RouterLink
       >
-      <RouterLink to="/settings" class="sidebar__link">
-        <Settings :size="17" />{{ t("navigation.settings") }}
+      <RouterLink to="/settings" :class="sidebarLinkClass">
+        <Settings :size="17" /><span class="truncate max-[900px]:hidden">{{
+          t("navigation.settings")
+        }}</span>
       </RouterLink>
     </div>
 
@@ -173,7 +208,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", handleShortcut));
       @update:open="projectDialogOpen = $event"
     >
       <form id="create-project-form" @submit.prevent="createProject">
-        <label class="dialog-field">
+        <label
+          class="dialog-field text-ink-muted grid gap-2 text-sm font-semibold"
+        >
           <span>{{ t("navigation.projectName") }}</span>
           <AppInputText
             v-model="projectName"
@@ -183,7 +220,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", handleShortcut));
             required
           />
         </label>
-        <p v-if="projectError" class="dialog-error" role="alert">
+        <p
+          v-if="projectError"
+          class="text-accent mt-[var(--space-2-5)] text-sm"
+          role="alert"
+        >
           {{ projectError }}
         </p>
       </form>

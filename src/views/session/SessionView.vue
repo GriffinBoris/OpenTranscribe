@@ -93,6 +93,9 @@ const recoverable = computed(
     session.value?.recovery_state === "recoverable" &&
     recording.activeRecording?.id !== sessionId.value,
 );
+const isCurrentRecording = computed(
+  () => recording.activeRecording?.id === sessionId.value,
+);
 
 async function persistNotes() {
   notesState.value = t("session.saving");
@@ -320,12 +323,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="session-workspace">
+  <div
+    class="session-workspace bg-surface flex h-full min-h-0 flex-col overflow-hidden"
+  >
     <SessionHeader
       :session="session ?? null"
       :session-id="sessionId"
       :project-options="projectOptions"
-      :recording="Boolean(recording.activeRecording)"
+      :recording="isCurrentRecording"
       :moving-session="isMovingSession"
       :can-transcribe="canTranscribe"
       :has-transcript="Boolean(savedTranscript)"
@@ -343,11 +348,19 @@ onBeforeUnmount(() => {
       @update:export-format="updateExportFormat"
     />
 
-    <p v-if="exportMessage" class="session-notice" role="status">
+    <p
+      v-if="exportMessage"
+      class="rounded-app-lg bg-lichen-soft text-success mx-6 my-2.5 border border-[color-mix(in_srgb,var(--success)_18%,transparent)] px-3.5 py-2 text-sm"
+      role="status"
+    >
       {{ exportMessage }}
     </p>
 
-    <p v-if="recoverable" class="session-notice" role="status">
+    <p
+      v-if="recoverable"
+      class="rounded-app-lg bg-lichen-soft text-success mx-6 my-2.5 border border-[color-mix(in_srgb,var(--success)_18%,transparent)] px-3.5 py-2 text-sm"
+      role="status"
+    >
       {{ t("session.recovery.description") }}
     </p>
 
@@ -355,26 +368,29 @@ onBeforeUnmount(() => {
 
     <p
       v-if="sessionError"
-      class="session-notice session-notice--error"
+      class="rounded-app-lg bg-accent-soft text-accent mx-6 my-2.5 border border-[color-mix(in_srgb,var(--accent)_18%,transparent)] px-3.5 py-2 text-sm"
       role="alert"
     >
       {{ sessionError }}
     </p>
 
     <AppTabs
-      class="workspace-tabs"
+      class="hidden max-[900px]:block max-[900px]:border-b max-[900px]:border-[var(--divider)] max-[900px]:px-[18px] max-[900px]:py-[7px]"
       :model-value="activeTab"
       :options="workspaceTabs"
       @update:model-value="updateActiveTab"
     />
 
-    <div class="session-split">
+    <div
+      class="grid min-h-0 flex-1 grid-cols-[minmax(0,3fr)_minmax(320px,2fr)] max-[900px]:grid-cols-1"
+    >
       <SessionTranscriptPane
-        :class="{ 'mobile-hidden': activeTab !== 'transcript' }"
+        :class="{ 'max-[900px]:hidden': activeTab !== 'transcript' }"
         :session-id="sessionId"
         :segments="segments"
         :speakers="speakers"
-        :recording="Boolean(recording.activeRecording)"
+        :recording="isCurrentRecording"
+        :live-transcript="recording.liveTranscript"
         :playback-ms="Math.round(playbackPosition * 1000)"
         @seek="seekPlayback"
       />
@@ -413,7 +429,9 @@ onBeforeUnmount(() => {
       @update:open="renameOpen = $event"
     >
       <form id="rename-session-form" @submit.prevent="renameSession">
-        <label class="dialog-field">
+        <label
+          class="dialog-field text-ink-muted grid gap-2 text-sm font-semibold"
+        >
           <span>{{ t("session.rename.label") }}</span>
           <AppInputText
             v-model="titleDraft"

@@ -7,8 +7,9 @@ import AppSelect from "@/components/ui/AppSelect.vue";
 import AppSurface from "@/components/ui/AppSurface.vue";
 import AppToggleSwitch from "@/components/ui/AppToggleSwitch.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
-import type { RecordingMode } from "@/types/domain";
+import type { OpenAiTranscriptionModel, RecordingMode } from "@/types/domain";
 import { useApplicationStore } from "@/views/application/applicationStore";
+import { openAiModelOptions } from "@/views/application/openAiModels";
 
 const application = useApplicationStore();
 const { t } = useI18n();
@@ -18,6 +19,9 @@ const recordingMode = ref<RecordingMode>(
 );
 const captureSystemAudio = ref(
   application.settings?.capture_system_audio ?? false,
+);
+const openAiModel = ref<OpenAiTranscriptionModel>(
+  application.settings?.openai_transcription_model ?? "gpt_transcribe",
 );
 
 const microphoneOptions = computed(
@@ -34,6 +38,7 @@ const recordingModeOptions = computed(() => [
   { label: t("home.recordLocal"), value: "local_live" },
   { label: t("home.recordOpenAi"), value: "open_ai_live" },
 ]);
+const cloudModelOptions = computed(() => openAiModelOptions(t));
 const systemStatusDescription = computed(() => {
   if (!application.audioDevices?.system_audio_available) {
     return t("settings.recording.systemUnsupported");
@@ -93,6 +98,13 @@ async function updateSystemCapture(value: boolean) {
   });
 }
 
+async function updateOpenAiModel(value: string) {
+  openAiModel.value = value as OpenAiTranscriptionModel;
+  await application.saveSettings({
+    openai_transcription_model: openAiModel.value,
+  });
+}
+
 onMounted(async () => {
   await application.loadAudioDevices();
   selectedMicrophone.value =
@@ -103,20 +115,26 @@ onMounted(async () => {
     "";
   captureSystemAudio.value =
     application.settings?.capture_system_audio ?? false;
+  openAiModel.value =
+    application.settings?.openai_transcription_model ?? "gpt_transcribe";
 });
 </script>
 
 <template>
   <AppSurface id="recording">
-    <div class="section-heading">
+    <div class="border-b border-[var(--divider)] pb-3.5">
       <div>
-        <h2>{{ t("settings.navigation.recording") }}</h2>
-        <p class="setting-description">
+        <h2 class="mb-[5px] text-2xl">
+          {{ t("settings.navigation.recording") }}
+        </h2>
+        <p class="text-ink-muted mt-[3px] leading-[var(--line-height-body)]">
           {{ t("settings.recording.description") }}
         </p>
       </div>
     </div>
-    <label class="setting-field">
+    <label
+      class="setting-field grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+    >
       <span>{{ t("settings.recording.defaultAction") }}</span>
       <AppSelect
         :model-value="recordingMode"
@@ -125,7 +143,23 @@ onMounted(async () => {
         @update:model-value="updateRecordingMode"
       />
     </label>
-    <label class="setting-field">
+    <label
+      class="setting-field grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+    >
+      <span class="grid gap-1">
+        <strong>{{ t("settings.recording.openAiModel") }}</strong>
+        <small>{{ t("settings.recording.openAiModelDescription") }}</small>
+      </span>
+      <AppSelect
+        :model-value="openAiModel"
+        :options="cloudModelOptions"
+        :accessible-label="t('settings.recording.openAiModel')"
+        @update:model-value="updateOpenAiModel"
+      />
+    </label>
+    <label
+      class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+    >
       <span>{{ t("settings.recording.microphone") }}</span>
       <AppSelect
         :model-value="selectedMicrophone"
@@ -135,8 +169,10 @@ onMounted(async () => {
         @update:model-value="updateMicrophone"
       />
     </label>
-    <div class="setting-field setting-toggle-row">
-      <span>
+    <div
+      class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+    >
+      <span class="grid gap-1">
         <strong>{{ t("settings.recording.systemOutput") }}</strong>
         <small>{{ t("settings.recording.systemDescription") }}</small>
       </span>
@@ -147,12 +183,16 @@ onMounted(async () => {
         @update:model-value="updateSystemCapture"
       />
     </div>
-    <div class="permission-row">
-      <span>
+    <div
+      class="grid grid-cols-[minmax(220px,1fr)_auto] items-center gap-5 border-t border-[var(--divider)] py-3 max-[1050px]:grid-cols-1"
+    >
+      <span class="grid gap-1">
         <strong>{{ t("settings.recording.sourceStatus") }}</strong>
         <small>{{ systemStatusDescription }}</small>
       </span>
-      <div class="permission-row__actions">
+      <div
+        class="flex flex-wrap items-center justify-end gap-2 max-[1050px]:justify-between"
+      >
         <AppButton
           v-if="
             application.audioDevices
@@ -165,7 +205,7 @@ onMounted(async () => {
         >
           {{ t("settings.recording.openSystemSettings") }}
         </AppButton>
-        <div class="permission-row__statuses">
+        <div class="flex items-center justify-end gap-2">
           <StatusPill
             :tone="
               application.audioDevices?.microphones.length

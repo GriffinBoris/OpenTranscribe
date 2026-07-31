@@ -29,13 +29,19 @@ const renderedNotes = computed(() =>
 </script>
 
 <template>
-  <section class="notes-pane" :class="{ 'mobile-hidden': !active }">
-    <div class="pane-toolbar notes-toolbar">
-      <div>
-        <strong>{{ t("session.notes") }}</strong>
-        <span class="saved-state">{{ notesState }}</span>
+  <section
+    class="@container grid min-h-0 grid-rows-[auto_1fr]"
+    :class="{ 'max-[900px]:hidden': !active }"
+    :aria-label="t('session.notes')"
+  >
+    <div
+      class="notes-toolbar text-ink-muted flex min-h-0 items-center justify-between gap-3 border-b border-[var(--divider)] px-[18px] py-[9px] text-xs"
+    >
+      <div class="flex items-center gap-1.5">
+        <strong class="text-md text-ink">{{ t("session.notes") }}</strong>
+        <span class="text-success">{{ notesState }}</span>
       </div>
-      <div class="notes-toolbar__actions">
+      <div class="ml-auto flex shrink-0 items-center gap-2">
         <AppButton
           size="small"
           variant="ghost"
@@ -49,7 +55,7 @@ const renderedNotes = computed(() =>
           </span>
         </AppButton>
         <div
-          class="notes-mode-switch"
+          class="flex items-center gap-1"
           role="group"
           :aria-label="t('session.notesMode.label')"
         >
@@ -83,16 +89,16 @@ const renderedNotes = computed(() =>
     <AppTextarea
       v-if="notesMode === 'edit'"
       :model-value="notes"
-      class="notes-editor"
+      class="bg-surface font-inherit min-h-0 resize-none border-0 p-6 text-base leading-[var(--line-height-editor)] focus:!border-0 focus:!bg-[color-mix(in_srgb,var(--surface)_97%,var(--accent))] focus:![box-shadow:none]"
       :aria-label="t('session.meetingNotes')"
       @update:model-value="emit('update:notes', $event)"
     />
     <article
       v-else
-      class="notes-preview"
+      class="bg-surface [&_a]:text-lichen [&_blockquote]:border-line-strong [&_blockquote]:text-ink-muted [&_code]:rounded-app-xs [&_code]:bg-canvas-subtle [&_pre]:rounded-app-md [&_pre]:border-line [&_pre]:bg-canvas-subtle min-h-0 overflow-auto p-6 text-base leading-[var(--line-height-reading)] [&_>_:first-child]:mt-0 [&_>_:last-child]:mb-0 [&_a]:underline [&_blockquote]:mb-4 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_code]:px-1 [&_code]:py-px [&_code]:font-mono [&_h1]:my-5 [&_h1]:text-2xl [&_h1]:leading-[var(--line-height-heading)] [&_h2]:my-5 [&_h2]:text-xl [&_h2]:leading-[var(--line-height-heading)] [&_h3]:my-5 [&_h3]:text-lg [&_h3]:leading-[var(--line-height-heading)] [&_li+li]:mt-1 [&_ol]:mb-4 [&_ol]:pl-5 [&_p]:mb-4 [&_pre]:mb-4 [&_pre]:overflow-auto [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_ul]:mb-4 [&_ul]:pl-5"
       :aria-label="t('session.notesMode.preview')"
     >
-      <p v-if="!notes.trim()" class="notes-preview__empty">
+      <p v-if="!notes.trim()" class="text-ink-muted m-0">
         {{ t("session.notesMode.empty") }}
       </p>
       <!-- eslint-disable-next-line vue/no-v-html -- renderedNotes is sanitized with DOMPurify. -->

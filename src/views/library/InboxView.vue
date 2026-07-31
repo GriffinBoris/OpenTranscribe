@@ -34,19 +34,34 @@ async function importMedia() {
 </script>
 
 <template>
-  <div class="page library-page">
-    <header class="page-header page-header--compact">
-      <h1>{{ t("library.inbox") }}</h1>
+  <div
+    class="page library-page grid h-full min-h-0 w-full grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden px-[var(--layout-page-gutter)] pt-[var(--space-13)] pb-[var(--space-14)]"
+  >
+    <header
+      class="page-header page-header--compact mb-[var(--space-5-5)] flex items-start justify-between gap-6"
+    >
+      <h1
+        class="text-display m-0 max-w-[730px] leading-[var(--line-height-tight)] font-bold tracking-[-0.035em]"
+      >
+        {{ t("library.inbox") }}
+      </h1>
       <AppButton variant="secondary" @click="importMedia">
         {{ t("library.importMedia") }}
       </AppButton>
     </header>
 
-    <AppSearchInput v-model="query" :placeholder="t('library.search')" />
+    <AppSearchInput
+      class="mb-4"
+      v-model="query"
+      :placeholder="t('library.search')"
+    />
 
-    <AppSurface class="library-page__sessions" :padded="false">
-      <div class="library-page__scroll">
-        <div class="session-list">
+    <AppSurface
+      class="library-page__sessions grid min-h-0 grid-rows-[minmax(0,1fr)]"
+      :padded="false"
+    >
+      <div class="library-page__scroll min-h-0 overflow-auto">
+        <div class="session-list grid">
           <MovableSessionRow
             v-for="session in sessions"
             :key="session.id"

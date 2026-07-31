@@ -8,7 +8,7 @@ mod settings;
 mod transcript;
 
 pub use artifact::{Artifact, ArtifactKind, AudioSource, Codec};
-pub use event::{AppEvent, LevelSnapshot};
+pub use event::{AppEvent, LevelSnapshot, LiveTranscriptUpdate};
 pub use job::{Job, JobKind, JobProgress, JobStage, JobState, ProgressUnit};
 pub use library::{
     AppSnapshot, LibraryDescriptor, LibraryManifest, SearchFilters, SearchPage, SearchResult,
@@ -18,8 +18,8 @@ pub use session::{
     CaptureDevice, GapEvent, PauseEvent, RecoveryState, Session, SessionLifecycle, SessionSource,
 };
 pub use settings::{
-    AppSettings, Appearance, GlobalShortcutPreset, RecordingMode, RecordingProjectSelection,
-    ThemePreference,
+    AppSettings, Appearance, GlobalShortcutPreset, OpenAiTranscriptionModel, RecordingMode,
+    RecordingProjectSelection, ThemePreference,
 };
 pub use transcript::{
     Speaker, SpeakerSource, Transcript, TranscriptRun, TranscriptRunStatus, TranscriptSegment,

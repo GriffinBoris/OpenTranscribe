@@ -116,10 +116,13 @@ defineExpose({ seek });
 </script>
 
 <template>
-  <footer v-if="source" class="playback-bar">
+  <footer
+    v-if="source"
+    class="bg-surface-raised relative flex h-[66px] items-center gap-3 border-t border-[var(--divider)] px-[18px] py-2.5"
+  >
     <audio
       ref="audio"
-      class="playback-media"
+      class="hidden"
       :src="source.url"
       preload="metadata"
       @durationchange="loadMetadata"
@@ -132,7 +135,7 @@ defineExpose({ seek });
     <AppSelect
       v-if="sources.length > 1"
       v-model="selectedKind"
-      class="playback-source-select"
+      class="w-[150px] shrink-0"
       :options="sourceOptions"
       :accessible-label="t('playback.source')"
     />
@@ -144,17 +147,25 @@ defineExpose({ seek });
       <Pause v-if="isPlaying" :size="15" aria-hidden="true" />
       <Play v-else :size="15" aria-hidden="true" />
     </AppButton>
-    <span class="playback-time">{{ formatTime(currentTime) }}</span>
-    <div class="playback-overview">
-      <div v-if="waveform.length" class="playback-waveform" aria-hidden="true">
+    <span class="text-2xs text-ink-muted min-w-8 tabular-nums">{{
+      formatTime(currentTime)
+    }}</span>
+    <div class="relative grid min-w-0 flex-1 items-center">
+      <div
+        v-if="waveform.length"
+        class="pointer-events-none absolute top-1/2 right-0 left-0 flex h-[30px] -translate-y-1/2 items-center gap-px"
+        aria-hidden="true"
+      >
         <span
           v-for="(peak, index) in waveform"
           :key="index"
-          :class="{ active: index / waveform.length <= progress }"
+          class="bg-line-strong min-w-px flex-1 rounded-full"
+          :class="{ 'bg-lichen': index / waveform.length <= progress }"
           :style="{ height: `${Math.max(3, peak * 28)}px` }"
         ></span>
       </div>
       <AppSlider
+        class="relative z-[var(--layer-content)]"
         :model-value="currentTime"
         :max="duration"
         :step="0.1"
@@ -163,12 +174,18 @@ defineExpose({ seek });
         @update:model-value="seek"
       />
     </div>
-    <span class="playback-time">{{ formatTime(duration) }}</span>
+    <span class="text-2xs text-ink-muted min-w-8 tabular-nums">{{
+      formatTime(duration)
+    }}</span>
     <AppButton variant="ghost" @click="$emit('reveal')">
       <FolderOpen :size="15" aria-hidden="true" />
       {{ t("playback.reveal") }}
     </AppButton>
-    <span v-if="playbackError" class="playback-error" role="alert">
+    <span
+      v-if="playbackError"
+      class="text-2xs text-accent absolute right-[18px] bottom-0.5"
+      role="alert"
+    >
       {{ playbackError }}
     </span>
   </footer>

@@ -76,6 +76,11 @@ export const useApplicationStore = defineStore("application", () => {
       return;
     }
 
+    if (event.type === "live_transcript_changed") {
+      useRecordingStore().handleEvent(event);
+      return;
+    }
+
     if (event.type === "job_state_changed") {
       upsertJob(event.payload);
       return;

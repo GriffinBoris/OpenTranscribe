@@ -140,10 +140,19 @@ order: 0
   participates in app-wide visual consistency. Keep intrinsic media dimensions,
   responsive breakpoints, and genuinely component-specific geometry local
   instead of creating a token for every pixel value.
-- Keep global CSS ordered through `src/styles/main.css`, with base, shared
-  component, and focused view styles split into named files before any one
-  stylesheet becomes a catch-all.
+- Use Tailwind CSS v4 through the Vite plugin for layout, spacing, typography,
+  color, borders, and responsive states. Keep OpenTranscribe's semantic CSS
+  tokens as Tailwind theme values so utilities continue to adapt to light and
+  dark themes. Limit authored CSS to token definitions, base rules,
+  PrimeVue pass-through states, animations, and browser-specific behavior;
+  do not add new layout or control selectors when a utility class expresses
+  the intent clearly.
 - Keep the live transcript read-only while recording. Notes and markers remain editable.
+- Stream OpenAI live captions from the native backend so credentials never enter
+  the webview. Fan microphone and system packets into bounded, non-blocking
+  queues so network latency cannot interrupt the recording writer. Treat live
+  captions as ephemeral feedback; after stop, create the durable transcript
+  from the finalized recording with the user's selected file model.
 - Every provider action displays whether audio stays local or is sent to OpenAI.
 - All strings go through Vue I18n even though the first release ships only English.
 - Maintain keyboard navigation, visible focus, reduced motion, and WCAG 2.2 AA contrast.

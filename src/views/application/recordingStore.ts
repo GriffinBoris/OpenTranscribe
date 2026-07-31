@@ -5,6 +5,8 @@ import { native } from "@/core/native";
 import { i18n } from "@/i18n";
 import type {
   AppEvent,
+  LiveTranscriptUpdate,
+  OpenAiTranscriptionModel,
   RecordingMode,
   RecordingStatus,
   Session,
@@ -17,6 +19,7 @@ export interface RecordingSessionOptions {
   microphoneDeviceId?: string | null;
   captureSystemAudio?: boolean;
   languageHint?: string | null;
+  openAiModel?: OpenAiTranscriptionModel;
 }
 
 export const useRecordingStore = defineStore("recording", () => {
@@ -24,8 +27,31 @@ export const useRecordingStore = defineStore("recording", () => {
   const activeRecording = ref<Session | null>(null);
   const activeMode = ref<RecordingMode>("record_only");
   const status = ref<RecordingStatus | null>(null);
+  const liveTranscript = ref<LiveTranscriptUpdate[]>([]);
 
   function handleEvent(event: AppEvent) {
+    if (event.type === "live_transcript_changed") {
+      if (event.payload.session_id !== activeRecording.value?.id) {
+        return;
+      }
+
+      const index = liveTranscript.value.findIndex(
+        (item) =>
+          item.item_id === event.payload.item_id &&
+          item.source === event.payload.source,
+      );
+
+      if (index >= 0) {
+        liveTranscript.value[index] = {
+          ...event.payload,
+          started_at_ms: liveTranscript.value[index].started_at_ms,
+        };
+      } else {
+        liveTranscript.value.push(event.payload);
+      }
+      return;
+    }
+
     if (event.type === "recording_levels") {
       if (event.payload.session_id !== activeRecording.value?.id) {
         return;
@@ -87,9 +113,14 @@ export const useRecordingStore = defineStore("recording", () => {
           false,
         languageHint: options.languageHint ?? null,
         recordingMode: mode,
+        openAiModel:
+          options.openAiModel ??
+          application.settings?.openai_transcription_model ??
+          "gpt_transcribe",
       });
       activeRecording.value = session;
       activeMode.value = mode;
+      liveTranscript.value = [];
       application.snapshot.recent_sessions.unshift(session);
       await refreshStatus();
       return session;
@@ -174,12 +205,14 @@ export const useRecordingStore = defineStore("recording", () => {
     activeRecording.value = null;
     status.value = null;
     activeMode.value = "record_only";
+    liveTranscript.value = [];
   }
 
   return {
     activeRecording,
     activeMode,
     status,
+    liveTranscript,
     handleEvent,
     createSession,
     togglePaused,

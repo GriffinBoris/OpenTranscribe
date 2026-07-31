@@ -24,7 +24,7 @@ const progressStyle = computed(() =>
 <template>
   <ProgressBar
     unstyled
-    class="app-progress"
+    class="app-progress bg-canvas-subtle relative h-2.5 overflow-hidden rounded-full"
     :class="{ 'app-progress--indeterminate': normalizedValue === undefined }"
     :value="normalizedValue"
     :mode="normalizedValue === undefined ? 'indeterminate' : 'determinate'"
@@ -32,7 +32,10 @@ const progressStyle = computed(() =>
     :show-value="false"
     :style="progressStyle"
     :pt="{
-      value: 'app-progress__value',
+      value:
+        normalizedValue === undefined
+          ? 'h-full !w-[42%] rounded-[inherit] bg-lichen origin-left will-change-transform animate-[progress-indeterminate_850ms_linear_infinite]'
+          : 'app-progress__value h-full w-full rounded-[inherit] bg-lichen origin-left will-change-transform transition-transform duration-[var(--duration-fast)] ease-[var(--easing-linear)] [transform:scaleX(var(--app-progress-value,0))]',
     }"
   />
 </template>

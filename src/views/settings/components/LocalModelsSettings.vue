@@ -36,16 +36,20 @@ onMounted(() => {
 
 <template>
   <AppSurface id="models">
-    <div class="section-heading">
+    <div
+      class="flex items-start justify-between gap-4 border-b border-[var(--divider)] pb-3.5"
+    >
       <div>
-        <h2>{{ t("models.title") }}</h2>
-        <p class="setting-description">{{ t("models.description") }}</p>
+        <h2 class="mb-[5px] text-2xl">{{ t("models.title") }}</h2>
+        <p class="text-ink-muted mt-[3px] leading-[var(--line-height-body)]">
+          {{ t("models.description") }}
+        </p>
       </div>
       <StatusPill tone="local">{{ t("models.private") }}</StatusPill>
     </div>
     <div
       v-if="localModels.isLoading && !localModels.models.length"
-      class="model-loading"
+      class="text-ink-muted grid grid-cols-[minmax(160px,1fr)_auto] items-center gap-3 border-t border-[var(--divider)] py-3"
       role="status"
     >
       <AppProgressBar :accessible-label="t('models.loading')" />
@@ -54,10 +58,14 @@ onMounted(() => {
     <div
       v-for="model in localModels.models"
       :key="model.id"
-      class="model-entry"
+      class="border-t border-[var(--divider)]"
+      role="group"
+      :aria-label="model.label"
     >
-      <div class="model-row">
-        <span>
+      <div
+        class="grid grid-cols-[minmax(220px,1fr)_auto_auto] items-center gap-5 py-3 max-[700px]:grid-cols-1"
+      >
+        <span class="grid gap-1">
           <strong>{{ model.label }}</strong>
           <small>
             {{ model.description }} · {{ modelSize(model.byte_count) }}
@@ -95,7 +103,7 @@ onMounted(() => {
       </div>
       <div
         v-if="localModels.downloadingModelId === model.id"
-        class="model-progress"
+        class="text-ink-muted grid grid-cols-[minmax(160px,1fr)_auto] items-center gap-3 pb-3 max-[700px]:grid-cols-1"
         aria-live="polite"
       >
         <AppProgressBar
@@ -107,7 +115,11 @@ onMounted(() => {
         <small>{{ localModels.progress?.message }}</small>
       </div>
     </div>
-    <div v-if="localModels.error" class="model-error" role="alert">
+    <div
+      v-if="localModels.error"
+      class="text-accent grid grid-cols-[minmax(160px,1fr)_auto] items-center gap-3 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+      role="alert"
+    >
       <span>{{ localModels.error }}</span>
       <AppButton size="small" variant="secondary" @click="localModels.load">
         {{ t("models.retry") }}

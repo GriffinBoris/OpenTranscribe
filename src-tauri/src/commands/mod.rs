@@ -7,18 +7,20 @@ pub(crate) mod session;
 use std::collections::HashSet;
 use std::sync::Mutex;
 
-use opentranscribe_domain::{AppEvent, AppSettings, RecordingMode};
+use opentranscribe_domain::{AppEvent, AppSettings, OpenAiTranscriptionModel, RecordingMode};
 use tauri::ipc::Channel;
 
 use crate::audio::RecordingController;
 use crate::error::{AppError, AppResult};
 use crate::storage::LibraryRepository;
+use crate::transcription::OpenAiRealtimeController;
 
 pub(crate) use events::send_event;
 
 pub(crate) struct ActiveRecordingIntent {
     pub(crate) session_id: String,
     pub(crate) mode: RecordingMode,
+    pub(crate) openai_model: OpenAiTranscriptionModel,
 }
 
 #[derive(Default)]
@@ -29,6 +31,7 @@ pub struct AppState {
     pub(crate) canceled_jobs: Mutex<HashSet<String>>,
     pub(crate) recorder: RecordingController,
     pub(crate) active_recording_intent: Mutex<Option<ActiveRecordingIntent>>,
+    pub(crate) live_transcription: Mutex<Option<OpenAiRealtimeController>>,
 }
 
 pub(crate) fn with_repository<T>(

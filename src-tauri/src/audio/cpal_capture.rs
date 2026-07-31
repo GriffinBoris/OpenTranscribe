@@ -110,11 +110,15 @@ fn build_stream(
     signals: CaptureSignals,
 ) -> AppResult<cpal::Stream> {
     let error_callback = |error| log::error!("audio input stream error: {error}");
+    let capture_format = AudioFormat {
+        channels: config.channels,
+        sample_rate: config.sample_rate,
+    };
     let stream = match sample_format {
         SampleFormat::F32 => device.build_input_stream(
             config,
             move |samples: &[f32], _| {
-                enqueue_samples(samples.to_vec(), &sender, &signals);
+                enqueue_samples(samples.to_vec(), &sender, &signals, capture_format);
             },
             error_callback,
             None,
@@ -126,7 +130,7 @@ fn build_stream(
                     .iter()
                     .map(|sample| f32::from(*sample) / f32::from(i16::MAX))
                     .collect();
-                enqueue_samples(samples, &sender, &signals);
+                enqueue_samples(samples, &sender, &signals, capture_format);
             },
             error_callback,
             None,
@@ -138,7 +142,7 @@ fn build_stream(
                     .iter()
                     .map(|sample| (f32::from(*sample) / f32::from(u16::MAX)) * 2.0 - 1.0)
                     .collect();
-                enqueue_samples(samples, &sender, &signals);
+                enqueue_samples(samples, &sender, &signals, capture_format);
             },
             error_callback,
             None,

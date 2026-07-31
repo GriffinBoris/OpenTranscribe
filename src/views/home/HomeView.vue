@@ -171,17 +171,31 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="page home-page">
-    <div v-if="isDraggingMedia" class="media-drop-overlay" aria-hidden="true">
-      <div>
-        <Upload :size="24" />
+  <div
+    class="page home-page relative h-full min-h-0 w-full overflow-auto px-[var(--layout-page-gutter)] pt-[var(--space-13)] pb-[var(--space-14)]"
+  >
+    <div
+      v-if="isDraggingMedia"
+      class="media-drop-overlay rounded-app-2xl pointer-events-none absolute inset-3 z-[var(--layer-drag-overlay)] grid place-items-center border-2 border-dashed border-[color-mix(in_srgb,var(--accent)_70%,var(--border))] bg-[color-mix(in_srgb,var(--surface)_88%,var(--accent-soft))]"
+      aria-hidden="true"
+    >
+      <div class="text-ink grid justify-items-center gap-1.5">
+        <Upload class="text-accent" :size="24" />
         <strong>{{ t("home.dropMedia") }}</strong>
-        <span>{{ t("home.dropMediaDescription") }}</span>
+        <span class="text-md text-ink-muted">{{
+          t("home.dropMediaDescription")
+        }}</span>
       </div>
     </div>
 
-    <header class="page-header page-header--compact">
-      <h1>{{ t("home.title") }}</h1>
+    <header
+      class="page-header page-header--compact mb-[var(--space-5-5)] flex items-start justify-between gap-6"
+    >
+      <h1
+        class="text-display m-0 max-w-[730px] leading-[var(--line-height-tight)] font-bold tracking-[-0.035em]"
+      >
+        {{ t("home.title") }}
+      </h1>
       <AppButton variant="secondary" @click="importMedia()">
         <Upload :size="17" />{{ t("home.importMedia") }}
       </AppButton>
@@ -191,10 +205,10 @@ onBeforeUnmount(() => {
       v-if="
         application.settings?.setup_completed && !application.snapshot?.library
       "
-      class="library-setup"
+      class="library-setup rounded-app-md bg-lichen-soft text-lichen mb-4 flex items-center gap-3 px-4 py-3.5"
     >
       <HardDrive :size="20" />
-      <div>
+      <div class="min-w-0 flex-1">
         <strong>{{ t("home.chooseLibraryPrompt") }}</strong>
       </div>
       <AppButton variant="secondary" @click="application.chooseLibrary">
@@ -205,23 +219,39 @@ onBeforeUnmount(() => {
     <FirstRunSetup v-if="!application.settings?.setup_completed" />
 
     <template v-else>
-      <section class="record-card">
-        <div class="record-card__icon"><Mic :size="19" /></div>
+      <section
+        class="record-card rounded-app-lg bg-canvas-subtle mb-7 grid min-h-[118px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5 p-[18px] max-[1100px]:grid-cols-[auto_minmax(0,1fr)]"
+      >
+        <div
+          class="record-card__icon rounded-app-md bg-accent-soft text-accent grid size-10 place-items-center"
+        >
+          <Mic :size="19" />
+        </div>
         <div class="record-card__copy">
-          <h2>{{ t("home.newRecording") }}</h2>
-          <div class="source-summary">
-            <span>
-              <span class="source-dot source-dot--mic"></span>
+          <h2 class="mb-1 text-2xl tracking-[-0.015em]">
+            {{ t("home.newRecording") }}
+          </h2>
+          <div
+            class="source-summary text-ink-muted flex flex-wrap gap-3.5 text-sm"
+          >
+            <span class="flex items-center gap-1.5">
+              <span
+                class="source-dot source-dot--mic bg-lichen size-[7px] rounded-full"
+              ></span>
               {{ defaultMicrophone }}
             </span>
-            <span>
-              <span class="source-dot source-dot--system"></span>
+            <span class="flex items-center gap-1.5">
+              <span
+                class="source-dot source-dot--system bg-cloud size-[7px] rounded-full"
+              ></span>
               {{ t("home.systemOutput") }} ·
               {{ systemAudioState }}
             </span>
           </div>
         </div>
-        <div class="record-card__controls">
+        <div
+          class="record-card__controls flex min-w-[220px] items-center justify-end gap-2 max-[1100px]:col-span-full max-[1100px]:justify-self-end"
+        >
           <AppButton
             variant="ghost"
             size="large"
@@ -237,24 +267,35 @@ onBeforeUnmount(() => {
             @click="startRecording()"
             @select="startRecordingOption"
           >
-            <span class="button-record-dot"></span>
+            <span
+              class="text-accent-contrast size-[9px] rounded-full bg-current"
+            ></span>
             {{ t("recording.record") }}
           </AppSplitButton>
         </div>
       </section>
 
-      <div class="home-grid">
-        <section class="home-section recent-card">
-          <div class="section-heading">
-            <h2>{{ t("home.recentSessions") }}</h2>
-            <RouterLink to="/inbox" class="text-link">
+      <div
+        class="home-grid grid grid-cols-[minmax(0,1.7fr)_minmax(250px,0.7fr)] gap-8 max-[1100px]:grid-cols-1"
+      >
+        <section class="home-section recent-card min-w-0">
+          <div
+            class="section-heading mb-0 flex items-center justify-between gap-4 border-b border-[var(--divider)] pb-[11px]"
+          >
+            <h2 class="m-0 text-xl tracking-[-0.01em]">
+              {{ t("home.recentSessions") }}
+            </h2>
+            <RouterLink
+              to="/inbox"
+              class="text-link text-lichen inline-flex items-center gap-1.5 text-sm font-bold"
+            >
               {{ t("home.viewAll") }} <ArrowRight :size="14" />
             </RouterLink>
           </div>
-          <div class="session-list">
+          <div class="session-list grid">
             <p
               v-if="application.recentSessions.length === 0"
-              class="quiet-state"
+              class="quiet-state text-md text-ink-muted m-0 py-[18px]"
             >
               {{ t("home.noSessions") }}
             </p>
@@ -266,11 +307,17 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <section class="home-section processing-summary">
-          <div class="section-heading">
+        <section
+          class="home-section processing-summary min-w-0 border-l border-[var(--divider)] pl-6 max-[1100px]:border-l-0 max-[1100px]:pl-0"
+        >
+          <div
+            class="section-heading mb-0 flex items-center justify-between gap-4 border-b border-[var(--divider)] pb-[11px]"
+          >
             <div>
-              <h2>{{ t("home.processing") }}</h2>
-              <p>
+              <h2 class="m-0 text-xl tracking-[-0.01em]">
+                {{ t("home.processing") }}
+              </h2>
+              <p class="text-ink-muted mt-[3px] text-sm">
                 {{
                   t("home.activeJobs", {
                     count: application.runningJobs.length,
@@ -279,17 +326,20 @@ onBeforeUnmount(() => {
               </p>
             </div>
           </div>
-          <p v-if="application.runningJobs.length === 0" class="quiet-state">
+          <p
+            v-if="application.runningJobs.length === 0"
+            class="quiet-state text-md text-ink-muted m-0 py-[18px]"
+          >
             {{ t("home.nothingRunning") }}
           </p>
           <div
             v-for="job in application.runningJobs"
             :key="job.id"
-            class="compact-job"
+            class="compact-job grid gap-2.5 pt-3 pb-[18px]"
           >
             <div>
               <strong>{{ job.progress?.message }}</strong>
-              <small>{{ jobProvider(job) }}</small>
+              <small class="text-ink-muted block">{{ jobProvider(job) }}</small>
             </div>
             <AppProgressBar
               :value="jobProgress(job)"
@@ -298,7 +348,10 @@ onBeforeUnmount(() => {
               "
             />
           </div>
-          <RouterLink to="/processing" class="text-link">
+          <RouterLink
+            to="/processing"
+            class="text-link text-lichen inline-flex items-center gap-1.5 text-sm font-bold"
+          >
             {{ t("home.openProcessing") }} <ArrowRight :size="14" />
           </RouterLink>
         </section>

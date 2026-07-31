@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::{Job, JobProgress, SessionLifecycle};
+use crate::{AudioSource, Job, JobProgress, SessionLifecycle};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[ts(export)]
@@ -17,10 +17,22 @@ pub struct LevelSnapshot {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[ts(export)]
+pub struct LiveTranscriptUpdate {
+    pub session_id: String,
+    pub item_id: String,
+    pub source: AudioSource,
+    pub text: String,
+    pub completed: bool,
+    pub started_at_ms: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
+#[ts(export)]
 #[serde(tag = "type", content = "payload", rename_all = "snake_case")]
 pub enum AppEvent {
     RecordingStateChanged(SessionLifecycle),
     RecordingLevels(LevelSnapshot),
+    LiveTranscriptChanged(LiveTranscriptUpdate),
     JobProgress {
         job_id: String,
         progress: JobProgress,

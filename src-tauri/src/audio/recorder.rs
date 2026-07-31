@@ -16,6 +16,7 @@ use super::system_audio::{
     permission_granted as system_audio_permission_granted,
 };
 use crate::error::{AppError, AppResult};
+use crate::transcription::LiveAudioSink;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AudioDevice {
@@ -32,11 +33,13 @@ pub struct AudioDevices {
     pub system_audio_permission_settings_available: bool,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone)]
 pub struct StartRecordingOptions {
     pub session_id: String,
     pub microphone_device_id: Option<String>,
     pub capture_system_audio: bool,
+    pub microphone_live_audio: Option<LiveAudioSink>,
+    pub system_live_audio: Option<LiveAudioSink>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -140,6 +143,7 @@ impl RecordingController {
                         paused: Arc::clone(&paused),
                         peak: Arc::clone(&system_peak),
                         dropped_packets: Arc::clone(&dropped_packets),
+                        live_audio: options.system_live_audio.clone(),
                     },
                 )
             })
@@ -160,6 +164,7 @@ impl RecordingController {
                 paused: Arc::clone(&paused),
                 peak: Arc::clone(&microphone_peak),
                 dropped_packets: Arc::clone(&dropped_packets),
+                live_audio: options.microphone_live_audio,
             },
         ) {
             Ok(capture) => capture,

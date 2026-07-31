@@ -92,12 +92,15 @@ function resultIcon(kind: SearchResult["kind"]) {
 
 <template>
   <AppDialog
-    class="library-search-dialog"
+    class="max-w-[640px]"
     :open="open"
     :title="t('librarySearch.title')"
     @update:open="emit('update:open', $event)"
   >
-    <form class="library-search" @submit.prevent="searchLibrary">
+    <form
+      class="library-search mb-[var(--space-3-5)] flex items-center gap-2"
+      @submit.prevent="searchLibrary"
+    >
       <AppSearchInput
         v-model="query"
         :placeholder="t('librarySearch.placeholder')"
@@ -108,15 +111,22 @@ function resultIcon(kind: SearchResult["kind"]) {
       </AppButton>
     </form>
 
-    <p v-if="errorMessage" class="shell-state shell-state--error" role="alert">
+    <p
+      v-if="errorMessage"
+      class="text-accent grid h-full min-h-[220px] place-content-center justify-items-center gap-2 text-center"
+      role="alert"
+    >
       {{ errorMessage }}
     </p>
 
-    <div v-else-if="results.length" class="library-search__results">
+    <div
+      v-else-if="results.length"
+      class="library-search__results grid max-h-[min(480px,60vh)] gap-1 overflow-auto"
+    >
       <AppButton
         v-for="result in results"
         :key="`${result.session_id}-${result.kind}-${result.excerpt}`"
-        class="library-search__result"
+        class="w-full items-start justify-start p-2.5 text-left"
         variant="ghost"
         @click="openResult(result)"
       >
@@ -125,9 +135,11 @@ function resultIcon(kind: SearchResult["kind"]) {
           :size="16"
           aria-hidden="true"
         />
-        <span>
+        <span class="grid min-w-0 gap-1">
           <strong>{{ result.session_title }}</strong>
-          <small>
+          <small
+            class="text-ink-muted overflow-hidden font-normal text-ellipsis whitespace-nowrap"
+          >
             {{ t(`librarySearch.kinds.${result.kind}`) }} ·
             {{ result.excerpt }}
           </small>
@@ -135,8 +147,11 @@ function resultIcon(kind: SearchResult["kind"]) {
       </AppButton>
     </div>
 
-    <div v-else-if="hasSearched" class="empty-setting">
-      <span>
+    <div
+      v-else-if="hasSearched"
+      class="empty-setting rounded-app-md border-line-strong text-ink-muted flex items-center gap-3 border border-dashed p-[18px]"
+    >
+      <span class="grid gap-1">
         <strong>{{ t("librarySearch.empty") }}</strong>
         <small>{{ t("librarySearch.emptyDescription") }}</small>
       </span>

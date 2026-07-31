@@ -12,6 +12,26 @@ pub enum RecordingMode {
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, TS)]
 #[ts(export)]
+#[serde(rename_all = "snake_case")]
+pub enum OpenAiTranscriptionModel {
+    #[default]
+    GptTranscribe,
+    Gpt4oTranscribeDiarize,
+    Gpt4oMiniTranscribe,
+}
+
+impl OpenAiTranscriptionModel {
+    pub fn model_id(&self) -> &'static str {
+        match self {
+            Self::GptTranscribe => "gpt-transcribe",
+            Self::Gpt4oTranscribeDiarize => "gpt-4o-transcribe-diarize",
+            Self::Gpt4oMiniTranscribe => "gpt-4o-mini-transcribe",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, TS)]
+#[ts(export)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RecordingProjectSelection {
     #[default]
@@ -56,6 +76,8 @@ pub struct AppSettings {
     pub setup_completed: bool,
     pub recording_mode: RecordingMode,
     #[serde(default)]
+    pub openai_transcription_model: OpenAiTranscriptionModel,
+    #[serde(default)]
     pub microphone_device_id: Option<String>,
     #[serde(default)]
     pub capture_system_audio: bool,
@@ -74,6 +96,7 @@ impl Default for AppSettings {
             revision: 1,
             setup_completed: false,
             recording_mode: RecordingMode::RecordOnly,
+            openai_transcription_model: OpenAiTranscriptionModel::default(),
             microphone_device_id: None,
             capture_system_audio: false,
             recording_project_selection: RecordingProjectSelection::default(),
@@ -89,7 +112,7 @@ impl Default for AppSettings {
 
 #[cfg(test)]
 mod tests {
-    use super::{AppSettings, RecordingProjectSelection};
+    use super::{AppSettings, OpenAiTranscriptionModel, RecordingProjectSelection};
 
     #[test]
     fn reads_existing_settings_without_a_recording_project_selection() {
@@ -110,6 +133,26 @@ mod tests {
         assert_eq!(
             settings.recording_project_selection,
             RecordingProjectSelection::Automatic
+        );
+        assert_eq!(
+            settings.openai_transcription_model,
+            OpenAiTranscriptionModel::GptTranscribe
+        );
+    }
+
+    #[test]
+    fn maps_openai_file_models_to_api_ids() {
+        assert_eq!(
+            OpenAiTranscriptionModel::GptTranscribe.model_id(),
+            "gpt-transcribe"
+        );
+        assert_eq!(
+            OpenAiTranscriptionModel::Gpt4oTranscribeDiarize.model_id(),
+            "gpt-4o-transcribe-diarize"
+        );
+        assert_eq!(
+            OpenAiTranscriptionModel::Gpt4oMiniTranscribe.model_id(),
+            "gpt-4o-mini-transcribe"
         );
     }
 }

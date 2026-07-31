@@ -174,7 +174,15 @@ impl SCStreamOutputTrait for SystemAudioHandler {
             return;
         };
 
-        enqueue_samples(samples, &self.packet_sender, &self.signals);
+        enqueue_samples(
+            samples,
+            &self.packet_sender,
+            &self.signals,
+            AudioFormat {
+                channels: SYSTEM_CHANNELS,
+                sample_rate: SYSTEM_SAMPLE_RATE,
+            },
+        );
     }
 }
 
