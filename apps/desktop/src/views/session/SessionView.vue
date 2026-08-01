@@ -34,6 +34,9 @@ const session = computed(
     recording.activeRecording,
 );
 const activeTab = ref<"transcript" | "notes">("transcript");
+const transcriptPaneWidth = ref<number | null>(null);
+const transcriptHidden = ref(false);
+const workspacePanes = ref<HTMLElement | null>(null);
 const exportFormat = ref<ExportFormat>("markdown");
 const exportMessage = ref<string | null>(null);
 const isExporting = ref(false);
@@ -104,6 +107,17 @@ const recoverable = computed(
 const isCurrentRecording = computed(
   () => recording.activeRecording?.id === sessionId.value,
 );
+const transcriptPanePercent = computed(() => {
+  const workspace = workspacePanes.value;
+
+  if (!workspace) {
+    return 60;
+  }
+
+  const usableWidth = Math.max(1, workspace.clientWidth - 9);
+  const width = transcriptPaneWidth.value ?? usableWidth * 0.6;
+  return Math.round((width / usableWidth) * 100);
+});
 
 async function exportTranscript() {
   exportMessage.value = null;
@@ -127,6 +141,78 @@ function updateExportFormat(value: string) {
 
 function updateActiveTab(value: string) {
   activeTab.value = value as "transcript" | "notes";
+}
+
+function setTranscriptPaneWidth(nextWidth: number) {
+  const workspace = workspacePanes.value;
+
+  if (!workspace) {
+    return;
+  }
+
+  const splitterWidth = 9;
+  const minimumTranscriptWidth = 280;
+  const minimumNotesWidth = 320;
+  const maximumTranscriptWidth = Math.max(
+    minimumTranscriptWidth,
+    workspace.clientWidth - splitterWidth - minimumNotesWidth,
+  );
+
+  transcriptPaneWidth.value = Math.min(
+    maximumTranscriptWidth,
+    Math.max(minimumTranscriptWidth, nextWidth),
+  );
+}
+
+function startPaneResize(event: PointerEvent) {
+  if (window.matchMedia("(max-width: 900px)").matches) {
+    return;
+  }
+
+  const splitter = event.currentTarget as HTMLElement;
+  const workspace = workspacePanes.value;
+
+  if (!workspace) {
+    return;
+  }
+
+  splitter.setPointerCapture(event.pointerId);
+  setTranscriptPaneWidth(
+    event.clientX - workspace.getBoundingClientRect().left,
+  );
+}
+
+function resizePane(event: PointerEvent) {
+  const workspace = workspacePanes.value;
+  const splitter = event.currentTarget as HTMLElement;
+
+  if (!workspace || !splitter.hasPointerCapture(event.pointerId)) {
+    return;
+  }
+
+  setTranscriptPaneWidth(
+    event.clientX - workspace.getBoundingClientRect().left,
+  );
+}
+
+function finishPaneResize(event: PointerEvent) {
+  const splitter = event.currentTarget as HTMLElement;
+
+  if (splitter.hasPointerCapture(event.pointerId)) {
+    splitter.releasePointerCapture(event.pointerId);
+  }
+}
+
+function adjustPaneWidth(direction: number) {
+  const workspace = workspacePanes.value;
+
+  if (!workspace) {
+    return;
+  }
+
+  const currentWidth =
+    transcriptPaneWidth.value ?? (workspace.clientWidth - 9) * 0.6;
+  setTranscriptPaneWidth(currentWidth + direction * 24);
 }
 
 function seekPlayback(milliseconds: number) {
@@ -242,9 +328,23 @@ onBeforeUnmount(() => {
     />
 
     <div
-      class="grid min-h-0 flex-1 grid-cols-[minmax(0,3fr)_minmax(320px,2fr)] max-[900px]:grid-cols-1"
+      ref="workspacePanes"
+      class="session-workspace__panes grid min-h-0 flex-1 max-[900px]:grid-cols-1"
+      :class="{
+        'grid-cols-1': transcriptHidden,
+        'grid-cols-[minmax(280px,3fr)_9px_minmax(320px,2fr)]':
+          !transcriptHidden && transcriptPaneWidth === null,
+        'grid-cols-[minmax(280px,var(--transcript-pane-width))_9px_minmax(320px,1fr)]':
+          !transcriptHidden && transcriptPaneWidth !== null,
+      }"
+      :style="
+        transcriptPaneWidth === null
+          ? undefined
+          : { '--transcript-pane-width': `${transcriptPaneWidth}px` }
+      "
     >
       <SessionTranscriptPane
+        v-if="!transcriptHidden"
         :class="{ 'max-[900px]:hidden': activeTab !== 'transcript' }"
         :session-id="sessionId"
         :segments="segments"
@@ -255,12 +355,37 @@ onBeforeUnmount(() => {
         @seek="seekPlayback"
       />
 
+      <div
+        v-if="!transcriptHidden"
+        class="group relative hidden h-full cursor-col-resize touch-none outline-none select-none max-[900px]:!hidden min-[901px]:block"
+        role="separator"
+        :aria-label="t('session.resizeTranscript')"
+        aria-orientation="vertical"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        :aria-valuenow="transcriptPanePercent"
+        tabindex="0"
+        @keydown.left.prevent="adjustPaneWidth(-1)"
+        @keydown.right.prevent="adjustPaneWidth(1)"
+        @pointerdown="startPaneResize"
+        @pointermove="resizePane"
+        @pointerup="finishPaneResize"
+        @pointercancel="finishPaneResize"
+      >
+        <span
+          class="group-hover:bg-lichen group-focus-visible:bg-lichen absolute top-0 bottom-0 left-1/2 w-px -translate-x-1/2 bg-[var(--divider)] transition-colors"
+          aria-hidden="true"
+        ></span>
+      </div>
+
       <SessionNotesPane
         :active="activeTab === 'notes'"
         :notes="notes"
         :notes-state="notesState"
+        :transcript-hidden="transcriptHidden"
         @update:notes="notes = $event"
         @add-timestamp="insertTimestamp"
+        @toggle-transcript="transcriptHidden = !transcriptHidden"
       />
     </div>
 

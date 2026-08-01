@@ -6,11 +6,10 @@ test("keeps the shared search icon centered inside its input", async ({
   await page.goto("/inbox");
 
   const searchField = page.locator(".app-search-input");
-  const searchInput = searchField.getByRole("searchbox");
   const searchIcon = searchField.locator(".app-search-input__icon svg");
 
-  await expect(searchField).toHaveClass(/mb-4/);
-  await expect(searchInput).not.toHaveClass(/mb-4/);
+  await expect(page.locator(".library-toolbar")).toHaveClass(/mb-4/);
+  await expect(searchField).not.toHaveClass(/mb-4/);
   await expect(searchIcon).toHaveCSS("width", "16px");
   await expect(searchIcon).toHaveCSS("height", "16px");
 
@@ -35,6 +34,39 @@ test("keeps the shared search icon centered inside its input", async ({
   expect(Math.abs(centerOffset)).toBeLessThanOrEqual(0.5);
 });
 
+test("overlays each library checkbox on its visual control", async ({
+  page,
+}) => {
+  await page.goto("/inbox");
+
+  const checkbox = page.getByLabel("Select Customer discovery — Rowan");
+  const geometry = await checkbox.evaluate((input) => {
+    const root = input.closest(".app-checkbox");
+    const box = root?.querySelector(".app-checkbox__box");
+
+    if (!root || !box) {
+      throw new Error("Checkbox geometry is unavailable");
+    }
+
+    const rootBounds = root.getBoundingClientRect();
+    const inputBounds = input.getBoundingClientRect();
+    const boxBounds = box.getBoundingClientRect();
+
+    return { rootBounds, inputBounds, boxBounds };
+  });
+
+  expect(geometry.rootBounds.width).toBe(20);
+  expect(geometry.inputBounds.x).toBe(geometry.boxBounds.x);
+  expect(geometry.inputBounds.y).toBe(geometry.boxBounds.y);
+
+  await checkbox.click();
+  await expect(checkbox.locator("xpath=..")).toHaveAttribute(
+    "data-p-checked",
+    "true",
+  );
+  await expect(checkbox.locator("xpath=..").locator("svg")).toBeVisible();
+});
+
 test("filters sessions within a project", async ({ page }) => {
   await page.goto("/projects/01KDEMOPROJECT");
 
@@ -44,6 +76,24 @@ test("filters sessions within a project", async ({ page }) => {
 
   await search.fill("missing session");
   await expect(page.getByText("No sessions match this search.")).toBeVisible();
+});
+
+test("shows a useful empty state when Inbox has no meetings", async ({
+  page,
+}) => {
+  await page.goto("/inbox");
+
+  await page.getByLabel("Select Customer discovery — Rowan").click();
+  await page.getByRole("button", { name: "Move 1 meeting" }).click();
+  const dialog = page.getByRole("dialog", { name: "Move meeting" });
+  await dialog.getByLabel("Destination").click();
+  await page.getByRole("option", { name: "Product", exact: true }).click();
+  await dialog.getByRole("button", { name: "Move meetings" }).click();
+
+  await expect(page.getByText("Inbox is empty")).toBeVisible();
+  await expect(
+    page.getByText("Record a meeting or import media to get started."),
+  ).toBeVisible();
 });
 
 test("renders substantial smoothly composited processing progress", async ({
@@ -61,6 +111,52 @@ test("renders substantial smoothly composited processing progress", async ({
       value.evaluate((element) => getComputedStyle(element).transform),
     )
     .not.toBe("none");
+});
+
+test("aligns processing columns and reserves room for job actions", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/processing");
+
+  const headerCells = page.locator(".processing-table__header > span");
+  const job = page.locator(".processing-row").first();
+  const provider = job.locator(".processing-row__provider");
+  const progress = job.locator(".processing-row__progress");
+  const status = job.locator(".processing-row__status");
+  const cancel = page.getByRole("button", { name: "Cancel" });
+  const [
+    headerProvider,
+    headerProgress,
+    headerStatus,
+    providerBox,
+    progressBox,
+    statusBox,
+    cancelBox,
+  ] = await Promise.all([
+    headerCells.nth(1).boundingBox(),
+    headerCells.nth(2).boundingBox(),
+    headerCells.nth(3).boundingBox(),
+    provider.boundingBox(),
+    progress.boundingBox(),
+    status.boundingBox(),
+    cancel.boundingBox(),
+  ]);
+
+  expect(headerProvider).not.toBeNull();
+  expect(headerProgress).not.toBeNull();
+  expect(headerStatus).not.toBeNull();
+  expect(providerBox).not.toBeNull();
+  expect(progressBox).not.toBeNull();
+  expect(statusBox).not.toBeNull();
+  expect(cancelBox).not.toBeNull();
+
+  expect(Math.abs(headerProvider!.x - providerBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(headerProgress!.x - progressBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(headerStatus!.x - statusBox!.x)).toBeLessThanOrEqual(1);
+  expect(cancelBox!.x + cancelBox!.width).toBeLessThanOrEqual(
+    statusBox!.x + statusBox!.width,
+  );
 });
 
 test("keeps processing and session actions inside compact workspaces", async ({
@@ -109,11 +205,16 @@ test("keeps processing and session actions inside compact workspaces", async ({
 test("moves a session between a project and the inbox", async ({ page }) => {
   await page.goto("/sessions/01KDEMOSESSION1");
 
-  const project = page.getByLabel("Move to project");
-  await expect(project).toContainText("Product");
-  await project.click();
-  await page.getByRole("option", { name: "Inbox", exact: true }).click();
-  await expect(project).toContainText("Inbox");
+  await page.getByRole("button", { name: "Move to project" }).click();
+  const sessionMoveDialog = page.getByRole("dialog", { name: "Move meeting" });
+  await sessionMoveDialog
+    .getByRole("button", { name: "Move meetings" })
+    .click();
+  await expect(
+    page.locator(".session-header__metadata").getByText("Inbox", {
+      exact: true,
+    }),
+  ).toBeVisible();
 
   const notes = page.getByRole("textbox", { name: "Meeting notes" });
   await notes.click();
@@ -125,12 +226,12 @@ test("moves a session between a project and the inbox", async ({ page }) => {
   await page.getByRole("link", { name: "Inbox", exact: true }).click();
   await expect(page.getByText("Weekly product sync")).toBeVisible();
 
-  const inboxRowProject = page.getByLabel(
-    "Move Customer discovery — Rowan to a project or Inbox",
-  );
-  await expect(inboxRowProject).toContainText("Inbox");
-  await inboxRowProject.click();
+  await page.getByLabel("Select Customer discovery — Rowan").click();
+  await page.getByRole("button", { name: "Move 1 meeting" }).click();
+  const inboxMoveDialog = page.getByRole("dialog", { name: "Move meeting" });
+  await inboxMoveDialog.getByLabel("Destination").click();
   await page.getByRole("option", { name: "Product", exact: true }).click();
+  await inboxMoveDialog.getByRole("button", { name: "Move meetings" }).click();
   await expect(page.getByText("Customer discovery — Rowan")).not.toBeVisible();
   await expect(
     page
@@ -141,12 +242,12 @@ test("moves a session between a project and the inbox", async ({ page }) => {
   await page.getByRole("link", { name: "Product", exact: true }).click();
   await expect(page.getByText("Customer discovery — Rowan")).toBeVisible();
 
-  const projectRowProject = page.getByLabel(
-    "Move Customer discovery — Rowan to a project or Inbox",
-  );
-  await expect(projectRowProject).toContainText("Product");
-  await projectRowProject.click();
-  await page.getByRole("option", { name: "Inbox", exact: true }).click();
+  await page.getByLabel("Select Customer discovery — Rowan").click();
+  await page.getByRole("button", { name: "Move 1 meeting" }).click();
+  const projectMoveDialog = page.getByRole("dialog", { name: "Move meeting" });
+  await projectMoveDialog
+    .getByRole("button", { name: "Move meetings" })
+    .click();
   await expect(page.getByText("Customer discovery — Rowan")).not.toBeVisible();
   await expect(
     page
@@ -156,4 +257,29 @@ test("moves a session between a project and the inbox", async ({ page }) => {
 
   await page.getByRole("link", { name: "Inbox", exact: true }).click();
   await expect(page.getByText("Customer discovery — Rowan")).toBeVisible();
+});
+
+test("selects a meeting range before bulk moving it", async ({ page }) => {
+  await page.goto("/projects/01KDEMOPROJECT");
+
+  await page.getByLabel("Select Weekly product sync").click();
+  await page
+    .getByLabel("Select Architecture notes")
+    .click({ modifiers: ["Shift"] });
+
+  await expect(
+    page.getByRole("button", { name: "Move 2 meetings" }),
+  ).toBeEnabled();
+});
+
+test("selects a meeting from its focused checkbox", async ({ page }) => {
+  await page.goto("/inbox");
+
+  const checkbox = page.getByLabel("Select Customer discovery — Rowan");
+  await checkbox.focus();
+  await page.keyboard.press("Space");
+
+  await expect(
+    page.getByRole("button", { name: "Move 1 meeting" }),
+  ).toBeEnabled();
 });

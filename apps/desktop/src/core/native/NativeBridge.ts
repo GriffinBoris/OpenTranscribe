@@ -24,8 +24,9 @@ import type {
 
 export interface NativeBridge {
   bootstrap(): Promise<AppSnapshot>;
-  saveSettings(settings: AppSettings): Promise<AppSettings>;
-  resetApplicationData(): Promise<void>;
+  saveSettings(updates: Partial<AppSettings>): Promise<AppSettings>;
+  resetApplicationSettings(): Promise<AppSettings>;
+  deleteAllApplicationData(): Promise<void>;
   initializeLibrary(path: string): Promise<AppSnapshot>;
   chooseLibrary(): Promise<string | null>;
   createProject(name: string): Promise<Project>;
@@ -71,6 +72,9 @@ export interface NativeBridge {
     expectedRevision: number,
   ): Promise<Transcript>;
   localModelStatuses(): Promise<LocalModel[]>;
+  localModelStoragePath(): Promise<string>;
+  chooseLocalModelStorage(): Promise<string | null>;
+  moveLocalModels(path: string): Promise<string>;
   downloadLocalModel(
     modelId: string,
     onProgress: (progress: JobProgress) => void,
@@ -87,6 +91,7 @@ export interface NativeBridge {
   trashedSessions(): Promise<Session[]>;
   trashSession(sessionId: string): Promise<Session>;
   restoreSession(sessionId: string): Promise<Session>;
+  emptyTrash(): Promise<void>;
   saveNotes(
     sessionId: string,
     markdown: string,

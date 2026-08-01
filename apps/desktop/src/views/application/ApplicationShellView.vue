@@ -9,7 +9,6 @@ import AppSidebar from "@/views/application/components/AppSidebar.vue";
 import LocalModelDownloadStatus from "@/views/application/components/LocalModelDownloadStatus.vue";
 import RecordingDock from "@/views/application/components/RecordingDock.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
-import { globalShortcutAccelerators } from "@/views/application/globalShortcutPresets";
 import { useGlobalShortcutStore } from "@/views/application/globalShortcutStore";
 import { useRecordingStore } from "@/views/application/recordingStore";
 
@@ -27,7 +26,7 @@ const globalShortcutAccelerator = computed(() => {
     return null;
   }
 
-  return globalShortcutAccelerators[settings.global_shortcut];
+  return settings.global_shortcut;
 });
 
 function refreshApplicationOnFocus() {

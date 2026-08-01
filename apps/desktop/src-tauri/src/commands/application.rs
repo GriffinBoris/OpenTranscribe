@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use opentranscribe_domain::{
-    AppSettings, AppSnapshot, Project, SearchFilters, SearchPage, Session,
+    APP_SETTINGS_SCHEMA_VERSION, AppSettings, AppSnapshot, Appearance, OpenAiTranscriptionModel,
+    Project, RecordingMode, RecordingProjectSelection, SearchFilters, SearchPage, Session,
 };
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
@@ -24,6 +25,85 @@ pub struct SearchLibraryRequest {
 #[derive(Deserialize, Serialize)]
 struct LibrarySelection {
     path: PathBuf,
+}
+
+const LIBRARY_SELECTION_FILENAME: &str = "selected-library.json";
+const LEGACY_LIBRARY_SELECTION_FILENAME: &str = "library.json";
+
+#[derive(Deserialize)]
+pub struct SaveSettingsRequest {
+    updates: SettingsPatch,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct SettingsPatch {
+    setup_completed: Option<bool>,
+    recording_mode: Option<RecordingMode>,
+    openai_transcription_model: Option<OpenAiTranscriptionModel>,
+    #[serde(default)]
+    microphone_device_id: PatchValue<Option<String>>,
+    capture_system_audio: Option<bool>,
+    #[serde(default)]
+    local_models_directory: PatchValue<Option<String>>,
+    recording_project_selection: Option<RecordingProjectSelection>,
+    global_shortcut_enabled: Option<bool>,
+    global_shortcut: Option<opentranscribe_domain::GlobalShortcut>,
+    appearance: Option<Appearance>,
+}
+
+#[derive(Default)]
+enum PatchValue<T> {
+    #[default]
+    Unchanged,
+    Set(T),
+}
+
+impl<'de, T> Deserialize<'de> for PatchValue<T>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(Self::Set(T::deserialize(deserializer)?))
+    }
+}
+
+impl SettingsPatch {
+    fn apply(self, settings: &mut AppSettings) {
+        if let Some(value) = self.setup_completed {
+            settings.setup_completed = value;
+        }
+        if let Some(value) = self.recording_mode {
+            settings.recording_mode = value;
+        }
+        if let Some(value) = self.openai_transcription_model {
+            settings.openai_transcription_model = value;
+        }
+        if let PatchValue::Set(value) = self.microphone_device_id {
+            settings.microphone_device_id = value;
+        }
+        if let Some(value) = self.capture_system_audio {
+            settings.capture_system_audio = value;
+        }
+        if let PatchValue::Set(value) = self.local_models_directory {
+            settings.local_models_directory = value;
+        }
+        if let Some(value) = self.recording_project_selection {
+            settings.recording_project_selection = value;
+        }
+        if let Some(value) = self.global_shortcut_enabled {
+            settings.global_shortcut_enabled = value;
+        }
+        if let Some(value) = self.global_shortcut {
+            settings.global_shortcut = value;
+        }
+        if let Some(value) = self.appearance {
+            settings.appearance = value;
+        }
+    }
 }
 
 #[tauri::command]
@@ -72,27 +152,34 @@ pub fn bootstrap(
 
 #[tauri::command]
 pub fn save_settings(
-    mut settings: AppSettings,
+    request: SaveSettingsRequest,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<AppSettings> {
-    let current_revision = state
-        .settings
-        .lock()
-        .expect("app state lock poisoned")
-        .revision;
-    settings.revision = current_revision + 1;
-    crate::storage::atomic_file::write_json(&settings_path(&app)?, &settings)?;
-    *state.settings.lock().expect("app state lock poisoned") = settings.clone();
-    Ok(settings)
+    update_settings(&app, &state, |settings| request.updates.apply(settings))
 }
 
 #[tauri::command]
-pub fn reset_application_data(
+pub fn reset_application_settings(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<AppSettings> {
+    crate::app_reset::ensure_idle(&state)?;
+    update_settings(&app, &state, |settings| {
+        let local_models_directory = settings.local_models_directory.clone();
+        *settings = AppSettings {
+            local_models_directory,
+            ..AppSettings::default()
+        };
+    })
+}
+
+#[tauri::command]
+pub fn delete_all_application_data(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<()> {
-    crate::app_reset::reset(&app, &state)?;
+    crate::app_reset::delete_all(&app, &state)?;
     app.restart()
 }
 
@@ -156,17 +243,30 @@ pub fn import_media(path: String, state: tauri::State<'_, AppState>) -> AppResul
 }
 
 fn remembered_library(app: &tauri::AppHandle) -> AppResult<Option<PathBuf>> {
-    let path = app
+    let directory = app
         .path()
         .app_config_dir()
-        .map_err(|error| AppError::Application(error.to_string()))?
-        .join("library.json");
+        .map_err(|error| AppError::Application(error.to_string()))?;
+    load_remembered_library(&directory)
+}
 
-    if !path.exists() {
+fn load_remembered_library(directory: &Path) -> AppResult<Option<PathBuf>> {
+    let path = directory.join(LIBRARY_SELECTION_FILENAME);
+
+    if path.exists() {
+        let selection: LibrarySelection = serde_json::from_slice(&std::fs::read(path)?)?;
+        return Ok(Some(selection.path));
+    }
+
+    let legacy_path = directory.join(LEGACY_LIBRARY_SELECTION_FILENAME);
+
+    if !legacy_path.exists() {
         return Ok(None);
     }
 
-    let selection: LibrarySelection = serde_json::from_slice(&std::fs::read(path)?)?;
+    let selection: LibrarySelection = serde_json::from_slice(&std::fs::read(&legacy_path)?)?;
+    crate::storage::atomic_file::write_json(&path, &selection)?;
+    std::fs::remove_file(legacy_path)?;
     Ok(Some(selection.path))
 }
 
@@ -177,10 +277,18 @@ fn default_library_path(app: &tauri::AppHandle) -> AppResult<PathBuf> {
         .map_err(|error| AppError::Application(error.to_string()))
 }
 
-fn load_settings(app: &tauri::AppHandle) -> AppResult<AppSettings> {
+pub(crate) fn load_settings(app: &tauri::AppHandle) -> AppResult<AppSettings> {
     let path = settings_path(app)?;
     if path.exists() {
-        return Ok(serde_json::from_slice(&std::fs::read(path)?)?);
+        let settings: AppSettings = serde_json::from_slice(&std::fs::read(path)?)?;
+
+        if settings.schema_version > APP_SETTINGS_SCHEMA_VERSION {
+            return Err(AppError::Application(
+                "this settings file was created by a newer OpenTranscribe version".to_owned(),
+            ));
+        }
+
+        return Ok(settings);
     }
 
     Ok(AppSettings::default())
@@ -202,9 +310,80 @@ fn remember_library(app: &tauri::AppHandle, library_path: &Path) -> AppResult<()
         .map_err(|error| AppError::Application(error.to_string()))?;
     std::fs::create_dir_all(&config_directory)?;
     crate::storage::atomic_file::write_json(
-        &config_directory.join("library.json"),
+        &config_directory.join(LIBRARY_SELECTION_FILENAME),
         &LibrarySelection {
             path: library_path.to_owned(),
         },
     )
+}
+
+pub(crate) fn update_settings(
+    app: &tauri::AppHandle,
+    state: &AppState,
+    update: impl FnOnce(&mut AppSettings),
+) -> AppResult<AppSettings> {
+    let mut current = state.settings.lock().expect("app state lock poisoned");
+    let mut settings = current.clone();
+    update(&mut settings);
+    settings.schema_version = APP_SETTINGS_SCHEMA_VERSION;
+    settings.revision = current.revision + 1;
+    crate::storage::atomic_file::write_json(&settings_path(app)?, &settings)?;
+    *current = settings.clone();
+    Ok(settings)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use opentranscribe_domain::{AppSettings, RecordingMode};
+    use tempfile::tempdir;
+
+    use super::{LibrarySelection, SettingsPatch, load_remembered_library};
+
+    #[test]
+    fn settings_patch_updates_only_its_provided_fields() {
+        let patch: SettingsPatch = serde_json::from_str(
+            r#"{
+                "recording_mode": "local_after_recording",
+                "microphone_device_id": null,
+                "capture_system_audio": true
+            }"#,
+        )
+        .expect("settings patch should deserialize");
+        let mut settings = AppSettings {
+            microphone_device_id: Some("microphone-id".to_owned()),
+            setup_completed: true,
+            ..AppSettings::default()
+        };
+
+        patch.apply(&mut settings);
+
+        assert_eq!(settings.recording_mode, RecordingMode::LocalAfterRecording);
+        assert_eq!(settings.microphone_device_id, None);
+        assert!(settings.capture_system_audio);
+        assert!(settings.setup_completed);
+    }
+
+    #[test]
+    fn migrates_the_legacy_remembered_library_file() {
+        let directory = tempdir().expect("temporary config directory should be created");
+        let library_path = directory.path().join("library");
+        let legacy_path = directory.path().join("library.json");
+        fs::write(
+            &legacy_path,
+            serde_json::to_vec(&LibrarySelection {
+                path: library_path.clone(),
+            })
+            .expect("legacy selection should serialize"),
+        )
+        .expect("legacy selection should be written");
+
+        let selected =
+            load_remembered_library(directory.path()).expect("legacy selection should migrate");
+
+        assert_eq!(selected, Some(library_path));
+        assert!(!legacy_path.exists());
+        assert!(directory.path().join("selected-library.json").exists());
+    }
 }

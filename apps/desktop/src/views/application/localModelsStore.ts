@@ -7,6 +7,8 @@ import type { JobProgress, LocalModel } from "@/types/domain";
 export const useLocalModelsStore = defineStore("local-models", () => {
   const models = ref<LocalModel[]>([]);
   const isLoading = ref(false);
+  const storagePath = ref<string | null>(null);
+  const isMovingStorage = ref(false);
   const downloadingModelId = ref<string | null>(null);
   const progress = ref<JobProgress | null>(null);
   const error = ref<string | null>(null);
@@ -20,7 +22,12 @@ export const useLocalModelsStore = defineStore("local-models", () => {
     error.value = null;
 
     try {
-      models.value = await native.localModelStatuses();
+      const [nextModels, nextStoragePath] = await Promise.all([
+        native.localModelStatuses(),
+        native.localModelStoragePath(),
+      ]);
+      models.value = nextModels;
+      storagePath.value = nextStoragePath;
     } catch (reason) {
       error.value = reason instanceof Error ? reason.message : String(reason);
     } finally {
@@ -29,6 +36,10 @@ export const useLocalModelsStore = defineStore("local-models", () => {
   }
 
   async function download(modelId: string) {
+    if (downloadingModelId.value) {
+      return;
+    }
+
     downloadingModelId.value = modelId;
     progress.value = null;
     error.value = null;
@@ -56,6 +67,22 @@ export const useLocalModelsStore = defineStore("local-models", () => {
     }
   }
 
+  async function moveStorage(path: string) {
+    isMovingStorage.value = true;
+    error.value = null;
+
+    try {
+      storagePath.value = await native.moveLocalModels(path);
+    } catch (reason) {
+      error.value = reason instanceof Error ? reason.message : String(reason);
+      return false;
+    } finally {
+      isMovingStorage.value = false;
+    }
+
+    return true;
+  }
+
   function replace(model: LocalModel) {
     const index = models.value.findIndex((item) => item.id === model.id);
 
@@ -66,13 +93,16 @@ export const useLocalModelsStore = defineStore("local-models", () => {
 
   return {
     models,
+    storagePath,
     installedModels,
     isLoading,
+    isMovingStorage,
     downloadingModelId,
     progress,
     error,
     load,
     download,
     remove,
+    moveStorage,
   };
 });

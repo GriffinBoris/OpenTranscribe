@@ -1,20 +1,24 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { Inbox } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import AppButton from "@/components/ui/AppButton.vue";
-import AppSearchInput from "@/components/ui/AppSearchInput.vue";
+import AppEmptyState from "@/components/ui/AppEmptyState.vue";
 import AppSurface from "@/components/ui/AppSurface.vue";
 import SessionRow from "@/components/session/SessionRow.vue";
+import SessionListToolbar from "@/components/session/SessionListToolbar.vue";
+import AppCheckbox from "@/components/ui/AppCheckbox.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { useMoveSession } from "@/views/application/useMoveSession";
+import { useSessionSelection } from "@/views/application/useSessionSelection";
 
 const application = useApplicationStore();
 const { t } = useI18n();
 const router = useRouter();
 const query = ref("");
-const { isMoving, moveSession, projectOptions } = useMoveSession();
+const { isMoving, moveSessions, projectOptions } = useMoveSession();
 const sessions = computed(() => {
   const normalizedQuery = query.value.trim().toLocaleLowerCase();
 
@@ -25,6 +29,14 @@ const sessions = computed(() => {
         session.title.toLocaleLowerCase().includes(normalizedQuery)),
   );
 });
+const inboxHasSessions = computed(() =>
+  application.recentSessions.some((session) => session.project_id === null),
+);
+const { selectedIds, selectedSessions, allSelected, select, toggleAll, clear } =
+  useSessionSelection(sessions);
+const isMovingSelected = computed(() =>
+  selectedSessions.value.some((session) => isMoving(session.id)),
+);
 
 async function importMedia() {
   const session = await application.importMedia();
@@ -32,6 +44,11 @@ async function importMedia() {
   if (session) {
     await router.push(`/sessions/${session.id}`);
   }
+}
+
+async function moveSelectedSessions(projectId: string) {
+  await moveSessions(selectedSessions.value, projectId);
+  clear();
 }
 </script>
 
@@ -52,27 +69,57 @@ async function importMedia() {
       </AppButton>
     </header>
 
-    <AppSearchInput
-      class="mb-4"
+    <SessionListToolbar
       v-model="query"
-      :placeholder="t('library.search')"
+      :search-placeholder="t('library.search')"
+      :selected-count="selectedIds.size"
+      :project-options="projectOptions"
+      :moving="isMovingSelected"
+      @move="moveSelectedSessions"
     />
 
     <AppSurface
-      class="library-page__sessions grid min-h-0 grid-rows-[minmax(0,1fr)]"
+      class="library-page__sessions grid min-h-0 grid-rows-[auto_minmax(0,1fr)]"
       :padded="false"
     >
+      <div
+        v-if="sessions.length"
+        class="flex h-[45px] items-center border-b border-[var(--divider)] px-[15px]"
+      >
+        <AppCheckbox
+          :model-value="allSelected"
+          :accessible-label="t('session.selectAllMeetings')"
+          @change="toggleAll"
+        />
+      </div>
       <div class="library-page__scroll min-h-0 overflow-auto">
-        <div class="session-list grid">
+        <div v-if="sessions.length" class="session-list grid">
           <SessionRow
             v-for="session in sessions"
             :key="session.id"
             :session="session"
             :project-options="projectOptions"
             :moving="isMoving(session.id)"
-            @move-to-project="moveSession(session, $event)"
+            selectable
+            :selected="selectedIds.has(session.id)"
+            @selection-change="select(session.id, $event)"
           />
         </div>
+        <AppEmptyState
+          v-else
+          :title="
+            inboxHasSessions && query.trim()
+              ? t('library.noMatches')
+              : t('library.empty')
+          "
+          :message="
+            inboxHasSessions && query.trim()
+              ? t('library.noMatchesDescription')
+              : t('library.emptyDescription')
+          "
+        >
+          <template #icon><Inbox :size="21" /></template>
+        </AppEmptyState>
       </div>
     </AppSurface>
   </div>

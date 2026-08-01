@@ -33,11 +33,15 @@ const elapsed = computed(() => {
     .join(":");
 });
 
+function meterLevel(level: number) {
+  return Math.min(1, Math.sqrt(Math.max(0, level)) * 0.92);
+}
+
 const microphoneLevel = computed(() => ({
-  "--audio-level": String(Math.min(recording.status?.microphone_peak ?? 0, 1)),
+  "--audio-level": String(meterLevel(recording.status?.microphone_peak ?? 0)),
 }));
 const systemLevel = computed(() => ({
-  "--audio-level": String(Math.min(recording.status?.system_peak ?? 0, 1)),
+  "--audio-level": String(meterLevel(recording.status?.system_peak ?? 0)),
 }));
 const recordingOutcome = computed(() => {
   if (recording.activeMode === "local_after_recording") {
@@ -71,8 +75,8 @@ const recordingOutcome = computed(() => {
       <StatusPill tone="local">{{ recordingOutcome }}</StatusPill>
     </div>
 
-    <div class="grid gap-1" :aria-label="t('recordingDock.inputLevels')">
-      <span class="bg-canvas-subtle block h-[3px] overflow-hidden rounded-full"
+    <div class="grid gap-1.5" :aria-label="t('recordingDock.inputLevels')">
+      <span class="bg-canvas-subtle block h-[5px] overflow-hidden rounded-full"
         ><span
           class="bg-lichen block size-full origin-left [transform:scaleX(var(--audio-level,0))] rounded-[inherit] transition-transform duration-[var(--duration-meter)] ease-[var(--easing-linear)] will-change-transform"
           :style="microphoneLevel"
@@ -80,7 +84,7 @@ const recordingOutcome = computed(() => {
       ></span>
       <span
         v-if="recording.status?.captures_system_audio"
-        class="bg-canvas-subtle block h-[3px] overflow-hidden rounded-full"
+        class="bg-canvas-subtle block h-[5px] overflow-hidden rounded-full"
       >
         <span
           class="bg-lichen block size-full origin-left [transform:scaleX(var(--audio-level,0))] rounded-[inherit] transition-transform duration-[var(--duration-meter)] ease-[var(--easing-linear)] will-change-transform"

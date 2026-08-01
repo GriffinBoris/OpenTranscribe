@@ -31,6 +31,8 @@ export const previewState = {
     configured: false,
     masked_key: null,
   } as CredentialStatus,
+  settings: {} as Partial<import("@/types/domain").AppSettings>,
+  localModelStoragePath: "/Users/you/Documents/OpenTranscribe/models",
   localModels: [
     {
       id: "whisper-small-q5_1",
@@ -106,14 +108,21 @@ export function previewSnapshot(path?: string) {
     snapshot.settings.recording_mode = recordingMode;
   }
 
-  if (
-    globalShortcut === "command_or_control_shift_r" ||
-    globalShortcut === "command_or_control_shift_space" ||
-    globalShortcut === "alt_shift_r"
-  ) {
+  const legacyGlobalShortcuts: Record<string, string> = {
+    command_or_control_shift_r: "CommandOrControl+Shift+R",
+    command_or_control_shift_space: "CommandOrControl+Shift+Space",
+    alt_shift_r: "Alt+Shift+R",
+  };
+  const configuredGlobalShortcut = globalShortcut
+    ? (legacyGlobalShortcuts[globalShortcut] ?? globalShortcut)
+    : null;
+
+  if (configuredGlobalShortcut) {
     snapshot.settings.global_shortcut_enabled = true;
-    snapshot.settings.global_shortcut = globalShortcut;
+    snapshot.settings.global_shortcut = configuredGlobalShortcut;
   }
+
+  snapshot.settings = { ...snapshot.settings, ...previewState.settings };
 
   if (searchParameters.has("recovery")) {
     snapshot.recent_sessions[0] = {

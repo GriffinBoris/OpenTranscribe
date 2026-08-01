@@ -141,10 +141,12 @@ cargo test --workspace --locked
 ## Data and privacy
 
 OpenTranscribe does not require an OpenTranscribe account. A selected library
-contains readable projects and sessions. Downloaded speech models are kept
-separately in `OpenTranscribe/models` under the documents directory, shared by
-every library and safe to delete at any time. OpenAI transcription is opt-in
-per session. The API key is entered in the Settings webview, passed directly to the
+contains readable projects and sessions. Downloaded speech models are kept in a
+separate configurable folder, defaulting to `OpenTranscribe/models` under the
+documents directory. They are shared by every library, removable from Settings,
+and fetched from pinned ggerganov/whisper.cpp revisions on Hugging Face with a
+SHA-256 verification step before use. OpenAI transcription is opt-in per
+session. The API key is entered in the Settings webview, passed directly to the
 native credential command, and never written to frontend persistence or the
 library. See [PRIVACY.md](PRIVACY.md).
 

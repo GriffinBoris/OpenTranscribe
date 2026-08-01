@@ -13,7 +13,8 @@ type ApplicationBridge = Pick<
   NativeBridge,
   | "bootstrap"
   | "saveSettings"
-  | "resetApplicationData"
+  | "resetApplicationSettings"
+  | "deleteAllApplicationData"
   | "initializeLibrary"
   | "chooseLibrary"
   | "createProject"
@@ -30,11 +31,32 @@ export const previewApplicationBridge = {
     return previewSnapshot();
   },
 
-  async saveSettings(settings: AppSettings) {
-    return { ...settings, revision: settings.revision + 1 };
+  async saveSettings(updates: Partial<AppSettings>) {
+    const settings: AppSettings = {
+      ...previewSnapshot().settings,
+      ...updates,
+      revision: previewSnapshot().settings.revision + 1,
+    };
+    previewState.settings = settings;
+    return settings;
   },
 
-  async resetApplicationData() {
+  async resetApplicationSettings() {
+    const settings: AppSettings = {
+      ...previewSnapshot().settings,
+      setup_completed: false,
+      recording_mode: "record_only",
+      microphone_device_id: null,
+      capture_system_audio: false,
+      recording_project_selection: { kind: "automatic" },
+      global_shortcut_enabled: false,
+      appearance: { theme: "system", reduced_motion: false },
+    };
+    previewState.settings = settings;
+    return settings;
+  },
+
+  async deleteAllApplicationData() {
     window.location.assign("/?firstRun=1&resetReady=1");
   },
 
@@ -127,15 +149,15 @@ export const previewApplicationBridge = {
   async openSystemAudioPermissionSettings() {},
 
   async configureGlobalShortcut(shortcut, onTrigger) {
-    if (previewState.globalShortcutListener) {
-      window.removeEventListener(
-        "opentranscribe:preview-global-shortcut",
-        previewState.globalShortcutListener,
-      );
-      previewState.globalShortcutListener = null;
-    }
-
     if (!shortcut) {
+      if (previewState.globalShortcutListener) {
+        window.removeEventListener(
+          "opentranscribe:preview-global-shortcut",
+          previewState.globalShortcutListener,
+        );
+        previewState.globalShortcutListener = null;
+      }
+
       return;
     }
 
@@ -145,11 +167,23 @@ export const previewApplicationBridge = {
       throw new Error(t("native.previewGlobalShortcutUnavailable"));
     }
 
+    if (previewState.globalShortcutListener === onTrigger) {
+      return;
+    }
+
+    const previousListener = previewState.globalShortcutListener;
     previewState.globalShortcutListener = onTrigger;
     window.addEventListener(
       "opentranscribe:preview-global-shortcut",
       previewState.globalShortcutListener,
     );
+
+    if (previousListener) {
+      window.removeEventListener(
+        "opentranscribe:preview-global-shortcut",
+        previousListener,
+      );
+    }
   },
 
   async subscribe(onEvent) {

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use opentranscribe_domain::AppSettings;
 use tauri::Manager;
@@ -7,7 +7,36 @@ use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 use crate::storage::LibraryRepository;
 
-pub fn reset(app: &tauri::AppHandle, state: &AppState) -> AppResult<()> {
+const LIBRARY_DIRECTORIES: [&str; 4] = ["Inbox", "Projects", "Trash", ".opentranscribe"];
+
+pub fn delete_all(app: &tauri::AppHandle, state: &AppState) -> AppResult<()> {
+    ensure_idle(state)?;
+    let library_path = state
+        .repository
+        .lock()
+        .expect("app state lock poisoned")
+        .as_ref()
+        .map(|repository| repository.root_path().to_owned());
+
+    state.openai_credentials.remove()?;
+    crate::local_models::remove_all(app)?;
+
+    if let Some(library_path) = library_path {
+        remove_library_data(&library_path)?;
+    }
+
+    remove_app_directories(&[
+        resolve_app_path(app.path().app_config_dir())?,
+        resolve_app_path(app.path().app_data_dir())?,
+        resolve_app_path(app.path().app_cache_dir())?,
+    ])?;
+
+    *state.repository.lock().expect("app state lock poisoned") = None;
+    *state.settings.lock().expect("app state lock poisoned") = AppSettings::default();
+    Ok(())
+}
+
+pub fn ensure_idle(state: &AppState) -> AppResult<()> {
     if state.recorder.status().is_some() {
         return Err(AppError::Application(
             "stop the current recording before resetting OpenTranscribe".to_owned(),
@@ -29,19 +58,17 @@ pub fn reset(app: &tauri::AppHandle, state: &AppState) -> AppResult<()> {
         ));
     }
 
-    state.openai_credentials.remove()?;
-    remove_app_directories(&[
-        resolve_app_path(app.path().app_config_dir())?,
-        resolve_app_path(app.path().app_data_dir())?,
-        resolve_app_path(app.path().app_cache_dir())?,
-        // Downloaded models live beside the library rather than under the
-        // application data directory, so they need removing by name. Only the
-        // models directory is listed; the library around it is user content.
-        crate::local_models::models_root(app)?,
-    ])?;
+    if !state
+        .active_model_downloads
+        .lock()
+        .expect("app state lock poisoned")
+        .is_empty()
+    {
+        return Err(AppError::Application(
+            "wait for local model downloads to finish before resetting OpenTranscribe".to_owned(),
+        ));
+    }
 
-    *state.repository.lock().expect("app state lock poisoned") = None;
-    *state.settings.lock().expect("app state lock poisoned") = AppSettings::default();
     Ok(())
 }
 
@@ -59,13 +86,25 @@ fn remove_app_directories(directories: &[PathBuf]) -> AppResult<()> {
     Ok(())
 }
 
+fn remove_library_data(library_path: &Path) -> AppResult<()> {
+    for directory in LIBRARY_DIRECTORIES {
+        let target = library_path.join(directory);
+
+        if target.exists() {
+            std::fs::remove_dir_all(target)?;
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
 
     use tempfile::tempdir;
 
-    use super::remove_app_directories;
+    use super::{remove_app_directories, remove_library_data};
 
     #[test]
     fn clears_app_owned_directories_without_deleting_the_library() {
@@ -117,5 +156,25 @@ mod tests {
             .expect("duplicate platform paths should be removed once");
 
         assert!(!shared.exists());
+    }
+
+    #[test]
+    fn clears_only_app_owned_library_directories() {
+        let root = tempdir().expect("temporary directory should be created");
+        let library = root.path().join("library");
+
+        for directory in ["Inbox", "Projects", "Trash", ".opentranscribe"] {
+            fs::create_dir_all(library.join(directory))
+                .expect("library directory should be created");
+        }
+        fs::write(library.join("keep.txt"), b"unrelated")
+            .expect("unrelated file should be written");
+
+        remove_library_data(&library).expect("library data should be removed");
+
+        assert!(library.join("keep.txt").exists());
+        for directory in ["Inbox", "Projects", "Trash", ".opentranscribe"] {
+            assert!(!library.join(directory).exists());
+        }
     }
 }

@@ -123,12 +123,26 @@ order: 0
   library-relative artifact path, and refresh the rebuildable index. A failed
   manifest rewrite must move the directory back so readable files do not
   disagree with their location.
-- Trash is app-managed, recoverable, and never automatically purged.
-- Resetting application data clears app-owned configuration, remembered
-  library selection, credentials, downloaded models, and caches, then returns
-  to recording setup. It must preserve the selected library's recordings and
-  projects, leave operating-system permission grants under OS control, and be
+- Trash is app-managed, recoverable, and never automatically purged. A manual
+  purge permanently removes every trashed session only after explicit user
+  confirmation.
+- Reset settings restores recording, shortcut, and appearance preferences while
+  preserving the library selection, OpenAI credential, downloaded models, and
+  configured model location. It returns to recording setup and must be
   unavailable while recording, processing, or downloading a model.
+- Delete-all-data clears app-owned configuration, remembered library selection,
+  credentials, downloaded models, caches, and the selected library's
+  OpenTranscribe-owned `Inbox`, `Projects`, `Trash`, and `.opentranscribe`
+  folders. It must never remove unrelated user files beside a custom library,
+  requires explicit typed confirmation, leaves operating-system permission
+  grants under OS control, and is unavailable while recording, processing, or
+  downloading a model.
+- Keep downloaded local models in a configurable global folder, defaulting to
+  `Documents/OpenTranscribe/models`. Show the resolved path in settings and
+  move existing model files only after explicit confirmation; do not allow a
+  move while recording, processing, or downloading. Local model artifacts come
+  from the pinned upstream `ggerganov/whisper.cpp` Hugging Face revisions and
+  must pass their catalog SHA-256 integrity check before use.
 - Schema changes require sequential migrations and fixtures covering the previous schema.
 
 ## Frontend Conventions
@@ -183,10 +197,14 @@ order: 0
   content pane, and a macOS overlay title bar that preserves native traffic
   lights. Use the dedicated non-interactive top strip for window dragging and
   grant only `core:window:allow-start-dragging` for that behavior.
-- Keep global recording shortcuts opt-in and limited to validated presets.
-  Register them through the typed native bridge with narrow plugin capabilities,
-  act only on press events, serialize record/stop handling, and surface
-  registration conflicts in Settings.
+- Keep global recording shortcuts opt-in and bind them through a focused capture
+  flow rather than a free-text accelerator field. Persist portable
+  `CommandOrControl` accelerator strings, migrate legacy preset values when
+  settings load, require a Command/Control modifier plus a supported key, and
+  render the platform-specific label in the UI. Register them through the
+  typed native bridge with narrow plugin capabilities, act only on press events,
+  serialize record/stop handling, and surface registration conflicts in
+  Settings.
 - Route pages fill the available main pane with adaptive horizontal gutters.
   Do not center the whole utility workspace inside a fixed desktop max-width;
   constrain only genuinely prose-heavy content when readability requires it.
@@ -197,6 +215,10 @@ order: 0
 - Reuse one compact empty-state pattern across library routes. Pair a quiet
   Lucide icon with a short title and one actionable sentence instead of leaving
   an oversized blank surface or rendering an empty table header.
+- Keep Inbox and project library pages on the shared checkbox selection and
+  bulk-move-dialog workflow rather than adding a project selector to every
+  row. Session workspaces use the compact move utility in their header; the
+  Home recents list may retain its compact single-row control.
 - First-run audio testing uses the normal recorder, finalizer, and playback
   path. Keep it compact, request only the permissions needed by selected
   sources, and show recording-consent guidance before the test.

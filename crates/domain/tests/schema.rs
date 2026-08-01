@@ -1,5 +1,5 @@
 use opentranscribe_domain::{
-    AppSettings, GlobalShortcutPreset, Project, SCHEMA_VERSION, Session, SessionSource,
+    APP_SETTINGS_SCHEMA_VERSION, AppSettings, Project, SCHEMA_VERSION, Session, SessionSource,
 };
 
 #[test]
@@ -45,8 +45,6 @@ fn settings_from_before_device_selection_use_safe_capture_defaults() {
     assert!(!settings.capture_system_audio);
     assert!(!settings.setup_completed);
     assert!(!settings.global_shortcut_enabled);
-    assert_eq!(
-        settings.global_shortcut,
-        GlobalShortcutPreset::CommandOrControlShiftR
-    );
+    assert_eq!(settings.global_shortcut.0, "CommandOrControl+Shift+R");
+    assert_eq!(settings.schema_version, APP_SETTINGS_SCHEMA_VERSION);
 }

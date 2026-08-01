@@ -36,12 +36,77 @@ struct InstallManifest {
 }
 
 pub fn models_root(app: &tauri::AppHandle) -> AppResult<PathBuf> {
+    let settings = crate::commands::application::load_settings(app)?;
+
+    if let Some(path) = settings.local_models_directory {
+        return Ok(PathBuf::from(path));
+    }
+
     Ok(app
         .path()
         .document_dir()
         .map_err(|error| AppError::Application(error.to_string()))?
         .join(DOCUMENTS_DIRECTORY)
         .join(MODELS_DIRECTORY))
+}
+
+pub fn move_models(app: &tauri::AppHandle, target: &Path) -> AppResult<Option<PathBuf>> {
+    migrate_legacy_models(app)?;
+    let source = models_root(app)?;
+
+    if source == target || !source.exists() {
+        return Ok(None);
+    }
+
+    move_models_between(&source, target)?;
+    Ok(Some(source))
+}
+
+pub fn move_models_between(source: &Path, target: &Path) -> AppResult<()> {
+    if target.starts_with(&source) || source.starts_with(target) {
+        return Err(AppError::Model(
+            "choose a model folder outside the current model folder".to_owned(),
+        ));
+    }
+
+    if target.exists() {
+        if fs::read_dir(target)?.next().is_some() {
+            return Err(AppError::Model(
+                "choose an empty folder for local models".to_owned(),
+            ));
+        }
+
+        fs::remove_dir(target)?;
+    }
+
+    let parent = target.parent().ok_or_else(|| {
+        AppError::Model("choose a folder for local models instead of a filesystem root".to_owned())
+    })?;
+    fs::create_dir_all(parent)?;
+
+    if fs::rename(&source, target).is_err() {
+        if let Err(error) = copy_directory(&source, target) {
+            let _ = fs::remove_dir_all(target);
+            return Err(error);
+        }
+        fs::remove_dir_all(source)?;
+    }
+
+    Ok(())
+}
+
+pub fn remove_all(app: &tauri::AppHandle) -> AppResult<()> {
+    let settings = crate::commands::application::load_settings(app)?;
+    let root = models_root(app)?;
+
+    if settings.local_models_directory.is_none() {
+        if root.exists() {
+            fs::remove_dir_all(root)?;
+        }
+        return Ok(());
+    }
+
+    remove_catalog_directories(&root)
 }
 
 pub fn statuses(app: &tauri::AppHandle) -> AppResult<Vec<LocalModel>> {
@@ -382,6 +447,36 @@ fn move_file(from: &Path, to: &Path) -> AppResult<()> {
     Ok(())
 }
 
+fn copy_directory(from: &Path, to: &Path) -> AppResult<()> {
+    fs::create_dir_all(to)?;
+
+    for entry in fs::read_dir(from)? {
+        let entry = entry?;
+        let source = entry.path();
+        let target = to.join(entry.file_name());
+
+        if source.is_dir() {
+            copy_directory(&source, &target)?;
+        } else {
+            fs::copy(source, target)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn remove_catalog_directories(root: &Path) -> AppResult<()> {
+    for definition in MODELS {
+        let directory = root.join(definition.id);
+
+        if directory.exists() {
+            fs::remove_dir_all(directory)?;
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -390,8 +485,8 @@ mod tests {
     use tempfile::tempdir;
 
     use super::{
-        InstallManifest, hash_file, hash_prefix, manifest_describes, move_file,
-        usable_resume_offset,
+        InstallManifest, copy_directory, hash_file, hash_prefix, manifest_describes, move_file,
+        move_models_between, remove_catalog_directories, usable_resume_offset,
     };
     use crate::local_models::catalog::MODELS;
 
@@ -491,5 +586,57 @@ mod tests {
 
         assert!(!from.exists());
         assert_eq!(fs::read(&to).expect("moved file should read"), b"weights");
+    }
+
+    #[test]
+    fn copies_model_directories_between_filesystems() {
+        let directory = tempdir().expect("temporary directory should be created");
+        let from = directory.path().join("from");
+        let to = directory.path().join("to");
+        fs::create_dir_all(from.join("balanced")).expect("source directory should be created");
+        fs::write(from.join("balanced").join("model.bin"), b"weights")
+            .expect("source model should be written");
+
+        copy_directory(&from, &to).expect("directory should copy");
+
+        assert_eq!(
+            fs::read(to.join("balanced").join("model.bin")).expect("copied model should read"),
+            b"weights"
+        );
+    }
+
+    #[test]
+    fn restores_model_directories_after_a_failed_configuration_update() {
+        let directory = tempdir().expect("temporary directory should be created");
+        let source = directory.path().join("source");
+        let target = directory.path().join("target");
+        fs::create_dir_all(source.join("fast")).expect("source should be created");
+        fs::write(source.join("fast").join("model.bin"), b"weights")
+            .expect("model should be written");
+
+        move_models_between(&source, &target).expect("model should move");
+        move_models_between(&target, &source).expect("model should be restored");
+
+        assert!(source.join("fast").join("model.bin").exists());
+        assert!(!target.exists());
+    }
+
+    #[test]
+    fn removes_model_directories_without_deleting_other_custom_folder_content() {
+        let directory = tempdir().expect("temporary directory should be created");
+        let models = directory.path().join("models");
+        let model_directory = models.join(MODELS[0].id);
+        fs::create_dir_all(&model_directory).expect("model directory should be created");
+        fs::write(model_directory.join("model.bin"), b"weights").expect("model should be written");
+        fs::write(models.join("keep.txt"), b"user content")
+            .expect("user content should be written");
+
+        remove_catalog_directories(&models).expect("catalog models should be removed");
+
+        assert!(!model_directory.exists());
+        assert_eq!(
+            fs::read(models.join("keep.txt")).expect("user content should remain"),
+            b"user content"
+        );
     }
 }

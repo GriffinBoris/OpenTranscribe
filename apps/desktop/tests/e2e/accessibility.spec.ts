@@ -14,6 +14,13 @@ const applicationRoutes = [
 ];
 
 async function expectNoAccessibilityViolations(page: Page) {
+  await page.waitForFunction(
+    () =>
+      !document.querySelector(
+        ".workspace-fade-enter-active, .workspace-fade-leave-active",
+      ),
+  );
+
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();

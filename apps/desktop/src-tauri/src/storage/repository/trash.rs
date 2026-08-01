@@ -54,6 +54,14 @@ impl LibraryRepository {
         Ok(session)
     }
 
+    pub fn empty_trash(&self) -> AppResult<()> {
+        for entry in read_directories(&self.root.join("Trash/sessions"))? {
+            fs::remove_dir_all(entry.path())?;
+        }
+
+        Ok(())
+    }
+
     fn trashed_session_directory(&self, session_id: &str) -> AppResult<std::path::PathBuf> {
         for entry in read_directories(&self.root.join("Trash/sessions"))? {
             let manifest_path = entry.path().join("session.json");

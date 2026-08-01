@@ -9,18 +9,18 @@ The library folder selected by the user contains session manifests, notes,
 audio artifacts, transcripts, and exports. A hidden `.opentranscribe` directory
 contains a rebuildable SQLite search and job index.
 
-Downloaded speech models are kept separately in `OpenTranscribe/models` under
-the documents directory, so a large download stays visible and removable
-without knowing platform-specific data paths. Models are not part of any
-meeting library: they are not read by the library index, they are shared by
-every library, and switching libraries does not download them again. They
-contain no meeting content and can be deleted and refetched at any time.
+Downloaded speech models are kept separately from meeting libraries. By
+default they live in `OpenTranscribe/models` under the documents directory, and
+Settings shows the exact path. You can choose another folder; OpenTranscribe
+offers to move the installed models with it. Models are not read by the library
+index, are shared by every library, and can be deleted and refetched at any
+time.
 
-Because that location sits under the documents directory, a synchronized
-documents folder will treat models as ordinary files and upload them. Remove
-the models from the application, or exclude `OpenTranscribe/models` from
-synchronization, to keep several hundred megabytes of regenerable data out of
-a backup or cloud quota.
+The current catalog uses pinned revisions from ggerganov's `whisper.cpp`
+project on Hugging Face. Every download is SHA-256 verified before use. A
+synchronized model folder will treat models as ordinary files and can upload
+several hundred megabytes of regenerable data, so choose a non-synced folder if
+that matters to you.
 
 ## OpenAI transcription
 

@@ -15,7 +15,6 @@ export type { AudioSource } from "@/types/generated/AudioSource";
 export type { CaptureDevice } from "@/types/generated/CaptureDevice";
 export type { Codec } from "@/types/generated/Codec";
 export type { GapEvent } from "@/types/generated/GapEvent";
-export type { GlobalShortcutPreset } from "@/types/generated/GlobalShortcutPreset";
 export type { Job } from "@/types/generated/Job";
 export type { JobKind } from "@/types/generated/JobKind";
 export type { JobProgress } from "@/types/generated/JobProgress";

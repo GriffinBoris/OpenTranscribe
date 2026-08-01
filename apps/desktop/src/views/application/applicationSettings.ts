@@ -9,6 +9,7 @@ export function createApplicationSettings(
 ) {
   const audioDevices = ref<AudioDevices | null>(null);
   const settings = computed(() => snapshot.value?.settings);
+  let settingsSaveSequence = 0;
 
   function applyTheme(theme: "system" | "light" | "dark") {
     document.documentElement.dataset.theme = theme;
@@ -29,18 +30,25 @@ export function createApplicationSettings(
     }
 
     operationError.value = null;
+    const saveSequence = ++settingsSaveSequence;
     const previousSettings = snapshot.value.settings;
     const nextSettings = { ...previousSettings, ...updates };
     snapshot.value.settings = nextSettings;
 
     try {
-      snapshot.value.settings = await native.saveSettings(nextSettings);
-      applyAppearance(snapshot.value.settings);
+      const savedSettings = await native.saveSettings(updates);
+
+      if (saveSequence === settingsSaveSequence) {
+        snapshot.value.settings = savedSettings;
+        applyAppearance(savedSettings);
+      }
       return true;
     } catch (reason) {
-      snapshot.value.settings = previousSettings;
-      operationError.value =
-        reason instanceof Error ? reason.message : String(reason);
+      if (saveSequence === settingsSaveSequence) {
+        snapshot.value.settings = previousSettings;
+        operationError.value =
+          reason instanceof Error ? reason.message : String(reason);
+      }
       return false;
     }
   }
@@ -56,11 +64,29 @@ export function createApplicationSettings(
     }
   }
 
-  async function resetApplicationData() {
+  async function resetApplicationSettings() {
     operationError.value = null;
 
     try {
-      await native.resetApplicationData();
+      if (!snapshot.value) {
+        return false;
+      }
+
+      snapshot.value.settings = await native.resetApplicationSettings();
+      applyAppearance(snapshot.value.settings);
+      return true;
+    } catch (reason) {
+      operationError.value =
+        reason instanceof Error ? reason.message : String(reason);
+      return false;
+    }
+  }
+
+  async function deleteAllApplicationData() {
+    operationError.value = null;
+
+    try {
+      await native.deleteAllApplicationData();
       return true;
     } catch (reason) {
       operationError.value =
@@ -87,7 +113,8 @@ export function createApplicationSettings(
     applyTheme,
     applyReducedMotion,
     saveSettings,
-    resetApplicationData,
+    resetApplicationSettings,
+    deleteAllApplicationData,
     loadAudioDevices,
     openSystemAudioPermissionSettings,
   };

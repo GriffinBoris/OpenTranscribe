@@ -12,7 +12,7 @@ withDefaults(
 
 <template>
   <div
-    class="empty-state text-ink-muted grid min-h-[190px] place-content-center justify-items-center gap-2 px-6 py-9 text-center leading-[var(--line-height-body)]"
+    class="empty-state text-ink grid min-h-[190px] place-content-center justify-items-center gap-2 px-6 py-9 text-center leading-[var(--line-height-body)]"
   >
     <span
       v-if="$slots.icon"

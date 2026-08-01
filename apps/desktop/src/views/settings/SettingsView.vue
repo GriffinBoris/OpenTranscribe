@@ -25,7 +25,7 @@ const activeSection = ref("recording");
 const settingsContent = ref<HTMLElement | null>(null);
 const isContentScrolled = ref(false);
 const settingsNavButtonClass =
-  "w-full justify-start gap-2.5 rounded-app-sm px-2.5 py-[9px] text-ink-muted hover:bg-canvas-subtle hover:text-ink [&.active]:bg-canvas-subtle [&.active]:text-ink max-[900px]:w-auto";
+  "w-full justify-start gap-2.5 rounded-app-sm px-2.5 py-[9px] text-ink hover:bg-canvas-subtle [&.active]:bg-canvas-subtle [&.active]:text-ink max-[900px]:w-auto";
 
 function selectSection(section: string) {
   activeSection.value = section;

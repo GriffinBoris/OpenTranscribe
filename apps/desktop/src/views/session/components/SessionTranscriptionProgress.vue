@@ -65,7 +65,7 @@ const estimateDetails = computed(() => {
     </span>
     <p
       v-if="streamedTranscript"
-      class="text-ink col-span-full max-h-20 overflow-auto whitespace-pre-wrap border-t border-[var(--divider)] pt-2 text-sm leading-relaxed"
+      class="text-ink col-span-full max-h-20 overflow-auto border-t border-[var(--divider)] pt-2 text-sm leading-relaxed whitespace-pre-wrap"
     >
       {{ streamedTranscript }}
     </p>

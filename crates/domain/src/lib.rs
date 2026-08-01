@@ -18,8 +18,8 @@ pub use session::{
     CaptureDevice, GapEvent, PauseEvent, RecoveryState, Session, SessionLifecycle, SessionSource,
 };
 pub use settings::{
-    AppSettings, Appearance, GlobalShortcutPreset, OpenAiTranscriptionModel, RecordingMode,
-    RecordingProjectSelection, ThemePreference,
+    APP_SETTINGS_SCHEMA_VERSION, AppSettings, Appearance, GlobalShortcut, OpenAiTranscriptionModel,
+    RecordingMode, RecordingProjectSelection, ThemePreference,
 };
 pub use transcript::{
     Speaker, SpeakerSource, Transcript, TranscriptRun, TranscriptRunStatus, TranscriptSegment,

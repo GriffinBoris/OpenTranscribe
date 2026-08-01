@@ -43,15 +43,6 @@ impl LibraryIndex {
                 duration_ms INTEGER NOT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS jobs (
-                id TEXT PRIMARY KEY,
-                session_id TEXT,
-                kind TEXT NOT NULL,
-                state TEXT NOT NULL,
-                checkpoint_json TEXT,
-                updated_at TEXT NOT NULL
-            );
-
             CREATE VIRTUAL TABLE IF NOT EXISTS search_fts USING fts5(
                 session_id UNINDEXED,
                 kind UNINDEXED,
@@ -61,6 +52,7 @@ impl LibraryIndex {
             );
             ",
         )?;
+        connection.execute_batch("DROP TABLE IF EXISTS jobs;")?;
 
         Ok(Self { connection })
     }

@@ -109,6 +109,59 @@ test("keeps notes toolbar controls inside a constrained pane", async ({
     .toBe(true);
 });
 
+test("resizes and hides the transcript pane for focused note-taking", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  const workspace = page.locator(".session-workspace__panes");
+  const notes = page.getByRole("region", { name: "Notes" });
+  const separator = page.getByRole("separator", {
+    name: "Resize transcript and notes",
+  });
+  const [notesBefore, separatorBefore] = await Promise.all([
+    notes.boundingBox(),
+    separator.boundingBox(),
+  ]);
+
+  expect(notesBefore).not.toBeNull();
+  expect(separatorBefore).not.toBeNull();
+
+  await page.mouse.move(
+    separatorBefore!.x + separatorBefore!.width / 2,
+    separatorBefore!.y + separatorBefore!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    separatorBefore!.x - 120,
+    separatorBefore!.y + separatorBefore!.height / 2,
+  );
+  await page.mouse.up();
+
+  await expect
+    .poll(async () => (await notes.boundingBox())?.width)
+    .toBeGreaterThan(notesBefore!.width + 100);
+
+  await notes.getByRole("button", { name: "Hide transcript" }).click();
+  await expect(
+    page.getByRole("separator", { name: "Resize transcript and notes" }),
+  ).not.toBeVisible();
+  await expect(
+    notes.getByRole("button", { name: "Show transcript" }),
+  ).toBeVisible();
+
+  const [workspaceBox, notesBox] = await Promise.all([
+    workspace.boundingBox(),
+    notes.boundingBox(),
+  ]);
+  expect(workspaceBox).not.toBeNull();
+  expect(notesBox).not.toBeNull();
+  expect(Math.abs(notesBox!.width - workspaceBox!.width)).toBeLessThanOrEqual(
+    1,
+  );
+});
+
 test("keeps the session toolbar aligned across viewport sizes", async ({
   page,
 }) => {
@@ -234,7 +287,9 @@ test("opens the session workspace from the sidebar recording action", async ({
   await expect(
     page.getByRole("textbox", { name: "Meeting notes" }),
   ).toBeVisible();
-  await expect(page.getByLabel("Move to project")).toContainText("Product");
+  await expect(
+    page.getByRole("button", { name: "Move to project" }),
+  ).toBeDisabled();
   await expect(page.getByText("Recovery needed")).not.toBeVisible();
 });
 
@@ -300,4 +355,25 @@ test("deletes a session without showing a missing-item error", async ({
   await expect(
     page.getByText("The requested item does not exist."),
   ).not.toBeVisible();
+});
+
+test("permanently empties trash only after confirmation", async ({ page }) => {
+  await page.goto("/sessions/01KDEMOSESSION1");
+
+  await page.getByRole("button", { name: "Move session to trash" }).click();
+  await page.getByRole("button", { name: "Move to trash" }).click();
+  await page.getByRole("link", { name: "Trash", exact: true }).click();
+
+  await page.getByRole("button", { name: "Empty trash" }).click();
+  const dialog = page.getByRole("dialog", {
+    name: "Empty Trash permanently?",
+  });
+  await expect(dialog).toContainText(
+    "This permanently deletes every meeting in Trash. This cannot be undone.",
+  );
+  await dialog.getByRole("button", { name: "Delete permanently" }).click();
+
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByText("Trash is empty")).toBeVisible();
+  await expect(page.getByText("Weekly product sync")).not.toBeVisible();
 });

@@ -34,6 +34,17 @@ function progressLabel(job: Job) {
   return value === undefined ? undefined : Math.round(value);
 }
 
+function progressSummary(job: Job) {
+  if (!job.progress) {
+    return jobState(job);
+  }
+
+  const stage = t(`processing.stages.${job.progress.stage}`);
+  const progress = progressLabel(job);
+
+  return progress === undefined ? stage : `${stage} · ${progress}%`;
+}
+
 function isCloudJob(job: Job) {
   return job.kind.includes("open_ai");
 }
@@ -82,7 +93,7 @@ function estimateDetails(job: Job) {
       <div class="processing-page__scroll min-h-0 overflow-auto">
         <template v-if="application.activeJobs.length">
           <div
-            class="processing-table__header bg-canvas-subtle text-ink-muted sticky top-0 z-[var(--layer-content)] grid grid-cols-[minmax(0,1.2fr)_max-content_minmax(220px,1fr)_max-content] items-center gap-5 border-b border-[var(--divider)] px-[18px] py-[14px] text-xs font-bold tracking-[0.06em] uppercase max-[1100px]:hidden"
+            class="processing-table__header bg-canvas-subtle text-ink sticky top-0 z-[var(--layer-content)] grid grid-cols-[minmax(300px,1.4fr)_140px_minmax(260px,1fr)_190px] items-center gap-x-6 border-b border-[var(--divider)] px-[18px] py-[14px] text-xs font-bold tracking-[0.06em] uppercase max-[1100px]:hidden"
           >
             <span>{{ t("processing.job") }}</span
             ><span>{{ t("processing.provider") }}</span
@@ -92,30 +103,51 @@ function estimateDetails(job: Job) {
           <div
             v-for="job in application.activeJobs"
             :key="job.id"
-            class="processing-row grid grid-cols-[minmax(0,1.2fr)_max-content_minmax(220px,1fr)_max-content] items-center gap-5 border-b border-[var(--divider)] px-[18px] py-[14px] last:border-b-0 max-[1100px]:grid-cols-[minmax(0,1fr)_max-content] max-[1100px]:gap-x-4 max-[1100px]:gap-y-3 max-[700px]:grid-cols-1"
+            class="processing-row grid grid-cols-[minmax(300px,1.4fr)_140px_minmax(260px,1fr)_190px] items-center gap-x-6 border-b border-[var(--divider)] px-[18px] py-[16px] last:border-b-0 max-[1100px]:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] max-[1100px]:gap-x-5 max-[1100px]:gap-y-4 max-[700px]:grid-cols-1"
           >
-            <div class="processing-row__title flex items-center gap-2.5">
+            <div
+              class="processing-row__title flex min-w-0 items-center gap-2.5 max-[1100px]:col-span-2 max-[700px]:col-span-1"
+            >
               <CircleDashed
                 :size="18"
-                class="animate-[spin_1.4s_linear_infinite]"
+                class="shrink-0 animate-[spin_1.4s_linear_infinite]"
               />
               <span class="grid min-w-0 gap-1"
-                ><strong>{{ sessionTitle(job.session_id) }}</strong
-                ><small>{{ jobKind(job) }}</small></span
+                ><strong class="truncate">{{
+                  sessionTitle(job.session_id)
+                }}</strong
+                ><small
+                  :class="job.error_message ? 'text-[var(--warning)]' : ''"
+                  >{{ job.error_message ?? jobKind(job) }}</small
+                ></span
               >
             </div>
-            <StatusPill :tone="isCloudJob(job) ? 'cloud' : 'local'">
-              {{
-                isCloudJob(job) ? t("processing.openAi") : t("processing.local")
-              }}
-            </StatusPill>
-            <div class="min-w-0">
-              <div
-                class="progress-label text-ink-muted mb-[7px] flex justify-between gap-2.5 text-xs"
+            <div
+              class="processing-row__provider flex min-w-0 flex-col items-start gap-1.5"
+            >
+              <span
+                class="text-ink-muted hidden text-xs font-bold tracking-[0.06em] uppercase max-[1100px]:block"
               >
-                <strong v-if="progressLabel(job) !== undefined">
-                  {{ progressLabel(job) }}%
-                </strong>
+                {{ t("processing.provider") }}
+              </span>
+              <StatusPill :tone="isCloudJob(job) ? 'cloud' : 'local'">
+                {{
+                  isCloudJob(job)
+                    ? t("processing.openAi")
+                    : t("processing.local")
+                }}
+              </StatusPill>
+            </div>
+            <div class="processing-row__progress min-w-0">
+              <span
+                class="text-ink-muted mb-1.5 hidden text-xs font-bold tracking-[0.06em] uppercase max-[1100px]:block"
+              >
+                {{ t("processing.progress") }}
+              </span>
+              <div
+                class="progress-label text-ink mb-[7px] flex justify-between gap-2.5 text-xs"
+              >
+                <strong>{{ progressSummary(job) }}</strong>
               </div>
               <AppProgressBar
                 :value="progressValue(job)"
@@ -123,14 +155,19 @@ function estimateDetails(job: Job) {
               />
               <small
                 v-if="estimateDetails(job)"
-                class="text-ink-muted mt-1.5 block text-xs"
+                class="text-ink mt-1.5 block text-xs"
               >
                 {{ estimateDetails(job) }}
               </small>
             </div>
             <div
-              class="processing-row__status flex items-center gap-1.5 justify-self-end max-[700px]:justify-self-start"
+              class="processing-row__status flex min-w-0 items-center justify-end gap-2 max-[1100px]:col-span-2 max-[700px]:col-span-1 max-[700px]:justify-start"
             >
+              <span
+                class="text-ink-muted mr-auto text-xs font-bold tracking-[0.06em] uppercase min-[1101px]:hidden"
+              >
+                {{ t("processing.status") }}
+              </span>
               <StatusPill tone="neutral">{{ jobState(job) }}</StatusPill>
               <AppButton
                 v-if="job.state === 'failed'"

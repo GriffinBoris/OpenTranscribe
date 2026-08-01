@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { Clock3, Eye, Pencil } from "@lucide/vue";
+import {
+  Clock3,
+  Eye,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Pencil,
+} from "@lucide/vue";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { computed, ref } from "vue";
@@ -12,11 +18,13 @@ const props = defineProps<{
   active: boolean;
   notes: string;
   notesState: string;
+  transcriptHidden: boolean;
 }>();
 
 const emit = defineEmits<{
   "update:notes": [value: string];
   "add-timestamp": [];
+  "toggle-transcript": [];
 }>();
 
 const { t } = useI18n();
@@ -44,6 +52,29 @@ const renderedNotes = computed(() =>
       <div
         class="notes-toolbar__actions ml-auto flex shrink-0 items-center gap-2"
       >
+        <AppButton
+          class="max-[900px]:hidden"
+          size="small"
+          variant="ghost"
+          :aria-label="
+            transcriptHidden
+              ? t('session.showTranscript')
+              : t('session.hideTranscript')
+          "
+          :title="
+            transcriptHidden
+              ? t('session.showTranscript')
+              : t('session.hideTranscript')
+          "
+          @click="emit('toggle-transcript')"
+        >
+          <PanelLeftOpen
+            v-if="transcriptHidden"
+            :size="14"
+            aria-hidden="true"
+          />
+          <PanelLeftClose v-else :size="14" aria-hidden="true" />
+        </AppButton>
         <AppButton
           size="small"
           variant="ghost"

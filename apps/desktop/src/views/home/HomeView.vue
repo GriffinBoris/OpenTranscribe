@@ -211,9 +211,7 @@ onBeforeUnmount(() => {
           <h2 class="mb-1 text-2xl tracking-[-0.015em]">
             {{ t("home.newRecording") }}
           </h2>
-          <div
-            class="source-summary text-ink-muted flex flex-wrap gap-3.5 text-sm"
-          >
+          <div class="source-summary text-ink flex flex-wrap gap-3.5 text-sm">
             <span class="flex items-center gap-1.5">
               <span
                 class="source-dot source-dot--mic bg-lichen size-[7px] rounded-full"

@@ -16,7 +16,7 @@ const { t } = useI18n();
         <h2 class="mb-[5px] text-2xl">
           {{ t("settings.navigation.storage") }}
         </h2>
-        <p class="text-ink-muted mt-[3px] leading-[var(--line-height-body)]">
+        <p class="text-ink mt-[3px] leading-[var(--line-height-body)]">
           {{ t("settings.storage.description") }}
         </p>
       </div>
