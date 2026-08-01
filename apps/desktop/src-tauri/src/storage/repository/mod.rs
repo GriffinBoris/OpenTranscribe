@@ -88,7 +88,7 @@ impl LibraryRepository {
             sessions.extend(read_sessions_from(&project.path())?);
         }
 
-        sessions.sort_by(|left, right| right.created_at.cmp(&left.created_at));
+        sessions.sort_by_key(|session| std::cmp::Reverse(session.created_at));
         Ok(sessions)
     }
 

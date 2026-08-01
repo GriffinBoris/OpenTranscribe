@@ -1,5 +1,6 @@
 use opentranscribe_domain::{AppEvent, Session, Transcript};
 use serde::Deserialize;
+use std::path::PathBuf;
 use tauri::Manager;
 
 use super::{AppState, send_event, with_repository};
@@ -18,6 +19,7 @@ pub struct SaveNotesRequest {
 pub struct ExportSessionRequest {
     pub session_id: String,
     pub format: ExportFormat,
+    pub destination_path: PathBuf,
 }
 
 #[derive(Deserialize)]
@@ -305,5 +307,5 @@ pub fn export_session(
     let input = with_repository(&state, |repository| {
         repository.export_input(&request.session_id)
     })?;
-    ExportService::export(input, request.format)
+    ExportService::export(input, request.format, request.destination_path)
 }

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 import Slider from "primevue/slider";
 import { computed } from "vue";
 

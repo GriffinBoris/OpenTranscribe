@@ -42,7 +42,7 @@ impl CpalCapture {
             )
         });
         let capture_thread = thread::spawn(move || {
-            let stream = build_stream(&device, &config, sample_format, packet_sender, signals);
+            let stream = build_stream(&device, config, sample_format, packet_sender, signals);
 
             match stream {
                 Ok(stream) => {
@@ -104,7 +104,7 @@ impl CpalCapture {
 
 fn build_stream(
     device: &cpal::Device,
-    config: &StreamConfig,
+    config: StreamConfig,
     sample_format: SampleFormat,
     sender: Sender<AudioPacket>,
     signals: CaptureSignals,
@@ -162,11 +162,11 @@ fn build_stream(
 
 fn build_typed_stream<T>(
     device: &cpal::Device,
-    config: &StreamConfig,
+    config: StreamConfig,
     sender: Sender<AudioPacket>,
     signals: CaptureSignals,
     capture_format: AudioFormat,
-) -> Result<cpal::Stream, cpal::BuildStreamError>
+) -> Result<cpal::Stream, cpal::Error>
 where
     T: SizedSample,
     f32: FromSample<T>,

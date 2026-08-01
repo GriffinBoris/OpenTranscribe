@@ -116,7 +116,7 @@ test("renders substantial smoothly composited processing progress", async ({
 test("aligns processing columns and reserves room for job actions", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/processing");
 
   const headerCells = page.locator(".processing-table__header > span");

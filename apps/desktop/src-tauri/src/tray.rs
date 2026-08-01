@@ -62,11 +62,7 @@ fn handle_menu_event(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
         OPEN_ID => show_main_window(app),
         PAUSE_ID => toggle_pause(app),
         STOP_ID => stop_recording(app),
-        QUIT_ID => {
-            if !crate::prevent_exit_while_recording(app) {
-                app.exit(0);
-            }
-        }
+        QUIT_ID if !crate::prevent_exit_while_recording(app) => app.exit(0),
         _ => {}
     }
 }

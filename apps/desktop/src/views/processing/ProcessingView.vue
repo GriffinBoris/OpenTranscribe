@@ -93,7 +93,7 @@ function estimateDetails(job: Job) {
       <div class="processing-page__scroll min-h-0 overflow-auto">
         <template v-if="application.activeJobs.length">
           <div
-            class="processing-table__header bg-canvas-subtle text-ink sticky top-0 z-[var(--layer-content)] grid grid-cols-[minmax(300px,1.4fr)_140px_minmax(260px,1fr)_190px] items-center gap-x-6 border-b border-[var(--divider)] px-[18px] py-[14px] text-xs font-bold tracking-[0.06em] uppercase max-[1100px]:hidden"
+            class="processing-table__header bg-canvas-subtle text-ink sticky top-0 z-[var(--layer-content)] grid grid-cols-[minmax(220px,1.4fr)_110px_minmax(200px,1fr)_150px] items-center gap-x-6 border-b border-[var(--divider)] px-[18px] py-[14px] text-xs font-bold tracking-[0.06em] uppercase max-[1100px]:hidden"
           >
             <span>{{ t("processing.job") }}</span
             ><span>{{ t("processing.provider") }}</span
@@ -103,7 +103,7 @@ function estimateDetails(job: Job) {
           <div
             v-for="job in application.activeJobs"
             :key="job.id"
-            class="processing-row grid grid-cols-[minmax(300px,1.4fr)_140px_minmax(260px,1fr)_190px] items-center gap-x-6 border-b border-[var(--divider)] px-[18px] py-[16px] last:border-b-0 max-[1100px]:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] max-[1100px]:gap-x-5 max-[1100px]:gap-y-4 max-[700px]:grid-cols-1"
+            class="processing-row grid grid-cols-[minmax(220px,1.4fr)_110px_minmax(200px,1fr)_150px] items-center gap-x-6 border-b border-[var(--divider)] px-[18px] py-[16px] last:border-b-0 max-[1100px]:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)] max-[1100px]:gap-x-5 max-[1100px]:gap-y-4 max-[700px]:grid-cols-1"
           >
             <div
               class="processing-row__title flex min-w-0 items-center gap-2.5 max-[1100px]:col-span-2 max-[700px]:col-span-1"

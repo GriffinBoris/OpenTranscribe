@@ -93,7 +93,11 @@ export interface NativeBridge {
     onProgress: (progress: JobProgress) => void,
   ): Promise<LocalModel>;
   removeLocalModel(modelId: string): Promise<LocalModel>;
-  exportSession(sessionId: string, format: ExportFormat): Promise<ExportResult>;
+  exportSession(
+    sessionId: string,
+    format: ExportFormat,
+    sessionTitle: string,
+  ): Promise<ExportResult | null>;
   sessionWorkspace(sessionId: string): Promise<SessionWorkspace | null>;
   sessionAudioSources(sessionId: string): Promise<SessionAudioSource[]>;
   sessionWaveform(sessionId: string): Promise<number[]>;
