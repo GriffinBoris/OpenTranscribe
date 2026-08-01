@@ -8,7 +8,7 @@ mod settings;
 mod transcript;
 
 pub use artifact::{Artifact, ArtifactKind, AudioSource, Codec};
-pub use event::{AppEvent, LevelSnapshot, LiveTranscriptUpdate};
+pub use event::{AppEvent, LevelSnapshot, LiveTranscriptUpdate, TranscriptionPreviewUpdate};
 pub use job::{Job, JobKind, JobProgress, JobStage, JobState, ProgressUnit};
 pub use library::{
     AppSnapshot, LibraryDescriptor, LibraryManifest, SearchFilters, SearchPage, SearchResult,

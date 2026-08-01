@@ -82,12 +82,11 @@ docs/_build/
 # PyBuilder
 .pybuilder/
 target/
-src-tauri/gen/
-src-tauri/binaries/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/binaries/
 *.tsbuildinfo
-src/**/*.vue.js
-src/**/*.vue.d.ts
-crates/domain/bindings/
+apps/desktop/src/**/*.vue.js
+apps/desktop/src/**/*.vue.d.ts
 
 # Jupyter Notebook
 .ipynb_checkpoints

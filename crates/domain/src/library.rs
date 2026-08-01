@@ -33,7 +33,9 @@ impl Default for LibraryManifest {
 pub struct LibraryDescriptor {
     pub id: String,
     pub path: String,
+    #[ts(type = "number")]
     pub project_count: usize,
+    #[ts(type = "number")]
     pub session_count: usize,
 }
 
@@ -61,6 +63,7 @@ pub struct SearchResult {
     pub session_title: String,
     pub kind: String,
     pub excerpt: String,
+    #[ts(type = "number | null")]
     pub timestamp_ms: Option<u64>,
 }
 

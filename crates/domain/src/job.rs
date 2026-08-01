@@ -60,7 +60,9 @@ pub enum ProgressUnit {
 #[ts(export)]
 pub struct JobProgress {
     pub stage: JobStage,
+    #[ts(type = "number")]
     pub completed_units: u64,
+    #[ts(type = "number | null")]
     pub total_units: Option<u64>,
     pub unit: ProgressUnit,
     pub message: String,

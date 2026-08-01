@@ -24,8 +24,14 @@ order: 0
 
 ## Repository Layout
 
-- `src/` contains the Vue application. Route views live in `src/views/`; shared controls live in `src/components/`.
-- `src-tauri/` contains the desktop process and thin Tauri command adapters.
+- `apps/desktop/` is the desktop product entrypoint and owns its npm, Vite,
+  Playwright, and Tauri configuration.
+- `apps/desktop/src/` contains the Vue application. Route views live in
+  `apps/desktop/src/views/`; shared controls live in
+  `apps/desktop/src/components/`.
+- `apps/desktop/src-tauri/` contains the desktop process and thin Tauri command
+  adapters. Keep native services and orchestration beside, not inside, the
+  `commands/` adapter folder.
 - `crates/domain/` owns persisted manifests, IDs, transcript types, jobs, and shared DTOs.
 - `crates/transcriber-protocol/` owns the versioned MessagePack protocol shared with the local transcriber.
 - `sidecars/local-transcriber/` owns whisper.cpp model lifecycle and inference.
@@ -118,6 +124,11 @@ order: 0
   manifest rewrite must move the directory back so readable files do not
   disagree with their location.
 - Trash is app-managed, recoverable, and never automatically purged.
+- Resetting application data clears app-owned configuration, remembered
+  library selection, credentials, downloaded models, and caches, then returns
+  to recording setup. It must preserve the selected library's recordings and
+  projects, leave operating-system permission grants under OS control, and be
+  unavailable while recording, processing, or downloading a model.
 - Schema changes require sequential migrations and fixtures covering the previous schema.
 
 ## Frontend Conventions
@@ -127,9 +138,10 @@ order: 0
   in focused shell-level stores beside the application store instead of growing
   one catch-all store.
 - Route folders own their views, local components, and local stores. Avoid a global catch-all store.
-- Wrap PrimeVue primitives in app-owned components under `src/components/ui/`.
+- Wrap PrimeVue primitives in app-owned components under
+  `apps/desktop/src/components/ui/`.
 - Keep the OpenTranscribe application, installer, Dock/taskbar, sidebar, and
-  tray icons derived from the canonical artwork in `src/assets/`. Use the
+  tray icons derived from the canonical artwork in `apps/desktop/src/assets/`. Use the
   full-color application tile for branded surfaces and the matching transparent
   monochrome mark for system tray or menu-bar template surfaces. Functional UI
   icons use Lucide so stroke weight and optical sizing remain consistent.
@@ -137,7 +149,7 @@ order: 0
   Raw `button`, `dialog`, `input`, `select`, and `textarea` elements are linted
   as errors so focus behavior, overlays, disabled states, and visual treatment
   stay consistent across the desktop app.
-- Use semantic tokens from `src/styles/tokens.css`; do not hardcode theme colors
+- Use semantic tokens from `apps/desktop/src/styles/tokens.css`; do not hardcode theme colors
   in components. Reuse the shared typography, spacing, control-size, radius,
   shadow, motion, opacity, layering, and shell-layout scales whenever a value
   participates in app-wide visual consistency. Keep intrinsic media dimensions,
@@ -156,6 +168,8 @@ order: 0
   queues so network latency cannot interrupt the recording writer. Treat live
   captions as ephemeral feedback; after stop, create the durable transcript
   from the finalized recording with the user's selected file model.
+- Treat streamed file-transcription output as ephemeral feedback too. Persist
+  only the completed provider response as the durable transcription run.
 - Every provider action displays whether audio stays local or is sent to OpenAI.
 - Preserve provider-reported transcription usage with each immutable run. Derive
   cloud cost estimates from one centralized, dated pricing table, include both

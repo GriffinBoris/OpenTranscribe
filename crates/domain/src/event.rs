@@ -11,7 +11,9 @@ pub struct LevelSnapshot {
     pub captures_system_audio: bool,
     pub microphone_peak: f32,
     pub system_peak: f32,
+    #[ts(type = "number")]
     pub elapsed_ms: u64,
+    #[ts(type = "number")]
     pub dropped_packets: u64,
 }
 
@@ -23,7 +25,16 @@ pub struct LiveTranscriptUpdate {
     pub source: AudioSource,
     pub text: String,
     pub completed: bool,
+    #[ts(type = "number")]
     pub started_at_ms: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
+#[ts(export)]
+pub struct TranscriptionPreviewUpdate {
+    pub session_id: String,
+    pub job_id: String,
+    pub text: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
@@ -33,6 +44,7 @@ pub enum AppEvent {
     RecordingStateChanged(SessionLifecycle),
     RecordingLevels(LevelSnapshot),
     LiveTranscriptChanged(LiveTranscriptUpdate),
+    TranscriptionPreviewChanged(TranscriptionPreviewUpdate),
     JobProgress {
         job_id: String,
         progress: JobProgress,

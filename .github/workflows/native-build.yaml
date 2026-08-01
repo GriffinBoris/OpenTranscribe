@@ -47,6 +47,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
@@ -65,14 +66,17 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+        working-directory: apps/desktop
 
       - name: Build frontend
         if: inputs.bundle != true
         run: npm run build
+        working-directory: apps/desktop
 
       - name: Prepare local transcription sidecar
         if: inputs.bundle != true
         run: npm run prepare:sidecar:debug -- --target ${{ matrix.target }}
+        working-directory: apps/desktop
 
       - name: Compile native workspace
         if: inputs.bundle != true
@@ -81,6 +85,7 @@ jobs:
       - name: Build unsigned installers
         if: inputs.bundle
         run: npm run tauri -- build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci --no-sign -- --locked
+        working-directory: apps/desktop
 
       - name: Upload unsigned installers
         if: inputs.bundle

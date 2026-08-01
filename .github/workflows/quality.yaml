@@ -28,6 +28,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
@@ -45,26 +46,38 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+        working-directory: apps/desktop
 
       - name: Build frontend
         run: npm run build
+        working-directory: apps/desktop
 
       - name: Prepare local transcription sidecar
         run: npm run prepare:sidecar:debug
+        working-directory: apps/desktop
+
+      - name: Verify generated domain contracts
+        run: |
+          npm run types:generate
+          test -z "$(git status --porcelain --untracked-files=all -- src/types/generated)"
+        working-directory: apps/desktop
 
       - name: Check formatting
         run: |
           npm run format:check
           cargo fmt --all --check
+        working-directory: apps/desktop
 
       - name: Lint frontend
         run: npm run lint
+        working-directory: apps/desktop
 
       - name: Lint Rust
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Type-check frontend
         run: npm run typecheck
+        working-directory: apps/desktop
 
       - name: Ensure quality checks did not modify files
         run: git diff --exit-code

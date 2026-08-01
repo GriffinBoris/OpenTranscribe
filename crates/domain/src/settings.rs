@@ -34,7 +34,14 @@ impl<'de> Deserialize<'de> for RecordingMode {
 pub enum OpenAiTranscriptionModel {
     #[default]
     GptTranscribe,
+    #[serde(rename = "gpt_4o_transcribe")]
+    #[ts(rename = "gpt_4o_transcribe")]
+    Gpt4oTranscribe,
+    #[serde(rename = "gpt_4o_transcribe_diarize")]
+    #[ts(rename = "gpt_4o_transcribe_diarize")]
     Gpt4oTranscribeDiarize,
+    #[serde(rename = "gpt_4o_mini_transcribe")]
+    #[ts(rename = "gpt_4o_mini_transcribe")]
     Gpt4oMiniTranscribe,
 }
 
@@ -42,6 +49,7 @@ impl OpenAiTranscriptionModel {
     pub fn model_id(&self) -> &'static str {
         match self {
             Self::GptTranscribe => "gpt-transcribe",
+            Self::Gpt4oTranscribe => "gpt-4o-transcribe",
             Self::Gpt4oTranscribeDiarize => "gpt-4o-transcribe-diarize",
             Self::Gpt4oMiniTranscribe => "gpt-4o-mini-transcribe",
         }
@@ -89,6 +97,7 @@ pub struct Appearance {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[ts(export)]
 pub struct AppSettings {
+    #[ts(type = "number")]
     pub revision: u64,
     #[serde(default)]
     pub setup_completed: bool,
@@ -175,6 +184,10 @@ mod tests {
         assert_eq!(
             OpenAiTranscriptionModel::GptTranscribe.model_id(),
             "gpt-transcribe"
+        );
+        assert_eq!(
+            OpenAiTranscriptionModel::Gpt4oTranscribe.model_id(),
+            "gpt-4o-transcribe"
         );
         assert_eq!(
             OpenAiTranscriptionModel::Gpt4oTranscribeDiarize.model_id(),

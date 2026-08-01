@@ -28,7 +28,9 @@ pub struct Speaker {
 #[ts(export)]
 pub struct TranscriptSegment {
     pub id: String,
+    #[ts(type = "number")]
     pub start_ms: u64,
+    #[ts(type = "number")]
     pub end_ms: u64,
     pub text: String,
     pub speaker_id: String,
@@ -43,6 +45,7 @@ pub struct Transcript {
     pub schema_version: u32,
     pub id: String,
     pub session_id: String,
+    #[ts(type = "number")]
     pub revision: u64,
     pub source_run_id: String,
     pub detected_language: Option<String>,

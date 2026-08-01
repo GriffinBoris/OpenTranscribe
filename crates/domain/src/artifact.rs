@@ -43,7 +43,9 @@ pub struct Artifact {
     pub codec: Codec,
     pub sample_rate_hz: Option<u32>,
     pub channels: Option<u16>,
+    #[ts(type = "number | null")]
     pub duration_ms: Option<u64>,
+    #[ts(type = "number")]
     pub byte_count: u64,
     pub sha256: String,
 }
