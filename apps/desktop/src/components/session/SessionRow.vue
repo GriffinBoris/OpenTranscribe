@@ -2,6 +2,7 @@
 import { AlertCircle, FileAudio, Mic2 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
+import AppCheckbox from "@/components/ui/AppCheckbox.vue";
 import AppSelect from "@/components/ui/AppSelect.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import type { Session } from "@/types/domain";
@@ -10,9 +11,12 @@ defineProps<{
   session: Session;
   projectOptions: Array<{ label: string; value: string }>;
   moving: boolean;
+  selectable?: boolean;
+  selected?: boolean;
 }>();
 const emit = defineEmits<{
   "move-to-project": [projectId: string];
+  "selection-change": [event: Event];
 }>();
 const { t } = useI18n();
 
@@ -26,7 +30,14 @@ function formatDuration(durationMs: number) {
 <template>
   <div
     class="session-row hover:bg-canvas-subtle flex min-w-0 items-center gap-3 border-b border-[var(--divider)] px-[15px] py-[13px] last:border-b-0"
+    :class="{ 'bg-canvas-subtle': selected }"
   >
+    <AppCheckbox
+      v-if="selectable"
+      :model-value="Boolean(selected)"
+      :accessible-label="t('session.selectMeeting', { title: session.title })"
+      @change="emit('selection-change', $event)"
+    />
     <RouterLink
       :to="`/sessions/${session.id}`"
       class="session-row__link flex min-w-0 flex-1 items-center gap-3"
@@ -63,15 +74,9 @@ function formatDuration(durationMs: number) {
       >
         {{ t("session.recovery.recovered") }}
       </StatusPill>
-      <StatusPill v-else tone="neutral">
-        {{
-          session.source === "import"
-            ? t("session.imported")
-            : t("session.recording")
-        }}
-      </StatusPill>
     </RouterLink>
     <AppSelect
+      v-if="!selectable"
       class="session-row__project-select w-[var(--control-width-project)] shrink-0 text-sm"
       :model-value="session.project_id ?? ''"
       :options="projectOptions"

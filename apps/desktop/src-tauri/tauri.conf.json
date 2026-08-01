@@ -48,7 +48,8 @@
     "shortDescription": "Local-first meeting recording and transcription",
     "longDescription": "Record microphone and system audio, take notes, and transcribe locally or with OpenAI.",
     "macOS": {
-      "minimumSystemVersion": "14.0"
+      "minimumSystemVersion": "14.0",
+      "entitlements": "Entitlements.plist"
     }
   }
 }

@@ -9,11 +9,11 @@ const props = withDefaults(
 );
 
 const toneClasses = {
-  neutral: "bg-canvas-subtle text-ink-muted",
-  local: "bg-lichen-soft text-success",
+  neutral: "bg-canvas-subtle text-ink",
+  local: "bg-lichen-soft text-ink",
   cloud: "bg-cloud-soft text-cloud",
-  success: "bg-lichen-soft text-success",
-  warning: "bg-warning-soft text-warning",
+  success: "bg-lichen-soft text-ink",
+  warning: "bg-warning-soft text-ink",
   recording: "bg-accent-soft text-accent",
 };
 </script>

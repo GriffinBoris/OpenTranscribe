@@ -19,7 +19,7 @@ import AppDialog from "@/components/ui/AppDialog.vue";
 import AppInputText from "@/components/ui/AppInputText.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import LibrarySearchDialog from "@/views/application/components/LibrarySearchDialog.vue";
-import { globalShortcutAccelerators } from "@/views/application/globalShortcutPresets";
+import { formatGlobalShortcut } from "@/views/application/globalShortcutPresets";
 import { useGlobalShortcutStore } from "@/views/application/globalShortcutStore";
 import { useRecordingStore } from "@/views/application/recordingStore";
 
@@ -41,14 +41,7 @@ const recordingShortcutLabel = computed(() => {
     return null;
   }
 
-  const accelerator = globalShortcutAccelerators[settings.global_shortcut];
-  const isMac = navigator.platform.toLowerCase().includes("mac");
-
-  return accelerator
-    .replace("CommandOrControl", isMac ? "⌘" : "Ctrl")
-    .replace("Shift", isMac ? "⇧" : "Shift")
-    .replace("Alt", isMac ? "⌥" : "Alt")
-    .replaceAll("+", " ");
+  return formatGlobalShortcut(settings.global_shortcut);
 });
 const sidebarLinkClass =
   "sidebar__link flex min-h-[var(--control-height-small)] min-w-0 items-center gap-2 rounded-app-xs px-2 py-1.5 text-md font-medium text-[color-mix(in_srgb,var(--text)_82%,transparent)] hover:bg-surface/70 [&.router-link-active]:bg-surface/70 [&.router-link-active]:text-ink max-[900px]:justify-center";
@@ -136,10 +129,12 @@ onBeforeUnmount(() => window.removeEventListener("keydown", handleShortcut));
         @click="startRecording"
       >
         <Mic2 :size="16" />
-        <span class="max-[900px]:hidden">{{ t("navigation.newRecording") }}</span>
+        <span class="max-[900px]:hidden">{{
+          t("navigation.newRecording")
+        }}</span>
         <kbd
           v-if="recordingShortcutLabel"
-          class="ml-auto text-xs opacity-80 max-[900px]:hidden"
+          class="ml-auto text-xs max-[900px]:hidden"
         >
           {{ recordingShortcutLabel }}
         </kbd>

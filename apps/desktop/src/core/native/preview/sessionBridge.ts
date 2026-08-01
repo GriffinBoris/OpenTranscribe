@@ -26,6 +26,7 @@ type SessionBridge = Pick<
   | "trashedSessions"
   | "trashSession"
   | "restoreSession"
+  | "emptyTrash"
   | "saveNotes"
 >;
 
@@ -177,6 +178,11 @@ export const previewSessionBridge = {
     });
     previewState.appEventListener?.({ type: "library_changed" });
     return restored;
+  },
+
+  async emptyTrash() {
+    previewState.trashedSessions.clear();
+    previewState.appEventListener?.({ type: "library_changed" });
   },
 
   async saveNotes() {

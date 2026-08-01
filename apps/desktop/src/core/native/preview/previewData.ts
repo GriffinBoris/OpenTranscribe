@@ -134,15 +134,17 @@ export function createPreviewSnapshot(
       },
     ],
     settings: {
+      schema_version: 1,
       revision: 1,
       setup_completed: setupCompleted,
       recording_mode: "record_only",
       openai_transcription_model: "gpt_transcribe",
       microphone_device_id: null,
       capture_system_audio: false,
+      local_models_directory: null,
       recording_project_selection: { kind: "automatic" },
       global_shortcut_enabled: false,
-      global_shortcut: "command_or_control_shift_r",
+      global_shortcut: "CommandOrControl+Shift+R",
       appearance: {
         theme: "system",
         reduced_motion: false,

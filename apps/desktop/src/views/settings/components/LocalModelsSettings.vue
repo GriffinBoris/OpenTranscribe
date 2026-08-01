@@ -1,15 +1,23 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
+import AppDialog from "@/components/ui/AppDialog.vue";
 import AppProgressBar from "@/components/ui/AppProgressBar.vue";
 import AppSurface from "@/components/ui/AppSurface.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import { native } from "@/core/native";
 import { useLocalModelsStore } from "@/views/application/localModelsStore";
 
 const localModels = useLocalModelsStore();
 const { t } = useI18n();
+const selectedStoragePath = ref<string | null>(null);
+const moveDialogOpen = ref(false);
+
+const hasInstalledModels = computed(
+  () => localModels.installedModels.length > 0,
+);
 
 function modelSize(byteCount: number) {
   return `${Math.round(byteCount / 1_000_000)} MB`;
@@ -18,6 +26,29 @@ function modelSize(byteCount: number) {
 onMounted(() => {
   void localModels.load();
 });
+
+async function chooseStoragePath() {
+  const path = await native.chooseLocalModelStorage();
+
+  if (!path || path === localModels.storagePath) {
+    return;
+  }
+
+  selectedStoragePath.value = path;
+  moveDialogOpen.value = true;
+}
+
+async function moveStorage() {
+  if (
+    !selectedStoragePath.value ||
+    !(await localModels.moveStorage(selectedStoragePath.value))
+  ) {
+    return;
+  }
+
+  moveDialogOpen.value = false;
+  selectedStoragePath.value = null;
+}
 </script>
 
 <template>
@@ -27,12 +58,34 @@ onMounted(() => {
     >
       <div>
         <h2 class="mb-[5px] text-2xl">{{ t("models.title") }}</h2>
-        <p class="text-ink-muted mt-[3px] leading-[var(--line-height-body)]">
+        <p class="text-ink mt-[3px] leading-[var(--line-height-body)]">
           {{ t("models.description") }}
         </p>
       </div>
       <StatusPill tone="local">{{ t("models.private") }}</StatusPill>
     </div>
+    <div
+      class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+    >
+      <span class="grid min-w-0 gap-1">
+        <strong>{{ t("models.storage.title") }}</strong>
+        <small class="text-ink-muted wrap-anywhere">
+          {{ localModels.storagePath ?? t("models.storage.loading") }}
+        </small>
+      </span>
+      <AppButton
+        variant="secondary"
+        :disabled="localModels.isMovingStorage"
+        @click="chooseStoragePath"
+      >
+        {{ t("models.storage.change") }}
+      </AppButton>
+    </div>
+    <p
+      class="text-ink-muted m-0 border-t border-[var(--divider)] py-3 text-sm leading-[var(--line-height-body)]"
+    >
+      {{ t("models.source") }}
+    </p>
     <div
       v-if="localModels.isLoading && !localModels.models.length"
       class="text-ink-muted grid grid-cols-[minmax(160px,1fr)_auto] items-center gap-3 border-t border-[var(--divider)] py-3"
@@ -74,10 +127,7 @@ onMounted(() => {
           v-else
           size="small"
           :loading="localModels.downloadingModelId === model.id"
-          :disabled="
-            localModels.downloadingModelId !== null &&
-            localModels.downloadingModelId !== model.id
-          "
+          :disabled="localModels.downloadingModelId !== null"
           @click="localModels.download(model.id)"
         >
           {{
@@ -98,5 +148,37 @@ onMounted(() => {
         {{ t("models.retry") }}
       </AppButton>
     </div>
+    <AppDialog
+      :open="moveDialogOpen"
+      :title="t('models.storage.dialogTitle')"
+      @update:open="moveDialogOpen = $event"
+    >
+      <div class="grid gap-3">
+        <p class="m-0">
+          {{
+            t(
+              hasInstalledModels
+                ? "models.storage.dialogWithModels"
+                : "models.storage.dialogWithoutModels",
+            )
+          }}
+        </p>
+        <p class="text-ink-muted m-0 text-sm wrap-anywhere">
+          {{ selectedStoragePath }}
+        </p>
+      </div>
+      <template #footer>
+        <AppButton
+          variant="ghost"
+          :disabled="localModels.isMovingStorage"
+          @click="moveDialogOpen = false"
+        >
+          {{ t("models.storage.cancel") }}
+        </AppButton>
+        <AppButton :loading="localModels.isMovingStorage" @click="moveStorage">
+          {{ t("models.storage.confirm") }}
+        </AppButton>
+      </template>
+    </AppDialog>
   </AppSurface>
 </template>

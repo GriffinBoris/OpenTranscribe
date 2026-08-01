@@ -15,6 +15,9 @@ type TranscriptionBridge = Pick<
   | "retryJob"
   | "cancelJob"
   | "localModelStatuses"
+  | "localModelStoragePath"
+  | "chooseLocalModelStorage"
+  | "moveLocalModels"
   | "downloadLocalModel"
   | "removeLocalModel"
 >;
@@ -75,6 +78,19 @@ export const previewTranscriptionBridge = {
 
   async localModelStatuses() {
     return structuredClone(previewState.localModels);
+  },
+
+  async localModelStoragePath() {
+    return previewState.localModelStoragePath;
+  },
+
+  async chooseLocalModelStorage() {
+    return "/Users/you/Documents/OpenTranscribe models";
+  },
+
+  async moveLocalModels(path: string) {
+    previewState.localModelStoragePath = path;
+    return path;
   },
 
   async downloadLocalModel(

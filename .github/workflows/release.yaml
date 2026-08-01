@@ -83,17 +83,55 @@ jobs:
         run: npm ci
         working-directory: apps/desktop
 
+      # macOS signing stays optional so tagged builds keep working before the
+      # Developer ID credentials exist. Windows and Linux installers are
+      # always unsigned; only macOS binds capture permissions and Keychain
+      # entries to a signing identity.
+      - name: Resolve signing mode
+        id: signing
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "release_body=macOS installers are signed and notarized. Windows and Linux installers are unsigned." >>"$GITHUB_OUTPUT"
+          else
+            echo "release_body=Installers are unsigned preview artifacts until platform signing is configured." >>"$GITHUB_OUTPUT"
+          fi
+
+          if [ "$RUNNER_OS" = "macOS" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "sign_args=" >>"$GITHUB_OUTPUT"
+            echo "macos_signed=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "sign_args=--no-sign" >>"$GITHUB_OUTPUT"
+            echo "macos_signed=false" >>"$GITHUB_OUTPUT"
+          fi
+
       - name: Build draft installers
         uses: tauri-apps/tauri-action@944946e3e4cac6603d1fe8f514171e9ecd3c78aa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_ENV_TARGET_TRIPLE: ${{ matrix.target }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: apps/desktop
           tagName: v__VERSION__
           releaseName: OpenTranscribe v__VERSION__
-          releaseBody: Installers are unsigned preview artifacts until platform signing is configured.
+          releaseBody: ${{ steps.signing.outputs.release_body }}
           releaseDraft: true
           prerelease: true
           uploadUpdaterJson: false
-          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci --no-sign -- --locked
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci ${{ steps.signing.outputs.sign_args }} -- --locked
+
+      # tauri-action already fails the build when signing or notarization
+      # fails. Missing entitlements do not fail the build, so verify them
+      # here rather than discovering silent microphone denial after release.
+      - name: Verify signed macOS bundle
+        if: steps.signing.outputs.macos_signed == 'true'
+        run: npm run verify:signing:macos -- ../../target/${{ matrix.target }}/release/bundle/macos/OpenTranscribe.app
+        working-directory: apps/desktop

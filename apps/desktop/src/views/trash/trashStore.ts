@@ -9,6 +9,7 @@ export const useTrashStore = defineStore("trash", () => {
   const application = useApplicationStore();
   const sessions = ref<Session[]>([]);
   const isLoading = ref(false);
+  const isEmptying = ref(false);
   const restoringSessionId = ref<string | null>(null);
   const error = ref<string | null>(null);
 
@@ -42,12 +43,31 @@ export const useTrashStore = defineStore("trash", () => {
     }
   }
 
+  async function empty() {
+    isEmptying.value = true;
+    error.value = null;
+
+    try {
+      await native.emptyTrash();
+      sessions.value = [];
+      await application.refreshLibrary();
+      return true;
+    } catch (reason) {
+      error.value = reason instanceof Error ? reason.message : String(reason);
+      return false;
+    } finally {
+      isEmptying.value = false;
+    }
+  }
+
   return {
     sessions,
     isLoading,
+    isEmptying,
     restoringSessionId,
     error,
     load,
     restore,
+    empty,
   };
 });

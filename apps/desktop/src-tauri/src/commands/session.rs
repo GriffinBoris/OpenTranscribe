@@ -231,6 +231,13 @@ pub fn restore_session(
 }
 
 #[tauri::command]
+pub fn empty_trash(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    with_repository(&state, LibraryRepository::empty_trash)?;
+    send_event(&state, AppEvent::LibraryChanged);
+    Ok(())
+}
+
+#[tauri::command]
 pub fn update_transcript_segment(
     request: UpdateTranscriptSegmentRequest,
     state: tauri::State<'_, AppState>,

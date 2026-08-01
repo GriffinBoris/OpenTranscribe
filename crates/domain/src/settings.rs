@@ -1,6 +1,8 @@
 use serde::de::Error;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use ts_rs::TS;
+
+pub const APP_SETTINGS_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, PartialEq, Serialize, TS)]
 #[ts(export)]
@@ -68,14 +70,41 @@ pub enum RecordingProjectSelection {
     },
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, TS)]
+const DEFAULT_GLOBAL_SHORTCUT: &str = "CommandOrControl+Shift+R";
+
+#[derive(Clone, Debug, PartialEq, TS)]
 #[ts(export)]
-#[serde(rename_all = "snake_case")]
-pub enum GlobalShortcutPreset {
-    #[default]
-    CommandOrControlShiftR,
-    CommandOrControlShiftSpace,
-    AltShiftR,
+pub struct GlobalShortcut(pub String);
+
+impl Default for GlobalShortcut {
+    fn default() -> Self {
+        Self(DEFAULT_GLOBAL_SHORTCUT.to_owned())
+    }
+}
+
+impl<'de> Deserialize<'de> for GlobalShortcut {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+
+        Ok(Self(match value.as_str() {
+            "command_or_control_shift_r" => DEFAULT_GLOBAL_SHORTCUT.to_owned(),
+            "command_or_control_shift_space" => "CommandOrControl+Shift+Space".to_owned(),
+            "alt_shift_r" => "Alt+Shift+R".to_owned(),
+            _ => value,
+        }))
+    }
+}
+
+impl Serialize for GlobalShortcut {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.0)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
@@ -97,6 +126,8 @@ pub struct Appearance {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, TS)]
 #[ts(export)]
 pub struct AppSettings {
+    #[serde(default = "default_settings_schema_version")]
+    pub schema_version: u32,
     #[ts(type = "number")]
     pub revision: u64,
     #[serde(default)]
@@ -109,26 +140,30 @@ pub struct AppSettings {
     #[serde(default)]
     pub capture_system_audio: bool,
     #[serde(default)]
+    pub local_models_directory: Option<String>,
+    #[serde(default)]
     pub recording_project_selection: RecordingProjectSelection,
     #[serde(default)]
     pub global_shortcut_enabled: bool,
     #[serde(default)]
-    pub global_shortcut: GlobalShortcutPreset,
+    pub global_shortcut: GlobalShortcut,
     pub appearance: Appearance,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
+            schema_version: APP_SETTINGS_SCHEMA_VERSION,
             revision: 1,
             setup_completed: false,
             recording_mode: RecordingMode::RecordOnly,
             openai_transcription_model: OpenAiTranscriptionModel::default(),
             microphone_device_id: None,
             capture_system_audio: false,
+            local_models_directory: None,
             recording_project_selection: RecordingProjectSelection::default(),
             global_shortcut_enabled: false,
-            global_shortcut: GlobalShortcutPreset::default(),
+            global_shortcut: GlobalShortcut::default(),
             appearance: Appearance {
                 theme: ThemePreference::System,
                 reduced_motion: false,
@@ -137,9 +172,16 @@ impl Default for AppSettings {
     }
 }
 
+fn default_settings_schema_version() -> u32 {
+    APP_SETTINGS_SCHEMA_VERSION
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{AppSettings, OpenAiTranscriptionModel, RecordingMode, RecordingProjectSelection};
+    use super::{
+        APP_SETTINGS_SCHEMA_VERSION, AppSettings, OpenAiTranscriptionModel, RecordingMode,
+        RecordingProjectSelection,
+    };
 
     #[test]
     fn migrates_the_legacy_local_live_recording_mode_name() {
@@ -177,6 +219,9 @@ mod tests {
             settings.openai_transcription_model,
             OpenAiTranscriptionModel::GptTranscribe
         );
+        assert_eq!(settings.local_models_directory, None);
+        assert_eq!(settings.global_shortcut.0, "CommandOrControl+Shift+R");
+        assert_eq!(settings.schema_version, APP_SETTINGS_SCHEMA_VERSION);
     }
 
     #[test]

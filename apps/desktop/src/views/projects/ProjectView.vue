@@ -5,19 +5,21 @@ import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 
 import AppEmptyState from "@/components/ui/AppEmptyState.vue";
-import AppSearchInput from "@/components/ui/AppSearchInput.vue";
 import AppSurface from "@/components/ui/AppSurface.vue";
 import SessionRow from "@/components/session/SessionRow.vue";
+import SessionListToolbar from "@/components/session/SessionListToolbar.vue";
+import AppCheckbox from "@/components/ui/AppCheckbox.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { useMoveSession } from "@/views/application/useMoveSession";
+import { useSessionSelection } from "@/views/application/useSessionSelection";
 
 const application = useApplicationStore();
 const route = useRoute();
 const { t } = useI18n();
 const projectId = computed(() => String(route.params.projectId));
 const query = ref("");
-const { isMoving, moveSession, projectOptions } = useMoveSession();
+const { isMoving, moveSessions, projectOptions } = useMoveSession();
 const project = computed(() =>
   application.projects.find((item) => item.id === projectId.value),
 );
@@ -36,6 +38,16 @@ const projectHasSessions = computed(() =>
     (session) => session.project_id === projectId.value,
   ),
 );
+const { selectedIds, selectedSessions, allSelected, select, toggleAll, clear } =
+  useSessionSelection(sessions);
+const isMovingSelected = computed(() =>
+  selectedSessions.value.some((session) => isMoving(session.id)),
+);
+
+async function moveSelectedSessions(projectId: string) {
+  await moveSessions(selectedSessions.value, projectId);
+  clear();
+}
 </script>
 
 <template>
@@ -64,16 +76,29 @@ const projectHasSessions = computed(() =>
       </div>
     </header>
 
-    <AppSearchInput
-      class="mb-4"
+    <SessionListToolbar
       v-model="query"
-      :placeholder="t('projects.search')"
+      :search-placeholder="t('projects.search')"
+      :selected-count="selectedIds.size"
+      :project-options="projectOptions"
+      :moving="isMovingSelected"
+      @move="moveSelectedSessions"
     />
 
     <AppSurface
-      class="library-page__sessions grid min-h-0 grid-rows-[minmax(0,1fr)]"
+      class="library-page__sessions grid min-h-0 grid-rows-[auto_minmax(0,1fr)]"
       :padded="false"
     >
+      <div
+        v-if="sessions.length"
+        class="flex h-[45px] items-center border-b border-[var(--divider)] px-[15px]"
+      >
+        <AppCheckbox
+          :model-value="allSelected"
+          :accessible-label="t('session.selectAllMeetings')"
+          @change="toggleAll"
+        />
+      </div>
       <div class="library-page__scroll min-h-0 overflow-auto">
         <div v-if="sessions.length" class="session-list grid">
           <SessionRow
@@ -82,7 +107,9 @@ const projectHasSessions = computed(() =>
             :session="session"
             :project-options="projectOptions"
             :moving="isMoving(session.id)"
-            @move-to-project="moveSession(session, $event)"
+            selectable
+            :selected="selectedIds.has(session.id)"
+            @selection-change="select(session.id, $event)"
           />
         </div>
         <AppEmptyState

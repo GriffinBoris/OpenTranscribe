@@ -96,15 +96,15 @@
   --surface-raised: #ffffff;
   --text: #242521;
   --text-muted: #646660;
-  --text-faint: #6f716b;
+  --text-faint: #6d6f69;
   --border: #deddd6;
   --border-strong: #cac9c1;
   --divider: color-mix(in srgb, var(--border) 70%, var(--surface));
-  --accent: #c4473b;
+  --accent: #b43d33;
   --accent-hover: #ad3b31;
   --accent-contrast: #ffffff;
   --accent-soft: #f7e1dc;
-  --lichen: #687455;
+  --lichen: #52613f;
   --lichen-soft: #e8eddf;
   --cloud: #49698f;
   --cloud-soft: #e4ebf5;

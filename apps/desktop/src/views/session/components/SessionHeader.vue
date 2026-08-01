@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { Download, Pencil, RotateCcw, Search, Trash2 } from "@lucide/vue";
+import {
+  Download,
+  FolderInput,
+  Pencil,
+  RotateCcw,
+  Search,
+  Trash2,
+} from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
 import AppDialog from "@/components/ui/AppDialog.vue";
 import AppSelect from "@/components/ui/AppSelect.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import SessionMoveDialog from "@/components/session/SessionMoveDialog.vue";
 import type { ExportFormat, Session, TranscriptRun } from "@/types/domain";
 import { formatUsd } from "@/views/application/jobEstimates";
 import SessionTranscriptionActions from "@/views/session/components/SessionTranscriptionActions.vue";
@@ -39,6 +47,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const exportOpen = ref(false);
+const moveOpen = ref(false);
 const cloudCost = computed(() => {
   if (props.transcriptRun?.source !== "open_ai") {
     return null;
@@ -50,19 +59,25 @@ const cloudCost = computed(() => {
         cost: formatUsd(props.transcriptRun.approximate_cost_usd),
       });
 });
+const projectLabel = computed(
+  () =>
+    props.projectOptions.find(
+      (option) => option.value === (props.session?.project_id ?? ""),
+    )?.label ?? t("navigation.inbox"),
+);
 </script>
 
 <template>
   <header
     class="session-header grid gap-4 border-b border-[var(--divider)] px-6 py-[var(--space-4-5)]"
   >
-    <div class="flex min-w-0 items-center gap-1 overflow-hidden">
-      <div class="flex min-w-0 flex-1 items-center gap-1">
-        <h1
-          class="min-w-0 flex-1 overflow-hidden text-3xl leading-[var(--line-height-heading)] font-bold tracking-[-0.02em] text-ellipsis whitespace-nowrap"
-        >
-          {{ session?.title ?? t("session.untitledRecording") }}
-        </h1>
+    <div class="flex min-w-0 items-center gap-3 overflow-hidden">
+      <h1
+        class="min-w-0 flex-1 overflow-hidden text-3xl leading-[var(--line-height-heading)] font-bold tracking-[-0.02em] text-ellipsis whitespace-nowrap"
+      >
+        {{ session?.title ?? t("session.untitledRecording") }}
+      </h1>
+      <div class="flex shrink-0 items-center gap-1">
         <AppButton
           class="shrink-0 p-[var(--space-1-5)]"
           size="small"
@@ -72,8 +87,16 @@ const cloudCost = computed(() => {
         >
           <Pencil :size="15" />
         </AppButton>
-      </div>
-      <div class="flex shrink-0 items-center gap-1">
+        <AppButton
+          class="shrink-0"
+          size="small"
+          variant="ghost"
+          :aria-label="t('session.moveProject.action')"
+          :disabled="recording || movingSession"
+          @click="moveOpen = true"
+        >
+          <FolderInput :size="16" />
+        </AppButton>
         <AppButton
           class="shrink-0"
           size="small"
@@ -83,11 +106,16 @@ const cloudCost = computed(() => {
         >
           <Download :size="16" />
         </AppButton>
+        <span
+          v-if="!recording"
+          class="mx-1 h-5 w-px bg-[var(--divider)]"
+          aria-hidden="true"
+        ></span>
         <AppButton
           v-if="!recording"
           class="shrink-0"
           size="small"
-          variant="ghost"
+          variant="danger"
           :aria-label="t('session.trash.action')"
           @click="emit('trash')"
         >
@@ -107,20 +135,7 @@ const cloudCost = computed(() => {
             : t("session.justNow")
         }}</span>
         <span>·</span>
-        <div class="flex min-w-0 items-center gap-1.5">
-          <span class="text-ink-faint whitespace-nowrap">
-            {{ t("projects.label") }}
-          </span>
-          <AppSelect
-            class="w-[var(--control-width-project)] shrink-0"
-            :model-value="session?.project_id ?? ''"
-            :options="projectOptions"
-            :accessible-label="t('session.moveProject.label')"
-            :placeholder="t('navigation.inbox')"
-            :disabled="recording || movingSession"
-            @update:model-value="emit('move-to-project', $event)"
-          />
-        </div>
+        <span class="text-ink-faint whitespace-nowrap">{{ projectLabel }}</span>
         <StatusPill
           v-if="recording || recoverable"
           :tone="recording ? 'recording' : 'warning'"
@@ -167,6 +182,14 @@ const cloudCost = computed(() => {
       </div>
     </div>
   </header>
+
+  <SessionMoveDialog
+    v-model:open="moveOpen"
+    :session-count="1"
+    :project-options="projectOptions"
+    :moving="movingSession"
+    @move="emit('move-to-project', $event)"
+  />
 
   <AppDialog
     :open="exportOpen"

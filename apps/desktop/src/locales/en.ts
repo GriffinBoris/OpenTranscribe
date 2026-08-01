@@ -170,9 +170,12 @@ export const messages = {
       globalDescription:
         "Start or stop recording while OpenTranscribe is running.",
       globalShortcut: "Global recording shortcut",
-      commandOrControlShiftR: "⌘/Ctrl ⇧ R",
-      commandOrControlShiftSpace: "⌘/Ctrl ⇧ Space",
-      altShiftR: "Option/Alt ⇧ R",
+      captureTitle: "Set recording shortcut",
+      captureDescription:
+        "Press Command or Control with a letter, number, Space, or function key. Shift and Option/Alt are optional.",
+      captureWaiting: "Press a shortcut",
+      cancel: "Cancel",
+      save: "Save shortcut",
       active: "Active",
       off: "Off",
       updating: "Updating",
@@ -232,7 +235,7 @@ export const messages = {
     application: {
       title: "Application",
       description:
-        "Revisit recording setup or clear data owned by OpenTranscribe.",
+        "Revisit recording setup, reset preferences, or permanently remove OpenTranscribe data.",
       setup: {
         title: "Recording setup",
         description:
@@ -240,18 +243,33 @@ export const messages = {
         action: "Run setup",
       },
       reset: {
-        title: "Reset OpenTranscribe",
+        title: "Reset settings",
         description:
-          "Clear settings, the OpenAI API key, downloaded models, and app caches. Recordings and projects stay in your library folder.",
-        busy: "Finish active recordings, processing, and model downloads before resetting.",
-        action: "Reset…",
-        dialogTitle: "Reset OpenTranscribe?",
+          "Restore recording, shortcut, and appearance preferences. Your library, API key, downloaded models, and model folder stay in place.",
+        busy: "Finish active recordings, processing, and model downloads before resetting settings.",
+        action: "Reset settings…",
+        dialogTitle: "Reset settings?",
         dialogBody:
-          "OpenTranscribe will clear its settings, remembered library selection, OpenAI API key, downloaded models, and caches, then restart in recording setup. Your library files will not be deleted.",
+          "OpenTranscribe will restore its preferences and reopen recording setup. Your recordings, projects, OpenAI API key, downloaded models, and model folder will stay in place.",
         permissions:
           "Operating-system permission grants are managed separately and will not be revoked.",
         cancel: "Cancel",
-        confirm: "Reset OpenTranscribe",
+        confirm: "Reset settings",
+      },
+      delete: {
+        title: "Delete all data",
+        description:
+          "Permanently delete recordings, notes, transcripts, projects, local models, cached data, and the stored OpenAI API key.",
+        busy: "Finish active recordings, processing, and model downloads before deleting data.",
+        action: "Delete all data…",
+        dialogTitle: "Delete all OpenTranscribe data?",
+        dialogBody:
+          "This permanently deletes all OpenTranscribe recordings, notes, transcripts, projects, local models, settings, cached data, and the stored OpenAI API key. This cannot be undone.",
+        libraryOnly:
+          "Only OpenTranscribe-owned folders inside your selected library are deleted. Other files in that folder are left alone.",
+        confirmationLabel: "Type DELETE to continue",
+        confirmationValue: "DELETE",
+        confirm: "Delete all data",
       },
     },
   },
@@ -276,6 +294,7 @@ export const messages = {
   },
   native: {
     chooseLibrary: "Choose your OpenTranscribe library",
+    chooseLocalModelStorage: "Choose a folder for local models",
     defaultMicrophone: "Default microphone",
     importMedia: "Import audio or video",
     audioAndVideo: "Audio and video",
@@ -295,7 +314,7 @@ export const messages = {
   },
   models: {
     title: "Local models",
-    description: "Downloaded on demand.",
+    description: "Download Whisper models only when you need them.",
     private: "Private",
     fast: "Fast",
     balanced: "Balanced",
@@ -314,6 +333,20 @@ export const messages = {
     loadingModels: "Loading models…",
     remove: "Remove",
     retry: "Retry",
+    source:
+      "Models come from ggerganov’s whisper.cpp project on Hugging Face. Each download is pinned to a source revision and verified with SHA-256 before use.",
+    storage: {
+      title: "Model folder",
+      loading: "Loading model folder…",
+      change: "Change folder",
+      dialogTitle: "Move local models?",
+      dialogWithModels:
+        "OpenTranscribe will move downloaded models to this folder. Recording and transcription must be idle first.",
+      dialogWithoutModels:
+        "OpenTranscribe will use this folder for future local model downloads.",
+      cancel: "Cancel",
+      confirm: "Move models",
+    },
   },
   playback: {
     play: "Play recording",
@@ -382,6 +415,9 @@ export const messages = {
     recording: "Recording",
     transcript: "Transcript",
     notes: "Notes",
+    hideTranscript: "Hide transcript",
+    showTranscript: "Show transcript",
+    resizeTranscript: "Resize transcript and notes",
     segmentCount: "{count} segment | {count} segments",
     noTranscript: "No transcript yet",
     noTranscriptDescription:
@@ -449,9 +485,19 @@ export const messages = {
     },
     moveProject: {
       label: "Move to project",
+      action: "Move to project",
+      actionCount: "Move {count} meeting | Move {count} meetings",
       recordingLabel: "Move {title} to a project or Inbox",
+      dialogTitleSingle: "Move meeting",
+      dialogTitleMultiple: "Move {count} meetings",
+      dialogDescriptionSingle: "Choose where this meeting belongs.",
+      dialogDescriptionMultiple: "Choose where these {count} meetings belong.",
+      destination: "Destination",
+      confirm: "Move meetings",
       failed: "This session could not be moved.",
     },
+    selectAllMeetings: "Select all meetings",
+    selectMeeting: "Select {title}",
     rename: {
       action: "Rename meeting",
       title: "Rename meeting",
@@ -481,6 +527,10 @@ export const messages = {
     inbox: "Inbox",
     importMedia: "Import media",
     search: "Search your library",
+    noMatches: "No meetings match this search.",
+    noMatchesDescription: "Try another title.",
+    empty: "Inbox is empty",
+    emptyDescription: "Record a meeting or import media to get started.",
   },
   projects: {
     label: "Project",
@@ -501,6 +551,11 @@ export const messages = {
     restore: "Restore",
     empty: "Trash is empty",
     emptyDescription: "Sessions moved to trash will appear here.",
+    emptyAction: "Empty trash",
+    emptyTitle: "Empty Trash permanently?",
+    emptyConfirmation:
+      "This permanently deletes every meeting in Trash. This cannot be undone.",
+    emptyConfirm: "Delete permanently",
   },
   controls: {
     moreRecordingOptions: "More recording options",

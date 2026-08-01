@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import { RotateCcw, Trash2 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
+import AppDialog from "@/components/ui/AppDialog.vue";
 import AppEmptyState from "@/components/ui/AppEmptyState.vue";
 import AppSurface from "@/components/ui/AppSurface.vue";
 import AppStatusState from "@/components/ui/AppStatusState.vue";
@@ -11,10 +12,17 @@ import { useTrashStore } from "@/views/trash/trashStore";
 
 const { t } = useI18n();
 const trash = useTrashStore();
+const emptyDialogOpen = ref(false);
 
 onMounted(() => {
   void trash.load();
 });
+
+async function emptyTrash() {
+  if (await trash.empty()) {
+    emptyDialogOpen.value = false;
+  }
+}
 </script>
 
 <template>
@@ -26,7 +34,7 @@ onMounted(() => {
     >
       <div>
         <p
-          class="eyebrow text-lichen mb-1.5 text-xs font-black tracking-[0.1em] uppercase"
+          class="eyebrow text-ink mb-1.5 text-xs font-black tracking-[0.1em] uppercase"
         >
           {{ t("trash.library") }}
         </p>
@@ -35,8 +43,16 @@ onMounted(() => {
         >
           {{ t("trash.title") }}
         </h1>
-        <p class="text-ink-muted">{{ t("trash.description") }}</p>
+        <p class="text-ink">{{ t("trash.description") }}</p>
       </div>
+      <AppButton
+        v-if="trash.sessions.length"
+        variant="danger"
+        :disabled="trash.isLoading"
+        @click="emptyDialogOpen = true"
+      >
+        <Trash2 :size="16" />{{ t("trash.emptyAction") }}
+      </AppButton>
     </header>
     <AppSurface
       class="library-page__sessions grid min-h-0 grid-rows-[minmax(0,1fr)]"
@@ -92,5 +108,28 @@ onMounted(() => {
         </AppEmptyState>
       </div>
     </AppSurface>
+    <AppDialog
+      :open="emptyDialogOpen"
+      :title="t('trash.emptyTitle')"
+      @update:open="emptyDialogOpen = $event"
+    >
+      <p class="m-0">{{ t("trash.emptyConfirmation") }}</p>
+      <template #footer>
+        <AppButton
+          variant="ghost"
+          :disabled="trash.isEmptying"
+          @click="emptyDialogOpen = false"
+        >
+          {{ t("navigation.cancel") }}
+        </AppButton>
+        <AppButton
+          variant="danger"
+          :loading="trash.isEmptying"
+          @click="emptyTrash"
+        >
+          {{ t("trash.emptyConfirm") }}
+        </AppButton>
+      </template>
+    </AppDialog>
   </div>
 </template>

@@ -62,6 +62,10 @@ impl LibraryRepository {
         })
     }
 
+    pub fn root_path(&self) -> &Path {
+        &self.root
+    }
+
     pub fn projects(&self) -> AppResult<Vec<Project>> {
         let mut projects = Vec::new();
 

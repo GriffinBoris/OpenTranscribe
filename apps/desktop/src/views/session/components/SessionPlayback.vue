@@ -118,7 +118,7 @@ defineExpose({ seek });
 <template>
   <footer
     v-if="source"
-    class="bg-surface-raised relative flex h-[66px] items-center gap-3 border-t border-[var(--divider)] px-[18px] py-2.5"
+    class="bg-surface-raised relative flex h-[74px] items-center gap-3 border-t border-[var(--divider)] px-[18px] py-2.5"
   >
     <audio
       ref="audio"
@@ -154,7 +154,7 @@ defineExpose({ seek });
     <div class="relative grid min-w-0 flex-1 items-center">
       <div
         v-if="waveform.length"
-        class="pointer-events-none absolute top-1/2 right-0 left-0 flex h-[30px] -translate-y-1/2 items-center gap-px"
+        class="pointer-events-none absolute top-1/2 right-0 left-0 flex h-[42px] -translate-y-1/2 items-center gap-px"
         aria-hidden="true"
       >
         <span
@@ -162,7 +162,7 @@ defineExpose({ seek });
           :key="index"
           class="bg-line-strong min-w-px flex-1 rounded-full"
           :class="{ 'bg-lichen': index / waveform.length <= progress }"
-          :style="{ height: `${Math.max(3, peak * 28)}px` }"
+          :style="{ height: `${Math.max(4, peak * 40)}px` }"
         ></span>
       </div>
       <AppSlider

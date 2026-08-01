@@ -32,5 +32,28 @@ export function useMoveSession() {
     movingSessionIds.value = remainingSessionIds;
   }
 
-  return { isMoving, moveSession, projectOptions };
+  async function moveSessions(sessions: Session[], projectId: string) {
+    const sessionsToMove = sessions.filter(
+      (session) => projectId !== (session.project_id ?? ""),
+    );
+
+    if (!sessionsToMove.length) {
+      return;
+    }
+
+    movingSessionIds.value = new Set([
+      ...movingSessionIds.value,
+      ...sessionsToMove.map((session) => session.id),
+    ]);
+    await Promise.all(
+      sessionsToMove.map((session) =>
+        application.moveSession(session.id, projectId || null),
+      ),
+    );
+    const remainingSessionIds = new Set(movingSessionIds.value);
+    sessionsToMove.forEach((session) => remainingSessionIds.delete(session.id));
+    movingSessionIds.value = remainingSessionIds;
+  }
+
+  return { isMoving, moveSession, moveSessions, projectOptions };
 }

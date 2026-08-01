@@ -1,39 +1,31 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
-import AppSelect from "@/components/ui/AppSelect.vue";
+import AppButton from "@/components/ui/AppButton.vue";
+import AppDialog from "@/components/ui/AppDialog.vue";
 import AppSurface from "@/components/ui/AppSurface.vue";
 import AppToggleSwitch from "@/components/ui/AppToggleSwitch.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
-import type { GlobalShortcutPreset } from "@/types/domain";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { useGlobalShortcutStore } from "@/views/application/globalShortcutStore";
+import {
+  formatGlobalShortcut,
+  shortcutFromKeyboardEvent,
+} from "@/views/application/globalShortcutPresets";
 
 const application = useApplicationStore();
 const globalShortcut = useGlobalShortcutStore();
 const { t } = useI18n();
+const bindingDialogOpen = ref(false);
+const capturedShortcut = ref<string | null>(null);
 
 const globalShortcutEnabled = computed(
   () => application.settings?.global_shortcut_enabled ?? false,
 );
 const selectedGlobalShortcut = computed(
-  () => application.settings?.global_shortcut ?? "command_or_control_shift_r",
+  () => application.settings?.global_shortcut ?? "CommandOrControl+Shift+R",
 );
-const globalShortcutOptions = computed(() => [
-  {
-    label: t("settings.shortcuts.commandOrControlShiftR"),
-    value: "command_or_control_shift_r",
-  },
-  {
-    label: t("settings.shortcuts.commandOrControlShiftSpace"),
-    value: "command_or_control_shift_space",
-  },
-  {
-    label: t("settings.shortcuts.altShiftR"),
-    value: "alt_shift_r",
-  },
-]);
 const globalShortcutStatus = computed(() => {
   if (globalShortcut.isConfiguring) {
     return {
@@ -72,11 +64,67 @@ async function updateGlobalShortcutEnabled(value: boolean) {
   await application.saveSettings({ global_shortcut_enabled: value });
 }
 
-async function updateGlobalShortcut(value: string) {
-  await application.saveSettings({
-    global_shortcut: value as GlobalShortcutPreset,
-  });
+function openShortcutCapture() {
+  capturedShortcut.value = null;
+  bindingDialogOpen.value = true;
 }
+
+function captureShortcut(event: KeyboardEvent) {
+  const shortcut = shortcutFromKeyboardEvent(event);
+
+  if (!shortcut) {
+    return;
+  }
+
+  event.preventDefault();
+  capturedShortcut.value = shortcut;
+}
+
+async function saveCapturedShortcut() {
+  if (!capturedShortcut.value) {
+    return;
+  }
+
+  const previousShortcut = selectedGlobalShortcut.value;
+
+  if (!globalShortcutEnabled.value) {
+    if (
+      await application.saveSettings({
+        global_shortcut: capturedShortcut.value,
+      })
+    ) {
+      bindingDialogOpen.value = false;
+    }
+
+    return;
+  }
+
+  if (!(await globalShortcut.configureCandidate(capturedShortcut.value))) {
+    return;
+  }
+
+  if (
+    !(await application.saveSettings({
+      global_shortcut: capturedShortcut.value,
+    }))
+  ) {
+    await globalShortcut.configureCandidate(previousShortcut);
+    return;
+  }
+
+  bindingDialogOpen.value = false;
+}
+
+watch(bindingDialogOpen, (isOpen) => {
+  if (isOpen) {
+    window.addEventListener("keydown", captureShortcut);
+    return;
+  }
+
+  window.removeEventListener("keydown", captureShortcut);
+});
+
+onBeforeUnmount(() => window.removeEventListener("keydown", captureShortcut));
 </script>
 
 <template>
@@ -88,7 +136,7 @@ async function updateGlobalShortcut(value: string) {
         <h2 class="mb-[5px] text-2xl">
           {{ t("settings.navigation.shortcuts") }}
         </h2>
-        <p class="text-ink-muted mt-[3px] leading-[var(--line-height-body)]">
+        <p class="text-ink mt-[3px] leading-[var(--line-height-body)]">
           {{ t("settings.shortcuts.description") }}
         </p>
       </div>
@@ -110,8 +158,7 @@ async function updateGlobalShortcut(value: string) {
         @update:model-value="updateGlobalShortcutEnabled"
       />
     </div>
-    <label
-      v-if="globalShortcutEnabled"
+    <div
       class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
     >
       <span class="grid gap-1">
@@ -128,14 +175,15 @@ async function updateGlobalShortcut(value: string) {
           }}
         </small>
       </span>
-      <AppSelect
-        :model-value="selectedGlobalShortcut"
-        :options="globalShortcutOptions"
-        :accessible-label="t('settings.shortcuts.globalShortcut')"
+      <AppButton
+        variant="secondary"
+        :aria-label="t('settings.shortcuts.globalShortcut')"
         :disabled="globalShortcut.isConfiguring"
-        @update:model-value="updateGlobalShortcut"
-      />
-    </label>
+        @click="openShortcutCapture"
+      >
+        {{ formatGlobalShortcut(selectedGlobalShortcut) }}
+      </AppButton>
+    </div>
     <div
       v-for="shortcut in shortcuts"
       :key="shortcut.label"
@@ -147,5 +195,38 @@ async function updateGlobalShortcut(value: string) {
         >{{ shortcut.keys }}</kbd
       >
     </div>
+    <AppDialog
+      :open="bindingDialogOpen"
+      :title="t('settings.shortcuts.captureTitle')"
+      @update:open="bindingDialogOpen = $event"
+    >
+      <div class="grid gap-3">
+        <p class="m-0">
+          {{ t("settings.shortcuts.captureDescription") }}
+        </p>
+        <p
+          class="rounded-app-sm border-line bg-canvas-subtle m-0 px-3 py-2 text-center text-lg font-semibold"
+          aria-live="polite"
+        >
+          {{
+            capturedShortcut
+              ? formatGlobalShortcut(capturedShortcut)
+              : t("settings.shortcuts.captureWaiting")
+          }}
+        </p>
+      </div>
+      <template #footer>
+        <AppButton variant="ghost" @click="bindingDialogOpen = false">
+          {{ t("settings.shortcuts.cancel") }}
+        </AppButton>
+        <AppButton
+          :disabled="!capturedShortcut || globalShortcut.isConfiguring"
+          :loading="globalShortcut.isConfiguring"
+          @click="saveCapturedShortcut"
+        >
+          {{ t("settings.shortcuts.save") }}
+        </AppButton>
+      </template>
+    </AppDialog>
   </AppSurface>
 </template>

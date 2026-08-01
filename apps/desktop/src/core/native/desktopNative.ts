@@ -34,10 +34,13 @@ let registeredGlobalShortcut: string | null = null;
 export const desktopNative: NativeBridge = {
   bootstrap: () => invoke<AppSnapshot>("bootstrap"),
 
-  saveSettings: (settings: AppSettings) =>
-    invoke<AppSettings>("save_settings", { settings }),
+  saveSettings: (updates: Partial<AppSettings>) =>
+    invoke<AppSettings>("save_settings", { request: { updates } }),
 
-  resetApplicationData: () => invoke("reset_application_data"),
+  resetApplicationSettings: () =>
+    invoke<AppSettings>("reset_application_settings"),
+
+  deleteAllApplicationData: () => invoke("delete_all_application_data"),
 
   initializeLibrary: (path: string) =>
     invoke<AppSnapshot>("initialize_library", { path }),
@@ -47,6 +50,14 @@ export const desktopNative: NativeBridge = {
       directory: true,
       multiple: false,
       title: t("native.chooseLibrary"),
+    });
+  },
+
+  async chooseLocalModelStorage() {
+    return open({
+      directory: true,
+      multiple: false,
+      title: t("native.chooseLocalModelStorage"),
     });
   },
 
@@ -95,12 +106,16 @@ export const desktopNative: NativeBridge = {
     invoke("open_system_audio_permission_settings"),
 
   async configureGlobalShortcut(shortcut, onTrigger) {
-    if (registeredGlobalShortcut) {
-      await unregister(registeredGlobalShortcut);
-      registeredGlobalShortcut = null;
+    if (!shortcut) {
+      if (registeredGlobalShortcut) {
+        await unregister(registeredGlobalShortcut);
+        registeredGlobalShortcut = null;
+      }
+
+      return;
     }
 
-    if (!shortcut) {
+    if (shortcut === registeredGlobalShortcut) {
       return;
     }
 
@@ -109,6 +124,18 @@ export const desktopNative: NativeBridge = {
         onTrigger();
       }
     });
+
+    const previousShortcut = registeredGlobalShortcut;
+
+    if (previousShortcut) {
+      try {
+        await unregister(previousShortcut);
+      } catch (reason) {
+        await unregister(shortcut);
+        throw reason;
+      }
+    }
+
     registeredGlobalShortcut = shortcut;
   },
 
@@ -200,6 +227,11 @@ export const desktopNative: NativeBridge = {
 
   localModelStatuses: () => invoke<LocalModel[]>("local_model_statuses"),
 
+  localModelStoragePath: () => invoke<string>("local_model_storage_path"),
+
+  moveLocalModels: (path: string) =>
+    invoke<string>("move_local_models", { request: { path } }),
+
   downloadLocalModel(
     modelId: string,
     onProgress: (progress: JobProgress) => void,
@@ -272,6 +304,8 @@ export const desktopNative: NativeBridge = {
 
   restoreSession: (sessionId: string) =>
     invoke<Session>("restore_session", { sessionId }),
+
+  emptyTrash: () => invoke<void>("empty_trash"),
 
   saveNotes(sessionId: string, markdown: string, expectedHash: string) {
     return invoke<SavedDocument>("save_notes", {

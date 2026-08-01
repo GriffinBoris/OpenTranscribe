@@ -22,6 +22,7 @@ pub struct AppState {
     pub(crate) event_channel: Mutex<Option<Channel<AppEvent>>>,
     pub(crate) settings: Mutex<AppSettings>,
     pub(crate) canceled_jobs: Mutex<HashSet<String>>,
+    pub(crate) active_model_downloads: Mutex<HashSet<String>>,
     pub(crate) recorder: RecordingController,
     pub(crate) openai_credentials: OpenAiCredentials,
     pub(crate) active_recording_intent: Mutex<Option<ActiveRecordingIntent>>,

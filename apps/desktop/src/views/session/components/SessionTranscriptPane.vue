@@ -132,7 +132,7 @@ async function save(segment: TranscriptSegment) {
 
 <template>
   <section
-    class="grid min-h-0 grid-rows-[var(--layout-pane-toolbar-height)_minmax(0,1fr)] border-r border-[var(--divider)] max-[900px]:border-r-0"
+    class="grid min-h-0 grid-rows-[var(--layout-pane-toolbar-height)_minmax(0,1fr)]"
   >
     <div
       class="session-pane-toolbar text-ink-muted flex h-[var(--layout-pane-toolbar-height)] min-h-0 items-center justify-between gap-3 border-b border-[var(--divider)] px-[18px] py-[9px] text-xs"

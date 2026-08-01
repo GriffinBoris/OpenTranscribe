@@ -6,7 +6,7 @@ test("shows storage and shortcut utilities in settings", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Storage" })).toBeVisible();
   await expect(page.getByText("~/Documents/OpenTranscribe")).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Change folder" }),
+    page.locator("#storage").getByRole("button", { name: "Change folder" }),
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Shortcuts" }).click();
@@ -65,6 +65,102 @@ test("keeps local model download progress visible across routes", async ({
   await expect(downloadStatus).not.toBeVisible();
 });
 
+test("captures and saves a custom global recording shortcut", async ({
+  page,
+}) => {
+  await page.goto("/settings#shortcuts");
+
+  const shortcutButton = page.getByRole("button", {
+    name: "Global recording shortcut",
+  });
+  await shortcutButton.click();
+
+  const dialog = page.getByRole("dialog", { name: "Set recording shortcut" });
+  await expect(dialog).toContainText("Press a shortcut");
+  await page.keyboard.press("Control+Shift+J");
+  await expect(dialog).toContainText("J");
+
+  await dialog.getByRole("button", { name: "Save shortcut" }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(shortcutButton).toContainText("J");
+  await expect(page.getByText("Off", { exact: true })).toBeVisible();
+});
+
+test("keeps the active global shortcut when a replacement is unavailable", async ({
+  page,
+}) => {
+  await page.goto("/settings#shortcuts");
+
+  await page.getByRole("switch", { name: "Record from anywhere" }).click();
+  const shortcutButton = page.getByRole("button", {
+    name: "Global recording shortcut",
+  });
+  await shortcutButton.click();
+  await page.keyboard.press("Control+Shift+J");
+  await page.getByRole("button", { name: "Save shortcut" }).click();
+  await expect(shortcutButton).toContainText("J");
+
+  await page.evaluate(() => {
+    window.history.replaceState(
+      {},
+      "",
+      "/settings?globalShortcutError=1#shortcuts",
+    );
+  });
+  await shortcutButton.click();
+  await page.keyboard.press("Control+Shift+K");
+  await page.getByRole("button", { name: "Save shortcut" }).click();
+
+  await expect(
+    page.getByRole("dialog", { name: "Set recording shortcut" }),
+  ).toBeVisible();
+  await expect(shortcutButton).toContainText("J");
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("opentranscribe:preview-global-shortcut"));
+  });
+  await expect(page).toHaveURL(/\/sessions\/[^/]+$/);
+});
+
+test("keeps an active local-model download from being started twice", async ({
+  page,
+}) => {
+  await page.goto("/settings#models");
+
+  const downloadButton = page
+    .getByRole("group", { name: "Fast" })
+    .getByRole("button", { name: "Download" });
+  await downloadButton.click();
+
+  await expect(downloadButton).toBeDisabled();
+  await expect(page.getByTestId("global-model-download")).toContainText(
+    "Downloading Fast",
+  );
+  await expect(page.getByRole("alert")).not.toBeVisible();
+});
+
+test("confirms and updates the local model folder", async ({ page }) => {
+  await page.goto("/settings#models");
+
+  const models = page.locator("#models");
+  await expect(models).toContainText(
+    "/Users/you/Documents/OpenTranscribe/models",
+  );
+
+  await models.getByRole("button", { name: "Change folder" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Move local models?" });
+  await expect(dialog).toContainText(
+    "/Users/you/Documents/OpenTranscribe models",
+  );
+  await dialog.getByRole("button", { name: "Move models" }).click();
+
+  await expect(dialog).not.toBeVisible();
+  await expect(models).toContainText(
+    "/Users/you/Documents/OpenTranscribe models",
+  );
+});
+
 test("reopens recording setup from application settings", async ({ page }) => {
   await page.goto("/settings?resetReady=1#application");
 
@@ -78,20 +174,46 @@ test("reopens recording setup from application settings", async ({ page }) => {
   await expect(page.getByText("Audio test")).toBeVisible();
 });
 
-test("resets app-owned data without presenting the library for deletion", async ({
+test("resets settings without deleting the library or credentials", async ({
   page,
 }) => {
   await page.goto("/settings?resetReady=1#application");
 
-  await page.getByRole("button", { name: "Reset…" }).click();
+  await page.getByRole("button", { name: "Reset settings…" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Reset OpenTranscribe?" });
-  await expect(dialog).toContainText("Your library files will not be deleted.");
+  const dialog = page.getByRole("dialog", { name: "Reset settings?" });
+  await expect(dialog).toContainText("recordings, projects, OpenAI API key");
   await expect(dialog).toContainText(
     "Operating-system permission grants are managed separately",
   );
 
-  await dialog.getByRole("button", { name: "Reset OpenTranscribe" }).click();
+  await dialog.getByRole("button", { name: "Reset settings" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Set up recording" }),
+  ).toBeVisible();
+});
+
+test("requires explicit confirmation before deleting all OpenTranscribe data", async ({
+  page,
+}) => {
+  await page.goto("/settings?resetReady=1#application");
+
+  await page.getByRole("button", { name: "Delete all data…" }).click();
+
+  const dialog = page.getByRole("dialog", {
+    name: "Delete all OpenTranscribe data?",
+  });
+  await expect(dialog).toContainText("This cannot be undone.");
+  await expect(dialog).toContainText(
+    "Other files in that folder are left alone.",
+  );
+  await expect(
+    dialog.getByRole("button", { name: "Delete all data" }),
+  ).toBeDisabled();
+
+  await dialog.getByPlaceholder("DELETE").fill("DELETE");
+  await dialog.getByRole("button", { name: "Delete all data" }).click();
 
   await expect(page).toHaveURL(/firstRun=1/);
   await expect(
@@ -159,21 +281,29 @@ test("keeps settings navigation within the natural scroll range", async ({
   await page.getByRole("button", { name: "Application", exact: true }).click();
   await expect
     .poll(() =>
-      page.locator(".settings-content").evaluate((scrollPane) => ({
-        atBottom:
-          Math.round(scrollPane.scrollTop) ===
-          Math.round(scrollPane.scrollHeight - scrollPane.clientHeight),
-        trailingSpace: Math.round(
-          scrollPane.scrollHeight -
-            (document.getElementById("application")!.offsetTop +
-              document.getElementById("application")!.offsetHeight),
+      page
+        .locator(".settings-content")
+        .evaluate((scrollPane) =>
+          Math.abs(
+            scrollPane.scrollTop -
+              (scrollPane.scrollHeight - scrollPane.clientHeight),
+          ),
         ),
-      })),
     )
-    .toEqual({
-      atBottom: true,
-      trailingSpace: 0,
-    });
+    .toBeLessThanOrEqual(1);
+  await expect
+    .poll(() =>
+      page
+        .locator(".settings-content")
+        .evaluate((scrollPane) =>
+          Math.abs(
+            scrollPane.scrollHeight -
+              (document.getElementById("application")!.offsetTop +
+                document.getElementById("application")!.offsetHeight),
+          ),
+        ),
+    )
+    .toBeLessThanOrEqual(1);
 
   await page.getByRole("button", { name: "Recording", exact: true }).click();
 

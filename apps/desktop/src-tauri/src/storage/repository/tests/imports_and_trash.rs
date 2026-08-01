@@ -112,3 +112,32 @@ fn moves_sessions_to_trash_and_restores_them() {
             .is_empty()
     );
 }
+
+#[test]
+fn permanently_removes_trashed_sessions() {
+    let directory = tempdir().expect("temporary directory should exist");
+    let repository =
+        LibraryRepository::initialize(directory.path()).expect("library should initialize");
+    let session = repository
+        .create_session("Weekly sync".to_owned(), None, SessionSource::Recording)
+        .expect("session should be created");
+
+    repository
+        .trash_session(&session.id)
+        .expect("session should move to trash");
+    repository.empty_trash().expect("trash should empty");
+
+    assert!(
+        repository
+            .trashed_sessions()
+            .expect("trash should load")
+            .is_empty()
+    );
+    assert!(
+        !directory
+            .path()
+            .join("Trash/sessions")
+            .join(session.id)
+            .exists()
+    );
+}
