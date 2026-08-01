@@ -5,6 +5,30 @@ OpenTranscribe uses the bundle identifier
 identity stable so macOS can associate microphone and Screen & System Audio
 Recording permission with the same application across builds.
 
+macOS is the only supported platform where signing changes runtime behavior.
+It binds Screen & System Audio Recording and microphone grants, along with
+Keychain item access, to the signing identity. An unsigned or ad-hoc signed
+build produces a different identity on every release, so each update silently
+drops those permissions and leaves a stale entry the user must remove by hand
+before granting again. Windows and Linux have no equivalent coupling; their
+installers stay unsigned.
+
+## Entitlements
+
+`apps/desktop/src-tauri/Entitlements.plist` carries
+`com.apple.security.device.audio-input` and is referenced from
+`bundle.macOS.entitlements` in `apps/desktop/src-tauri/tauri.conf.json`.
+
+Notarization requires the Hardened Runtime, and the Hardened Runtime denies
+microphone access without that entitlement. Unsigned development builds
+capture audio without it, so a missing entitlement never fails a build. It
+surfaces only as a notarized release that records silence. `task
+build:signed:macos` and the release workflow both assert the entitlement
+survived signing.
+
+Screen & System Audio Recording has no matching entitlement. That permission
+is a TCC grant resolved at runtime against the signing identity.
+
 ## Local signed build
 
 A distributable build requires an active Apple Developer Program membership and
@@ -25,7 +49,8 @@ task build:signed:macos
 ```
 
 The task performs a signing preflight, builds the app and DMG, verifies the
-bundle recursively, and fails if Tauri produced an ad-hoc signature.
+bundle recursively, rejects an ad-hoc signature, and rejects a bundle whose
+capture entitlements did not survive signing.
 
 Run and permission-test the packaged application at:
 
@@ -62,6 +87,44 @@ signed public releases:
 - `APPLE_ID`, `APPLE_PASSWORD`, and `APPLE_TEAM_ID`, or App Store Connect API
   issuer, key ID, and private key credentials for notarization
 
-Unsigned CI previews remain intentionally separate from distributable release
-artifacts until all credentials are present and a signed build has passed the
-microphone, system-audio, and combined-capture smoke tests.
+`APPLE_PASSWORD` is an app-specific password generated at appleid.apple.com,
+not the Apple ID account password.
+
+The release workflow reads `APPLE_SIGNING_IDENTITY` to decide how to build.
+While the secret is unset, macOS jobs pass `--no-sign` and the release is
+described as an unsigned preview, so tagging keeps working before enrollment
+completes. Once the secret is present, macOS jobs sign and notarize, and the
+signed bundle is verified before upload. No workflow edit is needed to switch
+between the two states.
+
+## Verifying a release build
+
+Confirm the signature, the notarization ticket, and the entitlements on a
+downloaded build:
+
+```bash
+codesign --verify --deep --strict --verbose=2 /Applications/OpenTranscribe.app
+codesign -d --entitlements - --xml /Applications/OpenTranscribe.app
+xcrun stapler validate /Applications/OpenTranscribe.app
+spctl --assess --type execute --verbose /Applications/OpenTranscribe.app
+```
+
+`spctl` reporting `accepted` and `source=Notarized Developer ID` is the state
+that gives a first launch without a Gatekeeper warning.
+
+## Troubleshooting
+
+**Local transcription crashes only in a signed build.** The bundled sidecar
+links whisper.cpp with the Metal backend. Some ggml builds allocate executable
+memory in a way the Hardened Runtime rejects. Confirm the crash is a code
+signing failure with `log show --predicate 'sender == "kernel"' --last 5m`, and
+if so add `com.apple.security.cs.allow-jit` to the entitlements. Add it only
+after confirming the failure; it weakens the Hardened Runtime.
+
+**Microphone capture records silence after notarization.** The entitlement did
+not reach the bundle. Verify with `codesign -d --entitlements - --xml` against
+the packaged app rather than the development binary.
+
+**Permissions reset after an update.** The signing identity changed between
+releases. Confirm both builds report the same `TeamIdentifier` and `Authority`
+under `codesign -dvv`.

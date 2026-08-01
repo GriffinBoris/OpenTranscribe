@@ -30,6 +30,33 @@ compile checks for every supported release triple. Trusted `main` and nightly
 runs also retain unsigned installers for seven days so current packages can be
 smoke-tested before signing is configured.
 
+## Installing a release
+
+Download the installer for your platform from the releases page.
+
+**macOS** ships a separate DMG per architecture: `aarch64` for Apple Silicon
+and `x86_64` for Intel. Drag OpenTranscribe to Applications and open it from
+there, not from the mounted disk image, so macOS does not run it from a
+randomized read-only location that discards capture permissions. Grant
+microphone access at the first prompt, then grant Screen & System Audio
+Recording in System Settings to capture meeting audio.
+
+Signed releases open with the ordinary confirmation for a downloaded
+application. Unsigned preview builds are blocked instead: open System Settings,
+go to Privacy & Security, and choose Open Anyway for OpenTranscribe, or clear
+the quarantine attribute after moving the app into place.
+
+```bash
+xattr -dr com.apple.quarantine /Applications/OpenTranscribe.app
+```
+
+**Windows** installers are unsigned, so SmartScreen shows a warning on first
+run. Choose More info, then Run anyway. Nothing degrades on later updates.
+
+**Linux** provides an AppImage and a `.deb`. Both need PipeWire 1.0 or newer
+running for system-output capture. Mark the AppImage executable before running
+it.
+
 ## Stack
 
 - Tauri 2 and Rust for capture, storage, credentials, and providers
@@ -91,8 +118,12 @@ domain crate. Commit generated contract changes with the Rust model change that
 produced them.
 
 The signed macOS task requires an installed Developer ID Application identity,
-builds the app and DMG with that identity, and rejects an ad-hoc signature.
-See [docs/macos-signing.md](docs/macos-signing.md) for local and CI setup.
+builds the app and DMG with that identity, rejects an ad-hoc signature, and
+rejects a bundle whose capture entitlements did not survive signing. macOS is
+the only platform where signing changes runtime behavior: it binds capture
+permissions and Keychain access to the signing identity, so unsigned updates
+silently lose both. See [docs/macos-signing.md](docs/macos-signing.md) for
+local and CI setup.
 
 Without Task:
 

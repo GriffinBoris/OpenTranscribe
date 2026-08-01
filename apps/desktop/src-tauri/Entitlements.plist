@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!--
+      Notarization requires the Hardened Runtime, which denies microphone
+      access unless the application carries this entitlement. Capture works
+      in unsigned development builds without it, so a missing entitlement
+      only surfaces as a silent microphone failure in a notarized build.
+
+      Screen and System Audio Recording has no matching entitlement. That
+      permission is granted through TCC at runtime and is bound to the
+      signing identity rather than to an entitlement.
+    -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+  </dict>
+</plist>
