@@ -34,6 +34,10 @@ pub fn reset(app: &tauri::AppHandle, state: &AppState) -> AppResult<()> {
         resolve_app_path(app.path().app_config_dir())?,
         resolve_app_path(app.path().app_data_dir())?,
         resolve_app_path(app.path().app_cache_dir())?,
+        // Downloaded models live beside the library rather than under the
+        // application data directory, so they need removing by name. Only the
+        // models directory is listed; the library around it is user content.
+        crate::local_models::models_root(app)?,
     ])?;
 
     *state.repository.lock().expect("app state lock poisoned") = None;
@@ -83,6 +87,24 @@ mod tests {
         assert!(!data.exists());
         assert!(!cache.exists());
         assert!(library.join("data").exists());
+    }
+
+    #[test]
+    fn clears_downloaded_models_without_deleting_the_library_around_them() {
+        let root = tempdir().expect("temporary directory should be created");
+        let library = root.path().join("Documents").join("OpenTranscribe");
+        let models = library.join("models");
+        let projects = library.join("Projects");
+
+        for directory in [&models, &projects] {
+            fs::create_dir_all(directory).expect("test directory should be created");
+            fs::write(directory.join("data"), b"stored").expect("test data should be written");
+        }
+
+        remove_app_directories(std::slice::from_ref(&models)).expect("models should be removed");
+
+        assert!(!models.exists());
+        assert!(projects.join("data").exists());
     }
 
     #[test]

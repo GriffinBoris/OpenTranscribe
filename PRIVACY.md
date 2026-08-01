@@ -7,8 +7,20 @@ sync.
 
 The library folder selected by the user contains session manifests, notes,
 audio artifacts, transcripts, and exports. A hidden `.opentranscribe` directory
-contains a rebuildable SQLite search and job index. Local model assets belong
-in application data rather than the meeting library.
+contains a rebuildable SQLite search and job index.
+
+Downloaded speech models are kept separately in `OpenTranscribe/models` under
+the documents directory, so a large download stays visible and removable
+without knowing platform-specific data paths. Models are not part of any
+meeting library: they are not read by the library index, they are shared by
+every library, and switching libraries does not download them again. They
+contain no meeting content and can be deleted and refetched at any time.
+
+Because that location sits under the documents directory, a synchronized
+documents folder will treat models as ordinary files and upload them. Remove
+the models from the application, or exclude `OpenTranscribe/models` from
+synchronization, to keep several hundred megabytes of regenerable data out of
+a backup or cloud quota.
 
 ## OpenAI transcription
 

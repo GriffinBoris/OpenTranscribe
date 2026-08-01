@@ -78,7 +78,7 @@ fn select_preferred_installed_model(models: &[LocalModel]) -> Option<&LocalModel
         .or_else(|| models.iter().find(|model| model.installed))
 }
 
-pub use manager::installed_path;
+pub use manager::{installed_path, models_root};
 pub use transcriber::LocalTranscriptionService;
 
 #[cfg(test)]
