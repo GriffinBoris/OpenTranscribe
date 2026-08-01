@@ -1,0 +1,35 @@
+.app-toggle[data-p-checked="true"] .app-toggle__slider {
+  transform: translateX(16px);
+}
+
+.app-toggle:has(.app-toggle__input:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  outline-offset: 2px;
+}
+
+.app-dialog {
+  transition:
+    opacity var(--duration-slow) var(--easing-standard),
+    transform var(--duration-slow) var(--easing-standard);
+}
+
+.app-dialog.p-dialog-enter-active,
+.app-dialog.p-dialog-leave-active {
+  will-change: opacity, transform;
+}
+
+.app-dialog.p-dialog-enter-from,
+.app-dialog.p-dialog-leave-to {
+  opacity: 0;
+  transform: translateY(var(--space-1-5)) scale(0.99);
+}
+
+.app-progress__value {
+  transition: transform var(--duration-fast) var(--easing-linear) !important;
+}
+
+@keyframes dialog-mask-enter {
+  from {
+    opacity: 0;
+  }
+}

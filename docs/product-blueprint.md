@@ -564,7 +564,7 @@ Tauri recommends channels for ordered, high-throughput streaming data. Use comma
 ### Suggested Rust module boundaries
 
 ```text
-src-tauri/src/
+apps/desktop/src-tauri/src/
   app/
     commands.rs
     state.rs

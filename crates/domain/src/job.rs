@@ -60,7 +60,9 @@ pub enum ProgressUnit {
 #[ts(export)]
 pub struct JobProgress {
     pub stage: JobStage,
+    #[ts(type = "number")]
     pub completed_units: u64,
+    #[ts(type = "number | null")]
     pub total_units: Option<u64>,
     pub unit: ProgressUnit,
     pub message: String,
@@ -74,6 +76,8 @@ pub struct Job {
     pub kind: JobKind,
     pub state: JobState,
     pub progress: Option<JobProgress>,
+    #[serde(default)]
+    pub estimated_cost_usd: Option<f64>,
     pub attempt: u8,
     pub error_message: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -90,6 +94,7 @@ impl Job {
             kind,
             state: JobState::Queued,
             progress: None,
+            estimated_cost_usd: None,
             attempt: 1,
             error_message: None,
             created_at: timestamp,

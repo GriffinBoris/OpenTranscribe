@@ -50,6 +50,7 @@ pub struct CaptureDevice {
 pub struct PauseEvent {
     pub started_at: DateTime<Utc>,
     pub ended_at: DateTime<Utc>,
+    #[ts(type = "number")]
     pub duration_ms: u64,
 }
 
@@ -57,7 +58,9 @@ pub struct PauseEvent {
 #[ts(export)]
 pub struct GapEvent {
     pub source: crate::AudioSource,
+    #[ts(type = "number")]
     pub start_ms: u64,
+    #[ts(type = "number")]
     pub duration_ms: u64,
     pub reason: String,
 }
@@ -69,6 +72,7 @@ pub struct Session {
     pub id: String,
     pub title: String,
     pub project_id: Option<String>,
+    #[ts(type = "number")]
     pub revision: u64,
     pub source: SessionSource,
     pub lifecycle: SessionLifecycle,
@@ -76,6 +80,7 @@ pub struct Session {
     pub created_at: DateTime<Utc>,
     pub started_at: Option<DateTime<Utc>>,
     pub stopped_at: Option<DateTime<Utc>>,
+    #[ts(type = "number")]
     pub duration_ms: u64,
     pub microphone: Option<CaptureDevice>,
     pub system_output: Option<CaptureDevice>,

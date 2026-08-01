@@ -24,8 +24,14 @@ order: 0
 
 ## Repository Layout
 
-- `src/` contains the Vue application. Route views live in `src/views/`; shared controls live in `src/components/`.
-- `src-tauri/` contains the desktop process and thin Tauri command adapters.
+- `apps/desktop/` is the desktop product entrypoint and owns its npm, Vite,
+  Playwright, and Tauri configuration.
+- `apps/desktop/src/` contains the Vue application. Route views live in
+  `apps/desktop/src/views/`; shared controls live in
+  `apps/desktop/src/components/`.
+- `apps/desktop/src-tauri/` contains the desktop process and thin Tauri command
+  adapters. Keep native services and orchestration beside, not inside, the
+  `commands/` adapter folder.
 - `crates/domain/` owns persisted manifests, IDs, transcript types, jobs, and shared DTOs.
 - `crates/transcriber-protocol/` owns the versioned MessagePack protocol shared with the local transcriber.
 - `sidecars/local-transcriber/` owns whisper.cpp model lifecycle and inference.
@@ -56,6 +62,9 @@ order: 0
   - ScreenCaptureKit on macOS
   - WASAPI loopback on Windows
   - PipeWire on Linux
+- Linux compilation requires PipeWire/SPA 1.0 or newer development headers;
+  keep Linux CI on Ubuntu 24.04 or newer so bindgen sees the API expected by
+  `pipewire-rs` 0.10.
 - Keep the macOS deployment target at 14.0 in both Cargo and Tauri bundle
   configuration. The ScreenCaptureKit Rust adapter includes a Swift bridge, so
   `build.rs` derives the active toolchain's Swift runtime library path through
@@ -115,6 +124,11 @@ order: 0
   manifest rewrite must move the directory back so readable files do not
   disagree with their location.
 - Trash is app-managed, recoverable, and never automatically purged.
+- Resetting application data clears app-owned configuration, remembered
+  library selection, credentials, downloaded models, and caches, then returns
+  to recording setup. It must preserve the selected library's recordings and
+  projects, leave operating-system permission grants under OS control, and be
+  unavailable while recording, processing, or downloading a model.
 - Schema changes require sequential migrations and fixtures covering the previous schema.
 
 ## Frontend Conventions
@@ -124,9 +138,10 @@ order: 0
   in focused shell-level stores beside the application store instead of growing
   one catch-all store.
 - Route folders own their views, local components, and local stores. Avoid a global catch-all store.
-- Wrap PrimeVue primitives in app-owned components under `src/components/ui/`.
+- Wrap PrimeVue primitives in app-owned components under
+  `apps/desktop/src/components/ui/`.
 - Keep the OpenTranscribe application, installer, Dock/taskbar, sidebar, and
-  tray icons derived from the canonical artwork in `src/assets/`. Use the
+  tray icons derived from the canonical artwork in `apps/desktop/src/assets/`. Use the
   full-color application tile for branded surfaces and the matching transparent
   monochrome mark for system tray or menu-bar template surfaces. Functional UI
   icons use Lucide so stroke weight and optical sizing remain consistent.
@@ -134,17 +149,34 @@ order: 0
   Raw `button`, `dialog`, `input`, `select`, and `textarea` elements are linted
   as errors so focus behavior, overlays, disabled states, and visual treatment
   stay consistent across the desktop app.
-- Use semantic tokens from `src/styles/tokens.css`; do not hardcode theme colors
+- Use semantic tokens from `apps/desktop/src/styles/tokens.css`; do not hardcode theme colors
   in components. Reuse the shared typography, spacing, control-size, radius,
   shadow, motion, opacity, layering, and shell-layout scales whenever a value
   participates in app-wide visual consistency. Keep intrinsic media dimensions,
   responsive breakpoints, and genuinely component-specific geometry local
   instead of creating a token for every pixel value.
-- Keep global CSS ordered through `src/styles/main.css`, with base, shared
-  component, and focused view styles split into named files before any one
-  stylesheet becomes a catch-all.
+- Use Tailwind CSS v4 through the Vite plugin for layout, spacing, typography,
+  color, borders, and responsive states. Keep OpenTranscribe's semantic CSS
+  tokens as Tailwind theme values so utilities continue to adapt to light and
+  dark themes. Limit authored CSS to token definitions, base rules,
+  PrimeVue pass-through states, animations, and browser-specific behavior;
+  do not add new layout or control selectors when a utility class expresses
+  the intent clearly.
 - Keep the live transcript read-only while recording. Notes and markers remain editable.
+- Stream OpenAI live captions from the native backend so credentials never enter
+  the webview. Fan microphone and system packets into bounded, non-blocking
+  queues so network latency cannot interrupt the recording writer. Treat live
+  captions as ephemeral feedback; after stop, create the durable transcript
+  from the finalized recording with the user's selected file model.
+- Treat streamed file-transcription output as ephemeral feedback too. Persist
+  only the completed provider response as the durable transcription run.
 - Every provider action displays whether audio stays local or is sent to OpenAI.
+- Preserve provider-reported transcription usage with each immutable run. Derive
+  cloud cost estimates from one centralized, dated pricing table, include both
+  the live and saved-transcript passes when both are requested, count concurrent
+  source streams separately, and label the result as an estimate because
+  provider billing and prices can change. Never invent a price for a model whose
+  official rate is not published.
 - All strings go through Vue I18n even though the first release ships only English.
 - Maintain keyboard navigation, visible focus, reduced motion, and WCAG 2.2 AA contrast.
 - Keep the desktop shell compact and product-first: one quiet sidebar, one inset

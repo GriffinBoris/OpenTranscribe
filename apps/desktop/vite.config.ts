@@ -1,0 +1,27 @@
+import { fileURLToPath, URL } from "node:url";
+
+import tailwindcss from "@tailwindcss/vite";
+import vue from "@vitejs/plugin-vue";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  plugins: [tailwindcss(), vue()],
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
+  clearScreen: false,
+  server: {
+    host: "127.0.0.1",
+    port: 1420,
+    strictPort: true,
+    watch: {
+      ignored: ["**/dist/**", "**/target/**"],
+    },
+  },
+  test: {
+    exclude: ["tests/e2e/**", "node_modules/**"],
+    globals: true,
+  },
+});

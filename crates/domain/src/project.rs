@@ -10,6 +10,7 @@ pub struct Project {
     pub schema_version: u32,
     pub id: String,
     pub name: String,
+    #[ts(type = "number")]
     pub revision: u64,
     pub glossary: Vec<String>,
     pub openai_profile_id: Option<String>,

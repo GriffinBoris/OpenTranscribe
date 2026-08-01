@@ -15,52 +15,52 @@ tasks:
   install:
     desc: Install locked frontend dependencies
     cmds:
-      - npm ci
+      - npm --prefix apps/desktop ci
 
   dev:
     desc: Run the Tauri desktop application in development mode
     cmds:
-      - npm run tauri dev
+      - npm --prefix apps/desktop run tauri dev
 
   dev:web:
     desc: Run the Vue frontend without the native shell
     cmds:
-      - npm run dev
+      - npm --prefix apps/desktop run dev
 
   format:
     desc: Format frontend and Rust sources
     cmds:
-      - npm run format
+      - npm --prefix apps/desktop run format
       - cargo fmt --all
 
   format:check:
     desc: Check frontend and Rust formatting
     cmds:
-      - npm run format:check
+      - npm --prefix apps/desktop run format:check
       - cargo fmt --all --check
 
   lint:
     desc: Lint frontend and Rust sources
     cmds:
-      - npm run lint
+      - npm --prefix apps/desktop run lint
       - cargo clippy --workspace --all-targets --locked -- -D warnings
 
   typecheck:
     desc: Type-check the Vue application
     cmds:
-      - npm run typecheck
+      - npm --prefix apps/desktop run typecheck
 
   test:
     desc: Run frontend, workspace UI, and Rust tests
     cmds:
-      - npm run test
-      - npm run test:ui
+      - npm --prefix apps/desktop run test
+      - npm --prefix apps/desktop run test:ui
       - cargo test --workspace --locked
 
   test:ui:
     desc: Run the workspace UI tests
     cmds:
-      - npm run test:ui
+      - npm --prefix apps/desktop run test:ui
 
   check:
     desc: Run every non-mutating quality gate
@@ -69,21 +69,32 @@ tasks:
   build:
     desc: Build the web frontend and Rust workspace
     cmds:
-      - npm run build
+      - npm --prefix apps/desktop run build
       - cargo build --workspace --locked
 
   build:native:
     desc: Compile the native desktop application without packaging installers
     cmds:
-      - npm run tauri build -- --no-bundle
+      - npm --prefix apps/desktop run tauri build -- --no-bundle
+
+  build:dmg:
+    desc: Build an unsigned macOS app and DMG
+    platforms: [darwin]
+    cmds:
+      - npm --prefix apps/desktop run tauri build -- --bundles app,dmg --no-sign -- --locked
 
   build:signed:macos:
     desc: Build and verify a Developer ID-signed macOS app and DMG
     platforms: [darwin]
     cmds:
-      - npm run verify:signing:macos
-      - npm run tauri build -- --bundles app,dmg
-      - npm run verify:signing:macos -- target/release/bundle/macos/OpenTranscribe.app
+      - npm --prefix apps/desktop run verify:signing:macos
+      - npm --prefix apps/desktop run tauri build -- --bundles app,dmg
+      - npm --prefix apps/desktop run verify:signing:macos -- ../../target/release/bundle/macos/OpenTranscribe.app
+
+  types:generate:
+    desc: Regenerate frontend domain contracts from the Rust domain crate
+    cmds:
+      - npm --prefix apps/desktop run types:generate
 
   agents:generate:
     desc: Regenerate repository agent targets from authored guidance

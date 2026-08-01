@@ -99,6 +99,8 @@ const source = resolve(
 );
 const destination = resolve(
   projectRoot,
+  "apps",
+  "desktop",
   "src-tauri",
   "binaries",
   `local-transcriber-${host}${executableSuffix}`,

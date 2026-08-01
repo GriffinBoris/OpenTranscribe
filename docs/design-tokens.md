@@ -1,8 +1,8 @@
 # Design tokens
 
-OpenTranscribe’s visual system lives in `src/styles/tokens.css`. The tokens are
+OpenTranscribe’s visual system lives in `apps/desktop/src/styles/tokens.css`. The tokens are
 loaded before base, shared-component, and view styles through
-`src/styles/main.css`, so every Vue view and app-owned PrimeVue wrapper can use
+`apps/desktop/src/styles/main.css`, so every Vue view and app-owned PrimeVue wrapper can use
 the same values.
 
 ## Token groups

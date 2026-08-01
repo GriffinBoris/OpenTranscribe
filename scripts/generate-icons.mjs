@@ -10,6 +10,8 @@ const run = promisify(execFile);
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const tauriCli = join(
   repositoryRoot,
+  "apps",
+  "desktop",
   "node_modules",
   "@tauri-apps",
   "cli",
@@ -17,29 +19,39 @@ const tauriCli = join(
 );
 const appIcon = join(
   repositoryRoot,
+  "apps",
+  "desktop",
   "src",
   "assets",
   "opentranscribe-icon.svg",
 );
 const trayIcon = join(
   repositoryRoot,
+  "apps",
+  "desktop",
   "src",
   "assets",
   "opentranscribe-tray.svg",
 );
-const nativeIcons = join(repositoryRoot, "src-tauri", "icons");
+const nativeIcons = join(
+  repositoryRoot,
+  "apps",
+  "desktop",
+  "src-tauri",
+  "icons",
+);
 const trayOutput = await mkdtemp(join(tmpdir(), "opentranscribe-tray-"));
 
 try {
   await run(
     process.execPath,
     [tauriCli, "icon", appIcon, "--output", nativeIcons],
-    { cwd: repositoryRoot },
+    { cwd: join(repositoryRoot, "apps", "desktop") },
   );
   await run(
     process.execPath,
     [tauriCli, "icon", trayIcon, "--output", trayOutput, "--png", "32"],
-    { cwd: repositoryRoot },
+    { cwd: join(repositoryRoot, "apps", "desktop") },
   );
   await copyFile(
     join(trayOutput, "32x32.png"),
