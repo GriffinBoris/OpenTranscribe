@@ -2,7 +2,9 @@ mod catalog;
 mod manager;
 mod transcriber;
 
+use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use opentranscribe_domain::{JobProgress, JobStage, ProgressUnit};
 use serde::{Deserialize, Serialize};
@@ -18,6 +20,39 @@ pub struct LocalModel {
     pub description: String,
     pub byte_count: u64,
     pub installed: bool,
+}
+
+struct ActiveModelDownload<'a> {
+    downloads: &'a Mutex<HashSet<String>>,
+    model_id: String,
+}
+
+impl<'a> ActiveModelDownload<'a> {
+    fn reserve(downloads: &'a Mutex<HashSet<String>>, model_id: String) -> AppResult<Self> {
+        if !downloads
+            .lock()
+            .expect("model download lock poisoned")
+            .insert(model_id.clone())
+        {
+            return Err(AppError::Model(
+                "that local model is already downloading".to_owned(),
+            ));
+        }
+
+        Ok(Self {
+            downloads,
+            model_id,
+        })
+    }
+}
+
+impl Drop for ActiveModelDownload<'_> {
+    fn drop(&mut self) {
+        self.downloads
+            .lock()
+            .expect("model download lock poisoned")
+            .remove(&self.model_id);
+    }
 }
 
 #[derive(Deserialize)]
@@ -106,19 +141,10 @@ pub async fn download_local_model(
     progress_channel: Channel<JobProgress>,
     state: tauri::State<'_, crate::state::AppState>,
 ) -> AppResult<LocalModel> {
-    if !state
-        .active_model_downloads
-        .lock()
-        .expect("app state lock poisoned")
-        .insert(model_id.clone())
-    {
-        return Err(AppError::Model(
-            "that local model is already downloading".to_owned(),
-        ));
-    }
+    let _download = ActiveModelDownload::reserve(&state.active_model_downloads, model_id.clone())?;
 
     let download_model_id = model_id.clone();
-    let result = tauri::async_runtime::spawn_blocking(move || {
+    tauri::async_runtime::spawn_blocking(move || {
         let mut progress_connected = true;
 
         manager::download(&app, &download_model_id, |completed, total| {
@@ -143,14 +169,7 @@ pub async fn download_local_model(
     })
     .await
     .map_err(|error| AppError::Model(error.to_string()))
-    .and_then(|result| result);
-
-    state
-        .active_model_downloads
-        .lock()
-        .expect("app state lock poisoned")
-        .remove(&model_id);
-    result
+    .and_then(|result| result)
 }
 
 #[tauri::command]
@@ -180,7 +199,10 @@ pub use transcriber::{LocalTranscriptionService, transcribe_file};
 
 #[cfg(test)]
 mod tests {
-    use super::{LocalModel, select_preferred_installed_model};
+    use std::collections::HashSet;
+    use std::sync::Mutex;
+
+    use super::{ActiveModelDownload, AppError, LocalModel, select_preferred_installed_model};
 
     fn model(id: &str, preset: &str, installed: bool) -> LocalModel {
         LocalModel {
@@ -225,5 +247,29 @@ mod tests {
         ];
 
         assert!(select_preferred_installed_model(&models).is_none());
+    }
+
+    #[test]
+    fn reserves_one_download_per_model_and_releases_it_for_retry() {
+        let downloads = Mutex::new(HashSet::new());
+        let first = ActiveModelDownload::reserve(&downloads, "balanced".to_owned())
+            .expect("first download should reserve the model");
+
+        assert!(matches!(
+            ActiveModelDownload::reserve(&downloads, "balanced".to_owned()),
+            Err(AppError::Model(message)) if message == "that local model is already downloading"
+        ));
+
+        drop(first);
+
+        let retry = ActiveModelDownload::reserve(&downloads, "balanced".to_owned())
+            .expect("released download should be retryable");
+        drop(retry);
+        assert!(
+            downloads
+                .lock()
+                .expect("model download lock should remain usable")
+                .is_empty()
+        );
     }
 }
