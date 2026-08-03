@@ -301,9 +301,10 @@ task build
 - Pull requests run the focused Ubuntu 22.04 native contract job alongside
   frontend checks. Use the manual pipeline for macOS or Windows native checks
   when a change needs platform-specific validation.
-- Keep Rust build caches partitioned by runner image. Ubuntu 22.04 and Ubuntu
-  24.04 must never reuse compiled build scripts because their GLIBC baselines
-  differ; registry downloads can still remain shared through Cargo's cache.
+- Keep Rust build caches partitioned by runner image and Cargo.lock. Ubuntu
+  22.04 and Ubuntu 24.04 must never reuse compiled build scripts because their
+  GLIBC baselines differ, and dependency updates must never restore stale build
+  scripts; registry downloads can still remain shared through Cargo's cache.
 - Public releases are dual licensed under MIT OR Apache-2.0.
 - Do not publish updater metadata until every intended artifact and updater signature is available.
 - Preserve the updater signing key for the lifetime of every updater-enabled

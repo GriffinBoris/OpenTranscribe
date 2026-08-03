@@ -77,7 +77,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
         with:
-          key: ${{ matrix.os }}
+          key: ${{ matrix.os }}-${{ hashFiles('Cargo.lock') }}
 
       - name: Install Linux native dependencies
         if: runner.os == 'Linux'
