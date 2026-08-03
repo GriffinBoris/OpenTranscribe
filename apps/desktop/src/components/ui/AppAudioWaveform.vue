@@ -102,7 +102,7 @@ function isPlayed(index: number) {
       ]"
       :style="{
         height: `${barHeight(sample)}px`,
-        animationDelay: loading ? `${(index % 12) * -90}ms` : undefined,
+        animationDelay: loading ? `${(index % 24) * -45}ms` : undefined,
       }"
     />
   </div>
