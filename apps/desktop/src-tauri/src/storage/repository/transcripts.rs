@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use opentranscribe_domain::{ArtifactKind, Session, Transcript, TranscriptRun};
+use opentranscribe_domain::{ArtifactKind, Session, SpeakerSource, Transcript, TranscriptRun};
 
 use super::atomic_file;
 use super::repository::LibraryRepository;
@@ -119,6 +119,7 @@ impl LibraryRepository {
             .find(|speaker| speaker.id == speaker_id)
             .ok_or(AppError::NotFound)?;
         speaker.display_name = display_name;
+        speaker.source = SpeakerSource::Manual;
         self.save_transcript_edits(&transcript_directory, transcript)
     }
 

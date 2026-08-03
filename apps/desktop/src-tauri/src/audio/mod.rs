@@ -17,7 +17,7 @@ pub use mixer::mix_tracks;
 pub use recorder::{
     AudioDevices, RecordingCapture, RecordingController, RecordingStatus, StartRecordingOptions,
 };
-pub use waveform::waveform_peaks;
+pub use waveform::{WAVEFORM_BUCKET_COUNT, waveform_peaks};
 
 use crate::error::AppResult;
 

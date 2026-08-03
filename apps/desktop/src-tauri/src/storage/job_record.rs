@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use opentranscribe_domain::{Job, JobKind, JobState};
+use opentranscribe_domain::{Job, JobKind, JobState, RecordingMode};
 use serde::{Deserialize, Serialize};
 
 use super::atomic_file;
@@ -10,6 +10,10 @@ use crate::error::AppResult;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum JobRequest {
+    FinalizeRecording {
+        mode: RecordingMode,
+        openai_model_id: String,
+    },
     TranscribeLocal {
         model_id: String,
     },
@@ -23,6 +27,7 @@ pub enum JobRequest {
 impl JobRequest {
     pub fn job_kind(&self) -> JobKind {
         match self {
+            Self::FinalizeRecording { .. } => JobKind::FinalizeRecording,
             Self::TranscribeLocal { .. } => JobKind::TranscribeLocal,
             Self::TranscribeOpenAi { .. } => JobKind::TranscribeOpenAi,
         }

@@ -24,6 +24,18 @@ export function createApplicationSettings(
     applyReducedMotion(nextSettings.appearance.reduced_motion);
   }
 
+  async function isAudioCaptureActive() {
+    const [recordingStatus, dictationStatus] = await Promise.all([
+      native.recordingStatus(),
+      native.dictationStatus(),
+    ]);
+
+    return (
+      recordingStatus !== null ||
+      ["recording", "transcribing"].includes(dictationStatus.phase)
+    );
+  }
+
   async function saveSettings(updates: Partial<AppSettings>) {
     if (!snapshot.value) {
       return false;
@@ -57,8 +69,16 @@ export function createApplicationSettings(
     operationError.value = null;
 
     try {
+      if (await isAudioCaptureActive()) {
+        return;
+      }
+
       audioDevices.value = await native.audioDevices();
     } catch (reason) {
+      if (await isAudioCaptureActive()) {
+        return;
+      }
+
       operationError.value =
         reason instanceof Error ? reason.message : String(reason);
     }

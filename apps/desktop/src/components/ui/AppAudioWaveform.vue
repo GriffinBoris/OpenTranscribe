@@ -25,18 +25,23 @@ const waveformElement = ref<HTMLElement>();
 const waveformWidth = ref(0);
 
 const displayedSamples = computed(() => {
-  if (!props.dense || !props.samples.length) {
+  if (!props.dense || !props.samples.length || waveformWidth.value === 0) {
     return props.samples;
   }
 
-  const barCount = Math.max(
-    props.samples.length,
-    Math.floor(waveformWidth.value / 5),
-  );
+  const barCount = Math.max(1, Math.floor(waveformWidth.value / 5));
 
   return Array.from({ length: barCount }, (_, index) => {
-    const sampleIndex = Math.floor((index * props.samples.length) / barCount);
-    return props.samples[sampleIndex];
+    const start = Math.floor((index * props.samples.length) / barCount);
+    const end = Math.max(
+      start + 1,
+      Math.floor(((index + 1) * props.samples.length) / barCount),
+    );
+    const samples = props.samples.slice(start, end);
+
+    return (
+      samples.reduce((total, sample) => total + sample, 0) / samples.length
+    );
   });
 });
 
@@ -80,7 +85,7 @@ function isPlayed(index: number) {
     ref="waveformElement"
     class="flex size-full min-w-0 items-center"
     :class="
-      dense ? 'justify-start gap-[3px] overflow-hidden' : 'justify-center gap-1'
+      dense ? 'justify-start gap-1 overflow-hidden' : 'justify-center gap-1'
     "
     aria-hidden="true"
   >
@@ -89,7 +94,7 @@ function isPlayed(index: number) {
       :key="index"
       class="rounded-full motion-reduce:transition-none"
       :class="[
-        dense ? 'w-0.5 shrink-0' : 'max-w-[3px] min-w-px flex-1',
+        dense ? 'w-px shrink-0' : 'max-w-[3px] min-w-px flex-1',
         active || loading ? 'opacity-100' : 'opacity-30',
         loading
           ? 'origin-center animate-[waveform-pulse_1100ms_ease-in-out_infinite]'

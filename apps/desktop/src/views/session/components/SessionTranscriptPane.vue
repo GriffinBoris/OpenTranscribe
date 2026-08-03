@@ -65,10 +65,13 @@ function liveSpeaker(source: LiveTranscriptUpdate["source"]) {
 
 const transcriptText = computed(() =>
   props.segments
-    .map(
-      (segment) =>
-        `${speakerFor(segment)?.display_name ?? t("session.speaker")}: ${segment.text}`,
-    )
+    .map((segment) => {
+      const speaker = speakerFor(segment);
+
+      return speaker && ["diarized", "manual"].includes(speaker.source)
+        ? `${speaker.display_name}: ${segment.text}`
+        : segment.text;
+    })
     .join("\n\n"),
 );
 

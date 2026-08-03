@@ -5,7 +5,7 @@ use opentranscribe_domain::{
     Artifact, ArtifactKind, Codec, Session, SessionLifecycle, SessionSource,
 };
 
-use crate::audio::{extract_audio, waveform_peaks};
+use crate::audio::{WAVEFORM_BUCKET_COUNT, extract_audio, waveform_peaks};
 use crate::error::{AppError, AppResult};
 
 use super::atomic_file;
@@ -62,7 +62,10 @@ impl LibraryRepository {
             sha256: hash_file(&staged_audio)?,
         };
         let staged_waveform = staged_directory.join("audio/waveform.json");
-        atomic_file::write_json(&staged_waveform, &waveform_peaks(&staged_audio, 160)?)?;
+        atomic_file::write_json(
+            &staged_waveform,
+            &waveform_peaks(&staged_audio, WAVEFORM_BUCKET_COUNT)?,
+        )?;
         let waveform_destination = destination.join("audio/waveform.json");
         let waveform_artifact = Artifact {
             id: opentranscribe_domain::new_id(),

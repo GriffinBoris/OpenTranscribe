@@ -8,7 +8,7 @@ use opentranscribe_domain::{
 };
 use tempfile::tempdir;
 
-use crate::audio::RecordingCapture;
+use crate::audio::{RecordingCapture, WAVEFORM_BUCKET_COUNT};
 use crate::error::AppError;
 
 use super::{LibraryRepository, read_directories, read_files, relative_path};

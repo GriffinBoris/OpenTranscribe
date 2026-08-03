@@ -11,7 +11,8 @@ use super::audio_artifact::{
 };
 use super::repository::{LibraryRepository, read_files, relative_path};
 use crate::audio::{
-    RecordingCapture, finalize_microphone_track, finalize_system_track, mix_tracks, waveform_peaks,
+    RecordingCapture, WAVEFORM_BUCKET_COUNT, finalize_microphone_track, finalize_system_track,
+    mix_tracks, waveform_peaks,
 };
 use crate::error::AppError;
 use crate::error::AppResult;
@@ -37,6 +38,12 @@ impl LibraryRepository {
 
     pub fn finish_recording(&self, session_id: &str) -> AppResult<Session> {
         self.finalize_recording(session_id, SessionLifecycle::Ready, RecoveryState::None)
+    }
+
+    pub fn mark_recording_finalizing(&self, session_id: &str) -> AppResult<Session> {
+        self.update_session(session_id, |session| {
+            session.lifecycle = SessionLifecycle::Finalizing;
+        })
     }
 
     pub fn mark_recording_needs_attention(&self, session_id: &str) -> AppResult<Session> {
@@ -113,7 +120,10 @@ impl LibraryRepository {
         }
 
         let waveform_path = directory.join("audio/waveform.json");
-        atomic_file::write_json(&waveform_path, &waveform_peaks(&waveform_source, 160)?)?;
+        atomic_file::write_json(
+            &waveform_path,
+            &waveform_peaks(&waveform_source, WAVEFORM_BUCKET_COUNT)?,
+        )?;
         artifacts.push(waveform_artifact(
             relative_path(&self.root, &waveform_path),
             &waveform_path,
@@ -157,9 +167,50 @@ impl LibraryRepository {
             .iter()
             .find(|artifact| artifact.kind == ArtifactKind::Waveform)
             .ok_or(AppError::NotFound)?;
-        Ok(serde_json::from_slice(&fs::read(
-            self.root.join(&artifact.relative_path),
-        )?)?)
+        let waveform_path = self.root.join(&artifact.relative_path);
+        let waveform = serde_json::from_slice::<Vec<f32>>(&fs::read(&waveform_path)?)?;
+
+        if waveform.len() == WAVEFORM_BUCKET_COUNT {
+            return Ok(waveform);
+        }
+
+        let source = [
+            ArtifactKind::Mixed,
+            ArtifactKind::Microphone,
+            ArtifactKind::System,
+            ArtifactKind::ImportedAudio,
+            ArtifactKind::ImportedOriginal,
+        ]
+        .iter()
+        .find_map(|kind| {
+            workspace
+                .session
+                .artifacts
+                .iter()
+                .find(|artifact| artifact.kind == *kind)
+        })
+        .ok_or(AppError::NotFound)?;
+        let waveform = waveform_peaks(
+            &self.root.join(&source.relative_path),
+            WAVEFORM_BUCKET_COUNT,
+        )?;
+        let refreshed_waveform_path = waveform_path.with_file_name("waveform-rms.json");
+        atomic_file::write_json(&refreshed_waveform_path, &waveform)?;
+        let duration_ms = workspace.session.duration_ms;
+        let replacement = waveform_artifact(
+            relative_path(&self.root, &refreshed_waveform_path),
+            &refreshed_waveform_path,
+            duration_ms,
+        )?;
+
+        self.update_session(session_id, |session| {
+            session
+                .artifacts
+                .retain(|artifact| artifact.kind != ArtifactKind::Waveform);
+            session.artifacts.push(replacement);
+        })?;
+
+        Ok(waveform)
     }
 
     pub(super) fn mark_recoverable_recordings(&self) -> AppResult<()> {
