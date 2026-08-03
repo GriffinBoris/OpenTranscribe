@@ -295,6 +295,9 @@ task build
 - Pull requests and the main pipeline own quality and test coverage. Tagged
   releases run only version validation and installer packaging so a release
   does not duplicate those expensive checks before building its artifacts.
+- Pull requests run the focused Ubuntu 22.04 native contract job alongside
+  frontend checks. Use the manual pipeline for macOS or Windows native checks
+  when a change needs platform-specific validation.
 - Public releases are dual licensed under MIT OR Apache-2.0.
 - Do not publish updater metadata until every intended artifact and updater signature is available.
 - Preserve the updater signing key for the lifetime of every updater-enabled
