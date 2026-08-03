@@ -222,7 +222,9 @@ fn run_capture(
         .map_err(pipewire_error)?;
 
     while matches!(stop_receiver.try_recv(), Err(TryRecvError::Empty)) {
-        mainloop.loop_().iterate(Duration::from_millis(50));
+        mainloop
+            .loop_()
+            .iterate(pw::loop_::Timeout::Finite(Duration::from_millis(50)));
     }
 
     Ok(())
