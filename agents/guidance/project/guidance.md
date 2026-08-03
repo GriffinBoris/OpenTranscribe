@@ -62,10 +62,19 @@ order: 0
   - ScreenCaptureKit on macOS
   - WASAPI loopback on Windows
   - PipeWire on Linux
-- Linux release bundles build on Ubuntu 22.04, our glibc 2.35 compatibility
-  baseline. Native compile checks can run on Ubuntu 24.04 with PipeWire/SPA
-  1.0 or newer development headers; do not move installer builds to a newer
-  base image without intentionally raising the published glibc requirement.
+- Linux release bundles and native compile checks build on Ubuntu 22.04, our
+  glibc 2.35 compatibility baseline. Keep Linux PipeWire bindings compatible
+  with the runner's PipeWire 0.3 development headers; do not move those jobs
+  to a newer base image without intentionally raising the published glibc
+  requirement.
+- The Linux system-audio adapter uses the PipeWire 0.6 binding family because
+  it builds against Ubuntu 22.04's PipeWire 0.3.48 headers. Pin `pipewire`,
+  `pipewire-sys`, `libspa`, and `libspa-sys` together: the top-level
+  `pipewire` crate otherwise permits newer low-level crates that do not build
+  against those headers. Upgrade that family only with an Ubuntu 22.04 native
+  validation run. The 0.6 low-level crates generate bindings at build time, so
+  Linux native workflows must install `libclang-dev` alongside PipeWire headers
+  and the desktop build dependencies must enable bindgen's `runtime` feature.
 - Keep the macOS deployment target at 14.0 in both Cargo and Tauri bundle
   configuration. The ScreenCaptureKit Rust adapter includes a Swift bridge, so
   `build.rs` derives the active toolchain's Swift runtime library path through
@@ -269,9 +278,15 @@ task typecheck
 task test
 task check
 task build
+task ci:linux:docker MODE=native-test
 ```
 
 - CI uses `npm ci` and Cargo `--locked`.
+- Use `task ci:linux:docker MODE=<native-test|quality|frontend-test|browser-test|release>`
+  for local Ubuntu 22.04 x86_64 validation before dispatching a GitHub workflow.
+  It provisions one cached local Docker image and separate Cargo, npm, browser,
+  and target volumes; its release mode builds the binary and `.deb`. It does not
+  replace AppImage, macOS, or Windows validation.
 - Pull requests receive no API keys or release secrets.
 - Run `cargo fmt --check`, Clippy with warnings denied, Rust tests, ESLint, Vue type checking, frontend tests, and the production build before completion.
 - Native CI proves compilation. Physical hardware tests prove microphone and system-audio behavior.
@@ -291,6 +306,16 @@ task build
 - Release builds upload their platform installers as workflow artifacts. One
   publish job downloads the complete set and creates the draft GitHub Release;
   do not let matrix jobs race to create or mutate the same release.
+- Pull requests and the main pipeline own quality and test coverage. Tagged
+  releases run only version validation and installer packaging so a release
+  does not duplicate those expensive checks before building its artifacts.
+- Pull requests run the focused Ubuntu 22.04 native contract job alongside
+  frontend checks. Use the manual pipeline for macOS or Windows native checks
+  when a change needs platform-specific validation.
+- Keep Rust build caches partitioned by runner image and Cargo.lock. Ubuntu
+  22.04 and Ubuntu 24.04 must never reuse compiled build scripts because their
+  GLIBC baselines differ, and dependency updates must never restore stale build
+  scripts; registry downloads can still remain shared through Cargo's cache.
 - Public releases are dual licensed under MIT OR Apache-2.0.
 - Do not publish updater metadata until every intended artifact and updater signature is available.
 - Preserve the updater signing key for the lifetime of every updater-enabled

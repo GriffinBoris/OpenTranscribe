@@ -91,6 +91,36 @@ tasks:
       - npm --prefix apps/desktop run tauri build -- --bundles app,dmg
       - npm --prefix apps/desktop run verify:signing:macos -- ../../target/release/bundle/macos/OpenTranscribe.app
 
+  ci:linux:docker:
+    desc: Run one Ubuntu 22 Linux CI gate locally in Docker (MODE=native-test, quality, frontend-test, browser-test, or release)
+    vars:
+      MODE: '{{.MODE | default "native-test"}}'
+      PLATFORM: '{{.PLATFORM | default "linux/amd64"}}'
+      LINUX_CI_IMAGE: '{{.LINUX_CI_IMAGE | default "opentranscribe-linux-ci-base:ubuntu22-v4"}}'
+    cmds:
+      - >-
+        docker image inspect {{.LINUX_CI_IMAGE}} >/dev/null ||
+        task ci:linux:docker:bootstrap PLATFORM={{.PLATFORM}} LINUX_CI_IMAGE={{.LINUX_CI_IMAGE}}
+      - >-
+        docker run --rm --platform {{.PLATFORM}} --env CARGO_HOME=/opt/cargo --env RUSTUP_HOME=/opt/rustup --volume "$(pwd):/source:ro" --volume opentranscribe-linux-cargo-registry:/opt/cargo/registry --volume opentranscribe-linux-cargo-git:/opt/cargo/git --volume opentranscribe-linux-npm:/root/.npm --volume opentranscribe-linux-playwright:/root/.cache/ms-playwright --volume opentranscribe-linux-target:/workspace/target {{.LINUX_CI_IMAGE}} bash /source/docker/linux-ci.sh run {{.MODE}}
+
+  ci:linux:docker:bootstrap:
+    desc: Provision the cached Ubuntu 22 Docker image used by local Linux CI gates
+    vars:
+      PLATFORM: '{{.PLATFORM | default "linux/amd64"}}'
+      LINUX_CI_IMAGE: '{{.LINUX_CI_IMAGE | default "opentranscribe-linux-ci-base:ubuntu22-v4"}}'
+      LINUX_CI_CONTAINER: '{{.LINUX_CI_CONTAINER | default "opentranscribe-linux-ci-bootstrap-ubuntu22-v4"}}'
+    status:
+      - docker image inspect {{.LINUX_CI_IMAGE}}
+    cmds:
+      - >-
+        docker_config_dir="$(mktemp -d)" &&
+        DOCKER_CONFIG="$docker_config_dir" docker pull --platform {{.PLATFORM}} ubuntu:22.04 &&
+        docker container rm --force {{.LINUX_CI_CONTAINER}} >/dev/null 2>&1 || true &&
+        docker create --name {{.LINUX_CI_CONTAINER}} --platform {{.PLATFORM}} --env CARGO_HOME=/opt/cargo --env RUSTUP_HOME=/opt/rustup --volume "$(pwd):/source:ro" ubuntu:22.04 bash /source/docker/linux-ci.sh setup &&
+        docker start --attach {{.LINUX_CI_CONTAINER}} &&
+        docker commit {{.LINUX_CI_CONTAINER}} {{.LINUX_CI_IMAGE}}
+
   types:generate:
     desc: Regenerate frontend domain contracts from the Rust domain crate
     cmds:

@@ -18,11 +18,11 @@ on:
         description: Operating system for the native test stage
         required: true
         type: choice
-        default: ubuntu-24.04
+        default: ubuntu-22.04
         options:
           - macos-latest
           - windows-latest
-          - ubuntu-24.04
+          - ubuntu-22.04
           - all
       target:
         description: Build target for the build stage
