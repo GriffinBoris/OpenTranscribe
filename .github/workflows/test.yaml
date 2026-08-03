@@ -49,7 +49,7 @@ on:
           - all
           - macos-latest
           - windows-latest
-          - ubuntu-24.04
+          - ubuntu-22.04
 
 permissions:
   contents: read
@@ -129,8 +129,8 @@ jobs:
           ${{ fromJSON(
             inputs.native_os == 'macos-latest' && '["macos-latest"]' ||
             inputs.native_os == 'windows-latest' && '["windows-latest"]' ||
-            inputs.native_os == 'ubuntu-24.04' && '["ubuntu-24.04"]' ||
-            '["macos-latest","windows-latest","ubuntu-24.04"]'
+            inputs.native_os == 'ubuntu-22.04' && '["ubuntu-22.04"]' ||
+            '["macos-latest","windows-latest","ubuntu-22.04"]'
           ) }}
     runs-on: ${{ matrix.os }}
     steps:

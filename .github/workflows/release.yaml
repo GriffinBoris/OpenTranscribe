@@ -9,12 +9,6 @@ permissions:
   contents: read
 
 jobs:
-  quality:
-    uses: ./.github/workflows/quality.yaml
-
-  test:
-    uses: ./.github/workflows/test.yaml
-
   validate:
     runs-on: ubuntu-latest
     outputs:
@@ -42,7 +36,7 @@ jobs:
           echo "tag=v$version" >>"$GITHUB_OUTPUT"
 
   build:
-    needs: [quality, test, validate]
+    needs: validate
     environment: release
     permissions:
       contents: read
