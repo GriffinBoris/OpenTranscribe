@@ -219,9 +219,7 @@ pub(crate) fn updater_public_key() -> Option<&'static str> {
         .filter(|public_key| !public_key.trim().is_empty())?;
 
     #[cfg(target_os = "linux")]
-    if std::env::var_os("APPIMAGE").is_none() {
-        return None;
-    }
+    std::env::var_os("APPIMAGE")?;
 
     Some(public_key)
 }
