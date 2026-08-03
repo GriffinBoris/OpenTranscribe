@@ -73,7 +73,8 @@ order: 0
   `pipewire` crate otherwise permits newer low-level crates that do not build
   against those headers. Upgrade that family only with an Ubuntu 22.04 native
   validation run. The 0.6 low-level crates generate bindings at build time, so
-  Linux native workflows must install `libclang-dev` alongside PipeWire headers.
+  Linux native workflows must install `libclang-dev` alongside PipeWire headers
+  and the desktop build dependencies must enable bindgen's `runtime` feature.
 - Keep the macOS deployment target at 14.0 in both Cargo and Tauri bundle
   configuration. The ScreenCaptureKit Rust adapter includes a Swift bridge, so
   `build.rs` derives the active toolchain's Swift runtime library path through
