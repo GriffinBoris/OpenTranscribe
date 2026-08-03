@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use hound::{SampleFormat, WavReader, WavSpec, WavWriter};
 
+use crate::audio::sync_and_rename;
 use crate::error::{AppError, AppResult};
 
 pub struct FinalizedTrack {
@@ -76,10 +77,8 @@ fn finalize_track(
     }
 
     writer.finalize().map_err(audio_error)?;
-    fs::File::open(&temporary_path)?.sync_all()?;
-
     validate_finalized_track(&temporary_path, spec, frame_count, prefix)?;
-    fs::rename(&temporary_path, output_path)?;
+    sync_and_rename(&temporary_path, output_path)?;
 
     Ok(FinalizedTrack {
         path: output_path.to_owned(),
