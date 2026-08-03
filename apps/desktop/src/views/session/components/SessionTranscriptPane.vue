@@ -270,7 +270,7 @@ async function save(segment: TranscriptSegment) {
           </template>
           <p
             v-else
-            class="mt-[5px] cursor-copy text-lg leading-[var(--line-height-reading)]"
+            class="mt-[5px] text-lg leading-[var(--line-height-reading)]"
             role="button"
             tabindex="0"
             :aria-label="t('session.copySegment')"

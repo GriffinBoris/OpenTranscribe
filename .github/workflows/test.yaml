@@ -3,8 +3,13 @@ name: Test
 on:
   workflow_call:
     inputs:
-      frontend:
-        description: Run frontend and browser contract tests
+      frontend_unit:
+        description: Run frontend unit tests and dependency audit
+        required: false
+        type: boolean
+        default: true
+      frontend_browser:
+        description: Run Playwright browser contract tests
         required: false
         type: boolean
         default: true
@@ -20,8 +25,13 @@ on:
         default: all
   workflow_dispatch:
     inputs:
-      frontend:
-        description: Run frontend and browser contract tests
+      frontend_unit:
+        description: Run frontend unit tests and dependency audit
+        required: false
+        type: boolean
+        default: true
+      frontend_browser:
+        description: Run Playwright browser contract tests
         required: false
         type: boolean
         default: true
@@ -45,9 +55,9 @@ permissions:
   contents: read
 
 jobs:
-  frontend:
-    if: inputs.frontend
-    name: Frontend and browser contracts
+  frontend-unit:
+    if: inputs.frontend_unit
+    name: Frontend unit contracts
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -68,6 +78,29 @@ jobs:
         run: npm run test
         working-directory: apps/desktop
 
+      - name: Audit frontend dependencies
+        run: npm audit
+        working-directory: apps/desktop
+
+  frontend-browser:
+    if: inputs.frontend_browser
+    name: Frontend browser contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: apps/desktop
+
       - name: Install browser test runtime
         run: npx playwright install --with-deps chromium
         working-directory: apps/desktop
@@ -85,10 +118,6 @@ jobs:
             apps/desktop/playwright-report/
             apps/desktop/test-results/
           if-no-files-found: ignore
-
-      - name: Audit frontend dependencies
-        run: npm audit
-        working-directory: apps/desktop
 
   native:
     if: inputs.native

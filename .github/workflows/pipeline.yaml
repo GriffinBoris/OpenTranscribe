@@ -2,6 +2,39 @@ name: Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      stage:
+        description: Run one validation or build stage
+        required: true
+        type: choice
+        default: quality
+        options:
+          - quality
+          - frontend-unit
+          - frontend-browser
+          - native
+          - build
+      native_os:
+        description: Operating system for the native test stage
+        required: true
+        type: choice
+        default: ubuntu-24.04
+        options:
+          - macos-latest
+          - windows-latest
+          - ubuntu-24.04
+          - all
+      target:
+        description: Build target for the build stage
+        required: true
+        type: choice
+        default: aarch64-apple-darwin
+        options:
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+          - x86_64-pc-windows-msvc
+          - x86_64-unknown-linux-gnu
+          - all
 
 permissions:
   contents: read
@@ -12,13 +45,37 @@ concurrency:
 
 jobs:
   quality:
+    if: inputs.stage == 'quality'
     uses: ./.github/workflows/quality.yaml
 
-  test:
+  frontend-unit:
+    if: inputs.stage == 'frontend-unit'
     uses: ./.github/workflows/test.yaml
+    with:
+      frontend_unit: true
+      frontend_browser: false
+      native: false
+
+  frontend-browser:
+    if: inputs.stage == 'frontend-browser'
+    uses: ./.github/workflows/test.yaml
+    with:
+      frontend_unit: false
+      frontend_browser: true
+      native: false
 
   native:
-    needs: [quality, test]
+    if: inputs.stage == 'native'
+    uses: ./.github/workflows/test.yaml
+    with:
+      frontend_unit: false
+      frontend_browser: false
+      native: true
+      native_os: ${{ inputs.native_os }}
+
+  build:
+    if: inputs.stage == 'build'
     uses: ./.github/workflows/native-build.yaml
     with:
       bundle: true
+      target: ${{ inputs.target }}
