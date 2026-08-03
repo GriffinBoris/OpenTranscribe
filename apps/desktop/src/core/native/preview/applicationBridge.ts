@@ -21,6 +21,9 @@ type ApplicationBridge = Pick<
   | "saveSettings"
   | "resetApplicationSettings"
   | "deleteAllApplicationData"
+  | "updaterConfigured"
+  | "checkForUpdate"
+  | "installUpdate"
   | "initializeLibrary"
   | "chooseLibrary"
   | "createProject"
@@ -78,6 +81,28 @@ export const previewApplicationBridge = {
 
   async deleteAllApplicationData() {
     window.location.assign("/?firstRun=1&resetReady=1");
+  },
+
+  async updaterConfigured() {
+    return new URLSearchParams(window.location.search).has("updater");
+  },
+
+  async checkForUpdate() {
+    const searchParameters = new URLSearchParams(window.location.search);
+
+    if (searchParameters.get("update") !== "available") {
+      return null;
+    }
+
+    return {
+      version: "0.1.2",
+      notes: "Preview update notes.",
+    };
+  },
+
+  async installUpdate(onProgress) {
+    onProgress({ completed_bytes: 0, total_bytes: 100 });
+    onProgress({ completed_bytes: 100, total_bytes: 100 });
   },
 
   async initializeLibrary(path: string) {

@@ -111,6 +111,19 @@ jobs:
             echo "macos_signed=false" >>"$GITHUB_OUTPUT"
           fi
 
+      - name: Resolve updater mode
+        id: updater
+        shell: bash
+        env:
+          OPENTRANSCRIBE_UPDATER_PUBLIC_KEY: ${{ vars.OPENTRANSCRIBE_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$OPENTRANSCRIBE_UPDATER_PUBLIC_KEY" ] && [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "args=--config src-tauri/tauri.updater.conf.json" >>"$GITHUB_OUTPUT"
+          else
+            echo "args=" >>"$GITHUB_OUTPUT"
+          fi
+
       - name: Build installers
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f
         env:
@@ -121,10 +134,13 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          OPENTRANSCRIBE_UPDATER_PUBLIC_KEY: ${{ vars.OPENTRANSCRIBE_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           uploadUpdaterJson: false
-          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci ${{ steps.signing.outputs.sign_args }} -- --locked
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci ${{ steps.signing.outputs.sign_args }} ${{ steps.updater.outputs.args }} -- --locked
 
       - name: Verify Linux GLIBC baseline
         if: matrix.target == 'x86_64-unknown-linux-gnu'
@@ -140,16 +156,45 @@ jobs:
         run: npm run verify:signing:macos -- ../../target/${{ matrix.target }}/release/bundle/macos/OpenTranscribe.app
         working-directory: apps/desktop
 
-      - name: Upload release installers
+      - name: Name updater assets by target
+        if: steps.updater.outputs.args != ''
+        shell: bash
+        run: |
+          while IFS= read -r -d '' asset; do
+            case "$asset" in
+              *.app.tar.gz)
+                renamed="${asset%.app.tar.gz}.${{ matrix.target }}.app.tar.gz"
+                ;;
+              *.AppImage)
+                renamed="${asset%.AppImage}.${{ matrix.target }}.AppImage"
+                ;;
+              *.exe)
+                renamed="${asset%.exe}.${{ matrix.target }}.exe"
+                ;;
+            esac
+
+            mv "$asset" "$renamed"
+            mv "$asset.sig" "$renamed.sig"
+          done < <(
+            find "target/${{ matrix.target }}/release/bundle" -type f \( \
+              -name '*.app.tar.gz' -o \
+              -name '*.AppImage' -o \
+              -name '*.exe' \
+            \) -print0
+          )
+
+      - name: Upload release assets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: release-installers-${{ matrix.target }}
+          name: release-assets-${{ matrix.target }}
           path: |
             target/${{ matrix.target }}/release/bundle/**/*.dmg
             target/${{ matrix.target }}/release/bundle/**/*.exe
             target/${{ matrix.target }}/release/bundle/**/*.msi
             target/${{ matrix.target }}/release/bundle/**/*.AppImage
             target/${{ matrix.target }}/release/bundle/**/*.deb
+            target/${{ matrix.target }}/release/bundle/**/*.tar.gz
+            target/${{ matrix.target }}/release/bundle/**/*.sig
           if-no-files-found: error
           retention-days: 1
 
@@ -160,12 +205,28 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download release installers
+      - name: Download release assets
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          pattern: release-installers-*
-          path: release-installers
-          merge-multiple: true
+          pattern: release-assets-*
+          path: release-assets
+
+      - name: Create updater manifest
+        env:
+          OPENTRANSCRIBE_UPDATER_PUBLIC_KEY: ${{ vars.OPENTRANSCRIBE_UPDATER_PUBLIC_KEY }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "$OPENTRANSCRIBE_UPDATER_PUBLIC_KEY" ] || [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            exit 0
+          fi
+
+          node scripts/create-updater-manifest.mjs \
+            --assets-directory release-assets \
+            --output release-assets/latest.json \
+            --release-tag "$RELEASE_TAG" \
+            --version "$RELEASE_VERSION"
 
       - name: Create draft release
         env:
@@ -174,18 +235,21 @@ jobs:
           RELEASE_TAG: ${{ needs.validate.outputs.tag }}
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
         run: |
-          mapfile -d '' installers < <(
-            find release-installers -type f \( \
+          mapfile -d '' release_assets < <(
+            find release-assets -type f \( \
               -name '*.dmg' -o \
               -name '*.exe' -o \
               -name '*.msi' -o \
               -name '*.AppImage' -o \
-              -name '*.deb' \
+              -name '*.deb' -o \
+              -name '*.tar.gz' -o \
+              -name '*.sig' -o \
+              -name 'latest.json' \
             \) -print0
           )
 
-          if [ "${#installers[@]}" -eq 0 ]; then
-            echo "No release installers were downloaded." >&2
+          if [ "${#release_assets[@]}" -eq 0 ]; then
+            echo "No release assets were downloaded." >&2
             exit 1
           fi
 
@@ -196,9 +260,9 @@ jobs:
           fi
 
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${installers[@]}" --clobber
+            gh release upload "$RELEASE_TAG" "${release_assets[@]}" --clobber
           else
-            gh release create "$RELEASE_TAG" "${installers[@]}" \
+            gh release create "$RELEASE_TAG" "${release_assets[@]}" \
               --draft \
               --prerelease \
               --title "OpenTranscribe v$RELEASE_VERSION" \

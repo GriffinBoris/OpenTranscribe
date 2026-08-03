@@ -283,12 +283,22 @@ task build
   the protected release environment's Developer ID Application identity and
   notarization credentials; local signed builds receive the identity through
   `APPLE_SIGNING_IDENTITY` instead of committing machine-specific configuration.
-  Tauri updater artifacts are always signed.
+  Tauri updater artifacts are created only when the protected release
+  environment provides both the immutable updater private key and its public
+  counterpart. The application checks the static GitHub Release manifest on
+  startup, but it must ask before downloading or restarting and must defer the
+  install while recording, processing, or downloading a model.
 - Release builds upload their platform installers as workflow artifacts. One
   publish job downloads the complete set and creates the draft GitHub Release;
   do not let matrix jobs race to create or mutate the same release.
 - Public releases are dual licensed under MIT OR Apache-2.0.
 - Do not publish updater metadata until every intended artifact and updater signature is available.
+- Preserve the updater signing key for the lifetime of every updater-enabled
+  release line. A replacement key cannot update installations that trust the
+  original public key.
+- The static GitHub Release update feed carries one Linux payload, so enable
+  in-app updating only from the AppImage. Leave `.deb` installs to the system
+  package manager rather than serving them the wrong updater artifact.
 
 ## Guidance Checklist
 

@@ -1,11 +1,14 @@
 import { Channel, convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check, type Update } from "@tauri-apps/plugin-updater";
 
 import type { NativeBridge } from "@/core/native/NativeBridge";
 import { i18n } from "@/i18n";
 import type {
   AppEvent,
+  AppUpdate,
   AppSettings,
   AppSnapshot,
   AudioDevices,
@@ -28,10 +31,12 @@ import type {
   SearchFilters,
   SearchPage,
   Transcript,
+  UpdateDownloadProgress,
 } from "@/types/domain";
 
 const { t } = i18n.global;
 const registeredGlobalShortcuts = new Map<"recording" | "dictation", string>();
+let pendingUpdate: Update | null = null;
 
 const exportExtensions: Record<ExportFormat, string> = {
   markdown: "md",
@@ -51,6 +56,50 @@ export const desktopNative: NativeBridge = {
     invoke<AppSettings>("reset_application_settings"),
 
   deleteAllApplicationData: () => invoke("delete_all_application_data"),
+
+  updaterConfigured: () => invoke<boolean>("updater_configured"),
+
+  async checkForUpdate(): Promise<AppUpdate | null> {
+    if (pendingUpdate) {
+      await pendingUpdate.close();
+    }
+
+    pendingUpdate = await check();
+
+    return pendingUpdate
+      ? {
+          version: pendingUpdate.version,
+          notes: pendingUpdate.body ?? null,
+        }
+      : null;
+  },
+
+  async installUpdate(onProgress) {
+    if (!pendingUpdate) {
+      throw new Error("No update is ready to install.");
+    }
+
+    let completedBytes = 0;
+    let totalBytes: number | null = null;
+
+    await pendingUpdate.downloadAndInstall((event) => {
+      if (event.event === "Started") {
+        totalBytes = event.data.contentLength ?? null;
+      }
+
+      if (event.event === "Progress") {
+        completedBytes += event.data.chunkLength;
+      }
+
+      onProgress({
+        completed_bytes: completedBytes,
+        total_bytes: totalBytes,
+      } satisfies UpdateDownloadProgress);
+    });
+
+    pendingUpdate = null;
+    await relaunch();
+  },
 
   initializeLibrary: (path: string) =>
     invoke<AppSnapshot>("initialize_library", { path }),

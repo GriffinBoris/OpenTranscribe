@@ -90,6 +90,32 @@ signed public releases:
 `APPLE_PASSWORD` is an app-specific password generated at appleid.apple.com,
 not the Apple ID account password.
 
+## In-app updater
+
+Direct-download updates use a separate Tauri signing key. It verifies the
+update payload after download; it does not replace Developer ID signing or
+notarization. Generate this key once, store its private part safely, and never
+replace it after releasing an updater-enabled build:
+
+```bash
+npm --prefix apps/desktop run tauri signer generate -- -w ~/.tauri/opentranscribe-updater.key
+```
+
+Store the generated private key content in the protected `release`
+environment as `TAURI_SIGNING_PRIVATE_KEY`. Store its optional passphrase as
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Add the generated public key as the
+repository variable `OPENTRANSCRIBE_UPDATER_PUBLIC_KEY`; it is intentionally
+embedded in each release build and is not a secret.
+
+When both values are configured, tagged release builds create signed updater
+payloads, upload their `.sig` files, and publish `latest.json` only after every
+target is available. The app checks that manifest on launch and asks the user
+before downloading or restarting. Keep tagged releases as drafts until the
+macOS installer is Developer ID-signed and notarized; publish a stable,
+non-prerelease release to make it discoverable at the `releases/latest`
+endpoint. On Linux, in-app updating is available from the AppImage only; `.deb`
+installs remain package-manager-managed.
+
 The release workflow reads `APPLE_SIGNING_IDENTITY` to decide how to build.
 While the secret is unset, macOS jobs pass `--no-sign` and the release is
 described as an unsigned preview, so tagging keeps working before enrollment

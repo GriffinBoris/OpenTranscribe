@@ -94,6 +94,16 @@ export interface ConnectionTestResult {
   message: string;
 }
 
+export interface AppUpdate {
+  version: string;
+  notes: string | null;
+}
+
+export interface UpdateDownloadProgress {
+  completed_bytes: number;
+  total_bytes: number | null;
+}
+
 export interface LocalModel {
   id: string;
   preset: "fast" | "balanced" | "best";

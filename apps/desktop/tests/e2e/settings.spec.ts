@@ -239,6 +239,29 @@ test("reopens recording setup from application settings", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
 });
 
+test("reviews a signed application update before downloading it", async ({
+  page,
+}) => {
+  await page.goto(
+    "/settings?updater=enabled&update=available&resetReady=1#application",
+  );
+
+  const applicationSettings = page.locator("#application");
+  await expect(applicationSettings).toContainText(
+    "Version 0.1.2 is available.",
+  );
+
+  await applicationSettings
+    .getByRole("button", { name: "Check for updates" })
+    .click();
+
+  const dialog = page.getByRole("dialog", { name: "Update available" });
+  await expect(dialog).toContainText("Preview update notes.");
+  await expect(
+    dialog.getByRole("button", { name: "Download and restart" }),
+  ).toBeEnabled();
+});
+
 test("resets settings without deleting the library or credentials", async ({
   page,
 }) => {

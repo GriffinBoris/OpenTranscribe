@@ -277,6 +277,22 @@ export const messages = {
           "Review microphone and system-audio permissions, then run a 10-second source test.",
         action: "Run setup",
       },
+      updates: {
+        title: "Updates",
+        description:
+          "Check for a signed update. You choose when OpenTranscribe downloads and restarts.",
+        unavailable: "Updates are not configured for this build.",
+        checking: "Checking for updates…",
+        upToDate: "You are up to date.",
+        available: "Version {version} is available.",
+        check: "Check for updates",
+        review: "Review update",
+        dialogTitle: "Update available",
+        noNotes: "No release notes were provided.",
+        busy: "Finish active recordings, processing, and model downloads before installing an update.",
+        downloading: "Downloading update · {percent}%",
+        install: "Download and restart",
+      },
       reset: {
         title: "Reset settings",
         description:

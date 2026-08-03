@@ -5,8 +5,10 @@ import ApplicationShellView from "@/views/application/ApplicationShellView.vue";
 import DictationPanelView from "@/views/dictation/DictationPanelView.vue";
 import { subscribeToApplicationEvents } from "@/views/application/applicationEvents";
 import { useApplicationStore } from "@/views/application/applicationStore";
+import { useUpdateStore } from "@/views/application/updateStore";
 
 const application = useApplicationStore();
+const updater = useUpdateStore();
 const isDictationPanel = computed(() =>
   new URLSearchParams(window.location.search).has("dictation"),
 );
@@ -21,6 +23,7 @@ onMounted(async () => {
   }
 
   await application.bootstrap();
+  void updater.initialize();
 
   try {
     await subscribeToApplicationEvents();

@@ -1,5 +1,6 @@
 import type {
   AppEvent,
+  AppUpdate,
   AppSettings,
   AppSnapshot,
   AudioDevices,
@@ -22,6 +23,7 @@ import type {
   SearchFilters,
   SearchPage,
   Transcript,
+  UpdateDownloadProgress,
 } from "@/types/domain";
 
 export interface NativeBridge {
@@ -29,6 +31,11 @@ export interface NativeBridge {
   saveSettings(updates: Partial<AppSettings>): Promise<AppSettings>;
   resetApplicationSettings(): Promise<AppSettings>;
   deleteAllApplicationData(): Promise<void>;
+  updaterConfigured(): Promise<boolean>;
+  checkForUpdate(): Promise<AppUpdate | null>;
+  installUpdate(
+    onProgress: (progress: UpdateDownloadProgress) => void,
+  ): Promise<void>;
   initializeLibrary(path: string): Promise<AppSnapshot>;
   chooseLibrary(): Promise<string | null>;
   createProject(name: string): Promise<Project>;
