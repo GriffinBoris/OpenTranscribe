@@ -35,7 +35,7 @@ impl From<CreateRecordingRequest> for RecordingRequest {
 pub fn audio_devices(state: tauri::State<'_, AppState>) -> AppResult<AudioDevices> {
     if state.recorder.status().is_some() || crate::dictation::is_active(&state) {
         return Err(AppError::Application(
-            "stop the current recording before refreshing audio devices".to_owned(),
+            "stop the current recording or dictation before refreshing audio devices".to_owned(),
         ));
     }
 

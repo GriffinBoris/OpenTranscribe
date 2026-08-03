@@ -65,10 +65,13 @@ function liveSpeaker(source: LiveTranscriptUpdate["source"]) {
 
 const transcriptText = computed(() =>
   props.segments
-    .map(
-      (segment) =>
-        `${speakerFor(segment)?.display_name ?? t("session.speaker")}: ${segment.text}`,
-    )
+    .map((segment) => {
+      const speaker = speakerFor(segment);
+
+      return speaker && ["diarized", "manual"].includes(speaker.source)
+        ? `${speaker.display_name}: ${segment.text}`
+        : segment.text;
+    })
     .join("\n\n"),
 );
 
@@ -267,7 +270,7 @@ async function save(segment: TranscriptSegment) {
           </template>
           <p
             v-else
-            class="mt-[5px] cursor-copy text-lg leading-[var(--line-height-reading)]"
+            class="mt-[5px] text-lg leading-[var(--line-height-reading)]"
             role="button"
             tabindex="0"
             :aria-label="t('session.copySegment')"

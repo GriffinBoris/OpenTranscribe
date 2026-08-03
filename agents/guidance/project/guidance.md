@@ -81,6 +81,10 @@ order: 0
   Provider, credential, or model failures must leave the saved recording ready
   for manual retry and surface an attention event instead of turning recording
   completion into a failure.
+- Stop capture synchronously, then finalize tracks, mixes, and waveform data in
+  a durable `FinalizeRecording` job. Never run that disk-heavy work on the
+  stop command path; a finalization job is recoverable and intentionally cannot
+  be canceled.
 - Build the local transcriber through `scripts/prepare-sidecar.mjs`. Tauri
   `externalBin` requires the copied executable to include the Rust target
   triple, and whisper.cpp builds require CMake 3.20 or newer. Host development
@@ -121,8 +125,10 @@ order: 0
 - Rebuild the SQLite title, notes, and transcript index from durable library
   files when a library opens. Search results may use the index for speed but
   must resolve timestamps and session identity from durable manifests.
-- Cache waveform peaks as a small JSON artifact after audio finalization. A
-  missing waveform must not make recorded audio or playback unavailable.
+- Cache RMS waveform energy levels as a small JSON artifact after audio
+  finalization. This avoids saturating long recordings where a per-bucket peak
+  would make every bar look full-height. A missing waveform must not make
+  recorded audio or playback unavailable.
 - When moving a session between Inbox and a project, move the complete session
   directory, update its project assignment and revision, rebase every
   library-relative artifact path, and refresh the rebuildable index. A failed

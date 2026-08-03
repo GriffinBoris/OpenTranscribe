@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleCheck, CircleDashed } from "@lucide/vue";
+import { CircleAlert, CircleCheck, CircleDashed } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
@@ -49,7 +49,19 @@ function isCloudJob(job: Job) {
   return job.kind.includes("open_ai");
 }
 
+function jobProvider(job: Job) {
+  if (job.kind === "finalize_recording") {
+    return t("processing.onDevice");
+  }
+
+  return isCloudJob(job) ? t("processing.openAi") : t("processing.local");
+}
+
 function jobKind(job: Job) {
+  if (job.kind === "finalize_recording") {
+    return t("processing.recordingFinalization");
+  }
+
   if (job.kind === "transcribe_open_ai") {
     return t("processing.openAiTranscription");
   }
@@ -108,7 +120,13 @@ function estimateDetails(job: Job) {
             <div
               class="processing-row__title flex min-w-0 items-center gap-2.5 max-[1100px]:col-span-2 max-[700px]:col-span-1"
             >
+              <CircleAlert
+                v-if="job.state === 'failed'"
+                :size="18"
+                class="shrink-0 text-[var(--warning)]"
+              />
               <CircleDashed
+                v-else
                 :size="18"
                 class="shrink-0 animate-[spin_1.4s_linear_infinite]"
               />
@@ -131,11 +149,7 @@ function estimateDetails(job: Job) {
                 {{ t("processing.provider") }}
               </span>
               <StatusPill :tone="isCloudJob(job) ? 'cloud' : 'local'">
-                {{
-                  isCloudJob(job)
-                    ? t("processing.openAi")
-                    : t("processing.local")
-                }}
+                {{ jobProvider(job) }}
               </StatusPill>
             </div>
             <div class="processing-row__progress min-w-0">
@@ -178,8 +192,11 @@ function estimateDetails(job: Job) {
                 {{ t("processing.retry") }}
               </AppButton>
               <AppButton
-                v-else-if="
-                  ['queued', 'preparing', 'running'].includes(job.state)
+                v-if="
+                  job.kind !== 'finalize_recording' &&
+                  ['queued', 'preparing', 'running', 'failed'].includes(
+                    job.state,
+                  )
                 "
                 size="small"
                 variant="ghost"

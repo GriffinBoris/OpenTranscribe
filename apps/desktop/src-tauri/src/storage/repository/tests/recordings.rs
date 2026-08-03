@@ -49,6 +49,59 @@ fn finalizes_recording_chunks_into_one_artifact() {
 }
 
 #[test]
+fn refreshes_a_legacy_waveform_cache() {
+    let directory = tempdir().expect("temporary directory should exist");
+    let repository =
+        LibraryRepository::initialize(directory.path()).expect("library should initialize");
+    let session = repository
+        .create_session("Weekly sync".to_owned(), None, SessionSource::Recording)
+        .expect("session should be created");
+    let recovery_directory = repository
+        .recording_directory(&session.id)
+        .expect("recovery directory should resolve");
+    write_recovery_chunk(&recovery_directory.join("microphone-000001.wav"), 1, 10, 25);
+    let finalized = repository
+        .finish_recording(&session.id)
+        .expect("recording should finalize");
+    let waveform_path = directory.path().join(
+        finalized
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.kind == ArtifactKind::Waveform)
+            .expect("finalized recording should contain a waveform")
+            .relative_path
+            .clone(),
+    );
+    std::fs::write(
+        &waveform_path,
+        serde_json::to_vec(&vec![1.0_f32; 160]).expect("legacy waveform should serialize"),
+    )
+    .expect("legacy waveform should replace the cache");
+
+    let waveform = repository
+        .session_waveform(&session.id)
+        .expect("legacy waveform should refresh");
+    let refreshed = repository
+        .session_workspace(&session.id)
+        .expect("refreshed session should be readable")
+        .session;
+    let artifact = refreshed
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.kind == ArtifactKind::Waveform)
+        .expect("refreshed session should retain its waveform");
+
+    assert_eq!(waveform.len(), WAVEFORM_BUCKET_COUNT);
+    assert!(artifact.relative_path.ends_with("audio/waveform-rms.json"));
+    assert_eq!(
+        artifact.byte_count,
+        std::fs::metadata(directory.path().join(&artifact.relative_path))
+            .unwrap()
+            .len()
+    );
+}
+
+#[test]
 fn marks_a_stopped_recording_as_recoverable_when_finalization_needs_attention() {
     let directory = tempdir().expect("temporary directory should exist");
     let repository =
@@ -81,6 +134,41 @@ fn marks_a_stopped_recording_as_recoverable_when_finalization_needs_attention() 
 
     assert_eq!(marked.lifecycle, SessionLifecycle::NeedsAttention);
     assert_eq!(marked.recovery_state, RecoveryState::Recoverable);
+}
+
+#[test]
+fn marks_a_stopped_recording_as_finalizing_before_background_work_starts() {
+    let directory = tempdir().expect("temporary directory should exist");
+    let repository =
+        LibraryRepository::initialize(directory.path()).expect("library should initialize");
+    let session = repository
+        .create_session(
+            "Finalizing recording".to_owned(),
+            None,
+            SessionSource::Recording,
+        )
+        .expect("session should be created");
+    repository
+        .begin_recording(
+            &session.id,
+            RecordingCapture {
+                microphone: CaptureDevice {
+                    stable_id: "microphone".to_owned(),
+                    label: "Microphone".to_owned(),
+                    sample_rate_hz: 48_000,
+                    channels: 1,
+                },
+                system_output: None,
+            },
+        )
+        .expect("recording should begin");
+
+    let finalizing = repository
+        .mark_recording_finalizing(&session.id)
+        .expect("recording should be marked finalizing");
+
+    assert_eq!(finalizing.lifecycle, SessionLifecycle::Finalizing);
+    assert_eq!(finalizing.recovery_state, RecoveryState::Recoverable);
 }
 
 #[test]

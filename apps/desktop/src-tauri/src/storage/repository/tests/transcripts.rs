@@ -126,6 +126,7 @@ fn renames_and_merges_transcript_speakers() {
         .expect("speakers should merge");
 
     assert_eq!(renamed.speakers[0].display_name, "Host");
+    assert_eq!(renamed.speakers[0].source, SpeakerSource::Manual);
     assert_eq!(merged.speakers.len(), 1);
     assert_eq!(merged.segments[0].speaker_id, second_speaker_id);
     assert!(merged.segments[0].edited);

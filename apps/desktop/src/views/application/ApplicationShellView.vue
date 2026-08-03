@@ -45,7 +45,9 @@ function refreshApplicationOnFocus() {
     return;
   }
 
-  void application.loadAudioDevices();
+  if (!recording.activeRecording) {
+    void application.loadAudioDevices();
+  }
 
   if (recording.activeRecording || application.runningJobs.length > 0) {
     return;

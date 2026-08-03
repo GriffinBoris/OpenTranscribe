@@ -24,6 +24,27 @@ pub(crate) struct TranscriptionRequest {
     pub(crate) model_id: String,
 }
 
+pub(crate) fn enqueue_recording_finalization(
+    app: &tauri::AppHandle,
+    session_id: &str,
+    mode: RecordingMode,
+    openai_model_id: String,
+) -> AppResult<Job> {
+    let state = app.state::<AppState>();
+    let record = with_repository(&state, |repository| {
+        repository.create_job(
+            session_id.to_owned(),
+            JobRequest::FinalizeRecording {
+                mode,
+                openai_model_id,
+            },
+        )
+    })?;
+    send_event(&state, AppEvent::JobStateChanged(record.job.clone()));
+    spawn_job(app.clone(), record.clone());
+    Ok(record.job)
+}
+
 pub(crate) fn enqueue_post_recording_transcription(
     app: &tauri::AppHandle,
     session_id: &str,
@@ -144,12 +165,18 @@ pub(crate) fn retry_job(job_id: &str, app: tauri::AppHandle, state: &AppState) -
 pub(crate) fn cancel_job(job_id: &str, state: &AppState) -> AppResult<Job> {
     let current = with_repository(state, |repository| repository.job_record(job_id))?;
 
+    if current.job.kind == opentranscribe_domain::JobKind::FinalizeRecording {
+        return Err(AppError::Application(
+            "recording finalization cannot be canceled".to_owned(),
+        ));
+    }
+
     if !matches!(
         current.job.state,
-        JobState::Queued | JobState::Preparing | JobState::Running
+        JobState::Queued | JobState::Preparing | JobState::Running | JobState::Failed
     ) {
         return Err(AppError::Application(
-            "only an active job can be canceled".to_owned(),
+            "only active or failed jobs can be canceled".to_owned(),
         ));
     }
 
@@ -171,6 +198,18 @@ pub(crate) fn cancel_job(job_id: &str, state: &AppState) -> AppResult<Job> {
 
 fn spawn_job(app: tauri::AppHandle, record: JobRecord) {
     match record.request.clone() {
+        JobRequest::FinalizeRecording {
+            mode,
+            openai_model_id,
+        } => {
+            tauri::async_runtime::spawn_blocking(move || {
+                if let Err(error) =
+                    run_recording_finalization_job(&app, &record.job.id, mode, openai_model_id)
+                {
+                    fail_job(&app, &record.job.id, error);
+                }
+            });
+        }
         JobRequest::TranscribeOpenAi {
             model_id,
             live_stream_count,
@@ -191,6 +230,58 @@ fn spawn_job(app: tauri::AppHandle, record: JobRecord) {
             });
         }
     }
+}
+
+fn run_recording_finalization_job(
+    app: &tauri::AppHandle,
+    job_id: &str,
+    mode: RecordingMode,
+    openai_model_id: String,
+) -> AppResult<()> {
+    update_job(app, job_id, |job| {
+        job.state = JobState::Running;
+        job.progress = Some(JobProgress {
+            stage: JobStage::Finalizing,
+            completed_units: 0,
+            total_units: Some(1),
+            unit: ProgressUnit::Items,
+            message: "Finalizing recording".to_owned(),
+        });
+    })?;
+    let state = app.state::<AppState>();
+    let record = with_repository(&state, |repository| repository.job_record(job_id))?;
+    let session_id = record
+        .job
+        .session_id
+        .as_deref()
+        .expect("recording finalization jobs have a session");
+    let session = with_repository(&state, |repository| repository.finish_recording(session_id))
+        .map_err(|error| {
+            crate::recording::handle_finalization_failure(app, &state, session_id, error)
+        })?;
+
+    update_job(app, job_id, |job| {
+        job.state = JobState::Completed;
+        job.progress = Some(JobProgress {
+            stage: JobStage::Finalizing,
+            completed_units: 1,
+            total_units: Some(1),
+            unit: ProgressUnit::Items,
+            message: "Recording ready".to_owned(),
+        });
+    })?;
+    send_event(&state, AppEvent::LibraryChanged);
+
+    if let Err(error) =
+        enqueue_post_recording_transcription(app, &session.id, mode, openai_model_id)
+    {
+        let message =
+            format!("Recording saved, but automatic transcription could not start: {error}");
+        log::warn!("{message}");
+        send_event(&state, AppEvent::AttentionRequired(message));
+    }
+
+    Ok(())
 }
 
 fn run_openai_job(

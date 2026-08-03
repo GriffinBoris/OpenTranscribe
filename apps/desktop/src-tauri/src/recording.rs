@@ -137,24 +137,47 @@ pub(crate) fn status(state: &AppState) -> Option<RecordingStatus> {
 }
 
 pub(crate) fn stop(app: &tauri::AppHandle, state: &AppState) -> AppResult<Session> {
-    send_event(
-        state,
-        AppEvent::RecordingStateChanged(SessionLifecycle::Finalizing),
-    );
     let status = state.recorder.stop()?;
     let live_transcription = state
         .live_transcription
         .lock()
         .expect("app state lock poisoned")
         .take();
+    if let Some(live_transcription) = live_transcription {
+        live_transcription.stop();
+    }
+    let intent = state
+        .active_recording_intent
+        .lock()
+        .expect("app state lock poisoned")
+        .take()
+        .ok_or_else(|| {
+            handle_finalization_failure(
+                app,
+                state,
+                &status.session_id,
+                AppError::Application(
+                    "automatic transcription preference was unavailable".to_owned(),
+                ),
+            )
+        })?;
+
+    if intent.session_id != status.session_id {
+        return Err(handle_finalization_failure(
+            app,
+            state,
+            &status.session_id,
+            AppError::Application(
+                "automatic transcription preference did not match the completed session".to_owned(),
+            ),
+        ));
+    }
+
     let session = match with_repository(state, |repository| {
-        repository.finish_recording(&status.session_id)
+        repository.mark_recording_finalizing(&status.session_id)
     }) {
         Ok(session) => session,
         Err(error) => {
-            if let Some(live_transcription) = live_transcription {
-                live_transcription.stop();
-            }
             return Err(handle_finalization_failure(
                 app,
                 state,
@@ -163,20 +186,26 @@ pub(crate) fn stop(app: &tauri::AppHandle, state: &AppState) -> AppResult<Sessio
             ));
         }
     };
-    if let Some(live_transcription) = live_transcription {
-        live_transcription.stop();
-    }
+
     send_event(
         state,
-        AppEvent::RecordingStateChanged(SessionLifecycle::Ready),
+        AppEvent::RecordingStateChanged(SessionLifecycle::Finalizing),
     );
     send_event(state, AppEvent::LibraryChanged);
     crate::tray::set_recording_state(app, None);
-    enqueue_post_recording_transcription(app, state, &session.id);
+    if let Err(error) = jobs::enqueue_recording_finalization(
+        app,
+        &session.id,
+        intent.mode,
+        intent.openai_model.model_id().to_owned(),
+    ) {
+        return Err(handle_finalization_failure(app, state, &session.id, error));
+    }
+
     Ok(session)
 }
 
-fn handle_finalization_failure(
+pub(crate) fn handle_finalization_failure(
     app: &tauri::AppHandle,
     state: &AppState,
     session_id: &str,
@@ -193,66 +222,10 @@ fn handle_finalization_failure(
         log::error!("failed to mark the recording for recovery: {mark_error}");
     }
 
-    state
-        .active_recording_intent
-        .lock()
-        .expect("app state lock poisoned")
-        .take();
-    if let Some(live_transcription) = state
-        .live_transcription
-        .lock()
-        .expect("app state lock poisoned")
-        .take()
-    {
-        live_transcription.stop();
-    }
     crate::tray::set_recording_state(app, None);
-    send_event(
-        state,
-        AppEvent::RecordingStateChanged(SessionLifecycle::NeedsAttention),
-    );
     send_event(state, AppEvent::LibraryChanged);
     send_event(state, AppEvent::AttentionRequired(message.clone()));
     AppError::Application(message)
-}
-
-fn enqueue_post_recording_transcription(
-    app: &tauri::AppHandle,
-    state: &AppState,
-    session_id: &str,
-) {
-    let intent = state
-        .active_recording_intent
-        .lock()
-        .expect("app state lock poisoned")
-        .take();
-    let Some(intent) = intent else {
-        let message =
-            "Recording saved, but its automatic transcription preference was unavailable."
-                .to_owned();
-        log::warn!("{message}");
-        send_event(state, AppEvent::AttentionRequired(message));
-        return;
-    };
-
-    if intent.session_id != session_id {
-        let message = "Recording saved, but its automatic transcription preference did not match the completed session.".to_owned();
-        log::warn!("{message}");
-        send_event(state, AppEvent::AttentionRequired(message));
-        return;
-    }
-
-    if let Err(error) = jobs::enqueue_post_recording_transcription(
-        app,
-        session_id,
-        intent.mode,
-        intent.openai_model.model_id().to_owned(),
-    ) {
-        let message =
-            format!("Recording saved, but automatic transcription could not start: {error}");
-        log::warn!("{message}");
-        send_event(state, AppEvent::AttentionRequired(message));
-    }
 }
 
 fn discard_failed_session(state: &AppState, session_id: &str) {
