@@ -169,9 +169,25 @@ test("completes first-run setup with a timed source test", async ({ page }) => {
   await page.goto("/?firstRun=1");
 
   await expect(
-    page.getByRole("heading", { name: "Set up recording" }),
+    page.getByRole("heading", { name: "Get started" }),
   ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
   await expect(page.getByText(/Recordings are saved in/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Audio sources" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Transcription" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Test your audio" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Start 10-second test" }).click();
   await expect(page.getByText(/remaining/)).toBeVisible();
@@ -181,10 +197,10 @@ test("completes first-run setup with a timed source test", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Audio test ready" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Finish setup" }).click();
+  await page.getByRole("button", { name: "Continue to workspace" }).click();
 
   await expect(page.getByText("Recent sessions")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Set up recording" }),
+    page.getByRole("heading", { name: "Get started" }),
   ).not.toBeVisible();
 });
