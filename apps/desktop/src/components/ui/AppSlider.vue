@@ -2,7 +2,6 @@
 import { computed } from "vue";
 
 import Slider from "primevue/slider";
-import { computed } from "vue";
 
 const props = withDefaults(
   defineProps<{
