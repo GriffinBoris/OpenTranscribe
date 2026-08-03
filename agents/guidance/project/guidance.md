@@ -67,6 +67,9 @@ order: 0
   with the runner's PipeWire 0.3 development headers; do not move those jobs
   to a newer base image without intentionally raising the published glibc
   requirement.
+- The Linux system-audio adapter uses PipeWire 0.6 bindings because they build
+  against Ubuntu 22.04's PipeWire 0.3.48 headers. Upgrade that dependency only
+  with an Ubuntu 22.04 native validation run.
 - Keep the macOS deployment target at 14.0 in both Cargo and Tauri bundle
   configuration. The ScreenCaptureKit Rust adapter includes a Swift bridge, so
   `build.rs` derives the active toolchain's Swift runtime library path through

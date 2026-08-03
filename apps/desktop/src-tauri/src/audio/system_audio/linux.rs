@@ -1,16 +1,16 @@
+use std::cell::RefCell;
 use std::convert::TryInto;
 use std::mem;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use crossbeam_channel::{Sender, TryRecvError, bounded};
 use opentranscribe_domain::CaptureDevice;
 use pipewire as pw;
+use pw::prelude::ListenerBuilderT;
 use pw::properties::properties;
-use pw::spa::param::format::{MediaSubtype, MediaType};
-use pw::spa::param::format_utils;
-use pw::spa::pod::Pod;
 
 use crate::audio::packet_writer::{
     AudioFormat, AudioPacket, CaptureSignals, PACKET_QUEUE_CAPACITY, enqueue_samples, write_chunks,
@@ -95,9 +95,7 @@ impl SystemAudioCapture {
 }
 
 struct UserData {
-    format: pw::spa::param::audio::AudioInfoRaw,
     packet_sender: Sender<AudioPacket>,
-    ready_sender: Option<Sender<Result<(), String>>>,
     signals: CaptureSignals,
 }
 
@@ -107,124 +105,85 @@ fn run_capture(
     ready_sender: Sender<Result<(), String>>,
     signals: CaptureSignals,
 ) -> AppResult<()> {
-    pw::init();
-    let mainloop = pw::main_loop::MainLoopRc::new(None).map_err(pipewire_error)?;
-    let context = pw::context::ContextRc::new(&mainloop, None).map_err(pipewire_error)?;
-    let core = context.connect_rc(None).map_err(pipewire_error)?;
+    let mainloop = pw::MainLoop::new().map_err(pipewire_error)?;
     let mut props = properties! {
         *pw::keys::MEDIA_TYPE => "Audio",
         *pw::keys::MEDIA_CATEGORY => "Capture",
         *pw::keys::MEDIA_ROLE => "Communication",
     };
     props.insert(*pw::keys::STREAM_CAPTURE_SINK, "true");
-    let stream = pw::stream::StreamBox::new(&core, "OpenTranscribe system audio", props)
-        .map_err(pipewire_error)?;
+    let ready_sender = Rc::new(RefCell::new(Some(ready_sender)));
+    let state_ready_sender = Rc::clone(&ready_sender);
     let user_data = UserData {
-        format: Default::default(),
         packet_sender,
-        ready_sender: Some(ready_sender),
         signals,
     };
-    let _listener = stream
-        .add_local_listener_with_user_data(user_data)
-        .state_changed(|_, user_data, _, state| match state {
-            pw::stream::StreamState::Streaming => {
-                if let Some(sender) = user_data.ready_sender.take() {
-                    let _ = sender.send(Ok(()));
-                }
-            }
-            pw::stream::StreamState::Error(error) => {
-                if let Some(sender) = user_data.ready_sender.take() {
-                    let _ = sender.send(Err(format!("PipeWire stream failed: {error}")));
-                }
-            }
-            _ => {}
-        })
-        .param_changed(|_, user_data, id, param| {
-            let Some(param) = param else {
-                return;
-            };
-
-            if id != pw::spa::param::ParamType::Format.as_raw() {
-                return;
-            }
-
-            let Ok((media_type, media_subtype)) = format_utils::parse_format(param) else {
-                return;
-            };
-
-            if media_type == MediaType::Audio && media_subtype == MediaSubtype::Raw {
-                let _ = user_data.format.parse(param);
-            }
-        })
-        .process(|stream, user_data| {
-            let Some(mut buffer) = stream.dequeue_buffer() else {
-                return;
-            };
-            let Some(data) = buffer.datas_mut().first_mut() else {
-                return;
-            };
-            let sample_count = data.chunk().size() as usize / mem::size_of::<f32>();
-            let Some(bytes) = data.data() else {
-                return;
-            };
-            let samples = bytes
-                .chunks_exact(mem::size_of::<f32>())
-                .take(sample_count)
-                .map(|sample| {
-                    f32::from_le_bytes(
-                        sample
-                            .try_into()
-                            .expect("a four-byte chunk is a valid f32 sample"),
-                    )
-                })
-                .collect();
-            enqueue_samples(
-                samples,
-                &user_data.packet_sender,
-                &user_data.signals,
-                AudioFormat {
-                    channels: SYSTEM_CHANNELS,
-                    sample_rate: SYSTEM_SAMPLE_RATE,
-                },
-            );
-        })
-        .register()
-        .map_err(pipewire_error)?;
-
-    let mut audio_info = pw::spa::param::audio::AudioInfoRaw::new();
-    audio_info.set_format(pw::spa::param::audio::AudioFormat::F32LE);
-    audio_info.set_rate(SYSTEM_SAMPLE_RATE);
-    audio_info.set_channels(u32::from(SYSTEM_CHANNELS));
-    let object = pw::spa::pod::Object {
-        type_: pw::spa::utils::SpaTypes::ObjectParamFormat.as_raw(),
-        id: pw::spa::param::ParamType::EnumFormat.as_raw(),
-        properties: audio_info.into(),
-    };
-    let values = pw::spa::pod::serialize::PodSerializer::serialize(
-        std::io::Cursor::new(Vec::new()),
-        &pw::spa::pod::Value::Object(object),
+    let stream = pw::stream::Stream::with_user_data(
+        &mainloop,
+        "OpenTranscribe system audio",
+        props,
+        user_data,
     )
-    .map_err(pipewire_error)?
-    .0
-    .into_inner();
-    let mut params = [Pod::from_bytes(&values)
-        .ok_or_else(|| AppError::Audio("PipeWire returned an invalid format pod".to_owned()))?];
+    .state_changed(move |_, state| match state {
+        pw::stream::StreamState::Streaming => {
+            if let Some(sender) = state_ready_sender.borrow_mut().take() {
+                let _ = sender.send(Ok(()));
+            }
+        }
+        pw::stream::StreamState::Error(error) => {
+            if let Some(sender) = state_ready_sender.borrow_mut().take() {
+                let _ = sender.send(Err(format!("PipeWire stream failed: {error}")));
+            }
+        }
+        _ => {}
+    })
+    .process(|stream, user_data| {
+        let Some(mut buffer) = stream.dequeue_buffer() else {
+            return;
+        };
+        let Some(data) = buffer.datas_mut().first_mut() else {
+            return;
+        };
+        let sample_count = data.chunk().size() as usize / mem::size_of::<f32>();
+        let Some(bytes) = data.data() else {
+            return;
+        };
+        let samples = bytes
+            .chunks_exact(mem::size_of::<f32>())
+            .take(sample_count)
+            .map(|sample| {
+                f32::from_le_bytes(
+                    sample
+                        .try_into()
+                        .expect("a four-byte chunk is a valid f32 sample"),
+                )
+            })
+            .collect();
+        enqueue_samples(
+            samples,
+            &user_data.packet_sender,
+            &user_data.signals,
+            AudioFormat {
+                channels: SYSTEM_CHANNELS,
+                sample_rate: SYSTEM_SAMPLE_RATE,
+            },
+        );
+    })
+    .create()
+    .map_err(pipewire_error)?;
     stream
         .connect(
-            pw::spa::utils::Direction::Input,
+            pw::spa::Direction::Input,
             None,
             pw::stream::StreamFlags::AUTOCONNECT
                 | pw::stream::StreamFlags::MAP_BUFFERS
                 | pw::stream::StreamFlags::RT_PROCESS,
-            &mut params,
+            &mut [],
         )
         .map_err(pipewire_error)?;
 
     while matches!(stop_receiver.try_recv(), Err(TryRecvError::Empty)) {
-        mainloop
-            .loop_()
-            .iterate(pw::loop_::Timeout::Finite(Duration::from_millis(50)));
+        mainloop.iterate(Duration::from_millis(50));
     }
 
     Ok(())
