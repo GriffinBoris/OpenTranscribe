@@ -62,10 +62,11 @@ order: 0
   - ScreenCaptureKit on macOS
   - WASAPI loopback on Windows
   - PipeWire on Linux
-- Linux release bundles build on Ubuntu 22.04, our glibc 2.35 compatibility
-  baseline. Native compile checks can run on Ubuntu 24.04 with PipeWire/SPA
-  1.0 or newer development headers; do not move installer builds to a newer
-  base image without intentionally raising the published glibc requirement.
+- Linux release bundles and native compile checks build on Ubuntu 22.04, our
+  glibc 2.35 compatibility baseline. Keep Linux PipeWire bindings compatible
+  with the runner's PipeWire 0.3 development headers; do not move those jobs
+  to a newer base image without intentionally raising the published glibc
+  requirement.
 - Keep the macOS deployment target at 14.0 in both Cargo and Tauri bundle
   configuration. The ScreenCaptureKit Rust adapter includes a Swift bridge, so
   `build.rs` derives the active toolchain's Swift runtime library path through
@@ -291,6 +292,9 @@ task build
 - Release builds upload their platform installers as workflow artifacts. One
   publish job downloads the complete set and creates the draft GitHub Release;
   do not let matrix jobs race to create or mutate the same release.
+- Pull requests and the main pipeline own quality and test coverage. Tagged
+  releases run only version validation and installer packaging so a release
+  does not duplicate those expensive checks before building its artifacts.
 - Public releases are dual licensed under MIT OR Apache-2.0.
 - Do not publish updater metadata until every intended artifact and updater signature is available.
 - Preserve the updater signing key for the lifetime of every updater-enabled
