@@ -21,4 +21,5 @@ jobs:
     with:
       frontend_unit: true
       frontend_browser: true
-      native: false
+      native: true
+      native_os: ubuntu-22.04
