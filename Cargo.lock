@@ -3220,7 +3220,7 @@ checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 
 [[package]]
 name = "opentranscribe-desktop"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "arboard",
  "atomic-write-file",
@@ -3263,7 +3263,7 @@ dependencies = [
 
 [[package]]
 name = "opentranscribe-domain"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "chrono",
  "serde",
@@ -3275,7 +3275,7 @@ dependencies = [
 
 [[package]]
 name = "opentranscribe-local-transcriber"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "opentranscribe-transcriber-protocol",
  "symphonia",
@@ -3284,7 +3284,7 @@ dependencies = [
 
 [[package]]
 name = "opentranscribe-transcriber-protocol"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "rmp-serde",
  "serde",
