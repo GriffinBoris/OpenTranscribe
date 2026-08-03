@@ -92,7 +92,7 @@ function isPlayed(index: number) {
         dense ? 'w-0.5 shrink-0' : 'max-w-[3px] min-w-px flex-1',
         active || loading ? 'opacity-100' : 'opacity-30',
         loading
-          ? 'origin-center animate-[waveform-pulse_900ms_ease-in-out_infinite]'
+          ? 'origin-center animate-[waveform-pulse_1100ms_ease-in-out_infinite]'
           : 'transition-[height,opacity,background-color] duration-75 ease-linear motion-reduce:transition-none',
         progress === null
           ? 'bg-lichen'
@@ -102,7 +102,7 @@ function isPlayed(index: number) {
       ]"
       :style="{
         height: `${barHeight(sample)}px`,
-        animationDelay: loading ? `${(index % 12) * -75}ms` : undefined,
+        animationDelay: loading ? `${(index % 12) * -90}ms` : undefined,
       }"
     />
   </div>
