@@ -12,6 +12,7 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
+import AppCopyButton from "@/components/ui/AppCopyButton.vue";
 import AppTextarea from "@/components/ui/AppTextarea.vue";
 
 const props = defineProps<{
@@ -52,6 +53,12 @@ const renderedNotes = computed(() =>
       <div
         class="notes-toolbar__actions ml-auto flex shrink-0 items-center gap-2"
       >
+        <AppCopyButton
+          :text="notes"
+          :label="t('session.copyNotes')"
+          :copied-label="t('common.copied')"
+          :disabled="!notes.trim()"
+        />
         <AppButton
           class="max-[900px]:hidden"
           size="small"

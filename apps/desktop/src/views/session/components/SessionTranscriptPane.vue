@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
-import { Pencil, Users } from "@lucide/vue";
+import { Check, Pencil, Users } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
+import AppCopyButton from "@/components/ui/AppCopyButton.vue";
 import AppTextarea from "@/components/ui/AppTextarea.vue";
+import { useClipboard } from "@/composables/useClipboard";
 import type {
   LiveTranscriptUpdate,
   Speaker,
@@ -34,6 +36,7 @@ const isSaving = ref(false);
 const speakerManagerOpen = ref(false);
 const transcriptScroller = ref<HTMLElement | null>(null);
 const followingLiveTranscript = ref(true);
+const { copiedId, copy } = useClipboard();
 const liveTranscriptRevision = computed(() =>
   props.liveTranscript
     .map(
@@ -58,6 +61,19 @@ function liveSpeaker(source: LiveTranscriptUpdate["source"]) {
   return source === "system"
     ? t("session.systemAudio")
     : t("session.microphone");
+}
+
+const transcriptText = computed(() =>
+  props.segments
+    .map(
+      (segment) =>
+        `${speakerFor(segment)?.display_name ?? t("session.speaker")}: ${segment.text}`,
+    )
+    .join("\n\n"),
+);
+
+async function copySegment(segment: TranscriptSegment) {
+  await copy(segment.text, segment.id);
 }
 
 function updateLiveFollowing() {
@@ -142,6 +158,12 @@ async function save(segment: TranscriptSegment) {
       </div>
       <div class="flex items-center justify-end gap-2.5">
         <span>{{ t("session.segmentCount", { count: segments.length }) }}</span>
+        <AppCopyButton
+          v-if="segments.length"
+          :text="transcriptText"
+          :label="t('session.copyTranscript')"
+          :copied-label="t('common.copied')"
+        />
         <AppButton
           v-if="!recording && speakers.length"
           size="small"
@@ -190,7 +212,7 @@ async function save(segment: TranscriptSegment) {
           :aria-label="
             t('session.seekTo', { time: timestamp(segment.start_ms) })
           "
-          @click="emit('seek', segment.start_ms)"
+          @click.stop="emit('seek', segment.start_ms)"
         >
           {{ timestamp(segment.start_ms) }}
         </AppButton>
@@ -205,11 +227,17 @@ async function save(segment: TranscriptSegment) {
               class="text-ink-muted ml-auto min-h-6 px-1.5 py-0.5 font-medium opacity-[var(--opacity-muted)] group-hover:opacity-100 focus-visible:opacity-100"
               size="small"
               variant="ghost"
-              @click="edit(segment)"
+              @click.stop="edit(segment)"
             >
               <Pencil :size="13" />
               {{ t("session.edit") }}
             </AppButton>
+            <Check
+              v-if="copiedId === segment.id"
+              class="text-success"
+              :size="14"
+              :aria-label="t('common.copied')"
+            />
           </div>
           <template v-if="editingSegmentId === segment.id">
             <AppTextarea
@@ -222,7 +250,7 @@ async function save(segment: TranscriptSegment) {
                 size="small"
                 variant="ghost"
                 :disabled="isSaving"
-                @click="cancel"
+                @click.stop="cancel"
               >
                 {{ t("session.cancel") }}
               </AppButton>
@@ -231,7 +259,7 @@ async function save(segment: TranscriptSegment) {
                 variant="primary"
                 :disabled="!draft.trim()"
                 :loading="isSaving"
-                @click="save(segment)"
+                @click.stop="save(segment)"
               >
                 {{ t("session.save") }}
               </AppButton>
@@ -239,7 +267,13 @@ async function save(segment: TranscriptSegment) {
           </template>
           <p
             v-else
-            class="mt-[5px] text-lg leading-[var(--line-height-reading)]"
+            class="mt-[5px] cursor-copy text-lg leading-[var(--line-height-reading)]"
+            role="button"
+            tabindex="0"
+            :aria-label="t('session.copySegment')"
+            @click="copySegment(segment)"
+            @keydown.enter.prevent="copySegment(segment)"
+            @keydown.space.prevent="copySegment(segment)"
           >
             {{ segment.text }}
           </p>

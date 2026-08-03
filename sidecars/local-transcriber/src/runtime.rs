@@ -18,12 +18,16 @@ pub struct TranscriberRuntime {
 }
 
 impl TranscriberRuntime {
-    pub fn load_model(&mut self, model_id: String, path: &Path) -> Result<(), String> {
-        let context = WhisperContext::new_with_params(
-            path.to_string_lossy().as_ref(),
-            WhisperContextParameters::default(),
-        )
-        .map_err(|error| error.to_string())?;
+    pub fn load_model(
+        &mut self,
+        model_id: String,
+        path: &Path,
+        use_gpu: bool,
+    ) -> Result<(), String> {
+        let mut parameters = WhisperContextParameters::default();
+        parameters.use_gpu(use_gpu);
+        let context = WhisperContext::new_with_params(path.to_string_lossy().as_ref(), parameters)
+            .map_err(|error| error.to_string())?;
         self.context = Some(context);
         self.model_id = Some(model_id);
         Ok(())

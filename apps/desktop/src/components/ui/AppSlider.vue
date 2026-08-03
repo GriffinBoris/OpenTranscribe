@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import Slider from "primevue/slider";
+import { computed } from "vue";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     modelValue: number;
     min?: number;
     max?: number;
     step?: number;
     disabled?: boolean;
+    trackless?: boolean;
     accessibleLabel: string;
   }>(),
   {
@@ -15,6 +17,7 @@ withDefaults(
     max: 100,
     step: 1,
     disabled: false,
+    trackless: false,
   },
 );
 
@@ -22,12 +25,16 @@ defineEmits<{
   "update:modelValue": [value: number];
 }>();
 
-const sliderParts = {
-  root: "relative h-1 w-full cursor-pointer rounded-full bg-line-strong",
-  range: "absolute h-full rounded-[inherit] bg-accent",
+const sliderParts = computed(() => ({
+  root: props.trackless
+    ? "relative h-[42px] w-full cursor-pointer bg-transparent"
+    : "relative h-1 w-full cursor-pointer rounded-full bg-line-strong",
+  range: props.trackless
+    ? "absolute h-full bg-transparent"
+    : "absolute h-full rounded-[inherit] bg-accent",
   handle:
     "absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-surface-raised bg-accent shadow-[0_0_0_1px_var(--border-strong)] focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2",
-};
+}));
 </script>
 
 <template>

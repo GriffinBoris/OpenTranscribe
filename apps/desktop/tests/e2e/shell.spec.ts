@@ -134,6 +134,36 @@ test("shows the configured global recording shortcut beside the recording action
   ).toHaveText(/(⌘|Ctrl) (⇧|Shift) R/);
 });
 
+test("opens dictation history from the main navigation", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("link", { name: "Dictation", exact: true }).click();
+
+  await expect(page).toHaveURL(/\/dictation$/);
+  await expect(page.getByRole("heading", { name: "Dictation" })).toBeVisible();
+  await expect(page.getByText("No dictations yet")).toBeVisible();
+});
+
+test("shows the dictation shortcut and discards an active dictation", async ({
+  page,
+}) => {
+  await page.goto("/?dictation=1");
+
+  await expect(page.getByText(/(⌥|Alt) Space/)).toBeVisible();
+  await page.getByRole("button", { name: "Start" }).click();
+  await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Stop and transcribe" }),
+  ).toBeVisible();
+
+  await page.keyboard.press("Escape");
+
+  await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Stop and transcribe" }),
+  ).not.toBeVisible();
+});
+
 test("completes first-run setup with a timed source test", async ({ page }) => {
   await page.clock.install();
   await page.goto("/?firstRun=1");

@@ -85,13 +85,13 @@ pub fn move_local_models(
     if let Err(error) = crate::commands::application::update_settings(&app, &state, |settings| {
         settings.local_models_directory = Some(target.display().to_string());
     }) {
-        if let Some(source) = source {
-            if let Err(rollback_error) = manager::move_models_between(&target, &source) {
-                return Err(AppError::Model(format!(
-                    "local models moved to {} but saving the new location failed: {error}; unable to restore them: {rollback_error}",
-                    target.display(),
-                )));
-            }
+        if let Some(source) = source
+            && let Err(rollback_error) = manager::move_models_between(&target, &source)
+        {
+            return Err(AppError::Model(format!(
+                "local models moved to {} but saving the new location failed: {error}; unable to restore them: {rollback_error}",
+                target.display(),
+            )));
         }
 
         return Err(error);
@@ -176,7 +176,7 @@ fn select_preferred_installed_model(models: &[LocalModel]) -> Option<&LocalModel
 }
 
 pub use manager::{installed_path, remove_all};
-pub use transcriber::LocalTranscriptionService;
+pub use transcriber::{LocalTranscriptionService, transcribe_file};
 
 #[cfg(test)]
 mod tests {

@@ -3,10 +3,12 @@ import { computed, ref, watch } from "vue";
 import { FolderOpen, Pause, Play } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
+import AppAudioWaveform from "@/components/ui/AppAudioWaveform.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppSelect from "@/components/ui/AppSelect.vue";
 import AppSlider from "@/components/ui/AppSlider.vue";
 import type { SessionAudioSource } from "@/types/domain";
+import { normalizeWaveformLevels } from "@/views/application/audioLevels";
 
 const props = defineProps<{
   sources: SessionAudioSource[];
@@ -40,6 +42,9 @@ const playbackError = ref<string | null>(null);
 const duration = computed(() => Math.max(mediaDuration.value, 0));
 const progress = computed(() =>
   duration.value > 0 ? currentTime.value / duration.value : 0,
+);
+const normalizedWaveform = computed(() =>
+  normalizeWaveformLevels(props.waveform),
 );
 
 async function togglePlayback() {
@@ -151,26 +156,21 @@ defineExpose({ seek });
     <span class="text-2xs text-ink-muted min-w-8 tabular-nums">{{
       formatTime(currentTime)
     }}</span>
-    <div class="relative grid min-w-0 flex-1 items-center">
-      <div
-        v-if="waveform.length"
-        class="pointer-events-none absolute top-1/2 right-0 left-0 flex h-[42px] -translate-y-1/2 items-center gap-px"
-        aria-hidden="true"
-      >
-        <span
-          v-for="(peak, index) in waveform"
-          :key="index"
-          class="bg-line-strong min-w-px flex-1 rounded-full"
-          :class="{ 'bg-lichen': index / waveform.length <= progress }"
-          :style="{ height: `${Math.max(4, peak * 40)}px` }"
-        ></span>
-      </div>
+    <div class="relative grid h-[42px] min-w-0 flex-1 items-center">
+      <AppAudioWaveform
+        v-if="normalizedWaveform.length"
+        class="pointer-events-none absolute inset-0"
+        :samples="normalizedWaveform"
+        :progress="progress"
+        dense
+      />
       <AppSlider
-        class="relative z-[var(--layer-content)]"
+        class="absolute inset-0 z-[var(--layer-content)]"
         :model-value="currentTime"
         :max="duration"
         :step="0.1"
         :disabled="duration === 0"
+        :trackless="Boolean(normalizedWaveform.length)"
         :accessible-label="t('playback.seek')"
         @update:model-value="seek"
       />

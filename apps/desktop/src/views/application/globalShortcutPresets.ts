@@ -4,15 +4,27 @@ const supportedKeys = new Set([
 ]);
 
 export const defaultGlobalShortcut = "CommandOrControl+Shift+R";
+export const defaultDictationShortcut = "Alt+Space";
 
-export function shortcutFromKeyboardEvent(event: KeyboardEvent) {
+export function shortcutFromKeyboardEvent(
+  event: KeyboardEvent,
+  options: { requireCommandOrControl?: boolean } = {},
+) {
   const key = shortcutKey(event);
+  const requiresCommandOrControl = options.requireCommandOrControl ?? true;
 
-  if (!key || (!event.metaKey && !event.ctrlKey)) {
+  if (
+    !key ||
+    (requiresCommandOrControl && !event.metaKey && !event.ctrlKey) ||
+    (!requiresCommandOrControl &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey)
+  ) {
     return null;
   }
 
-  const parts = ["CommandOrControl"];
+  const parts = event.metaKey || event.ctrlKey ? ["CommandOrControl"] : [];
 
   if (event.altKey) {
     parts.push("Alt");

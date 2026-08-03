@@ -12,6 +12,8 @@ import type {
   ConnectionTestResult,
   CreateRecordingRequest,
   CredentialStatus,
+  DictationHistoryEntry,
+  DictationStatus,
   ExportFormat,
   ExportResult,
   Job,
@@ -29,7 +31,7 @@ import type {
 } from "@/types/domain";
 
 const { t } = i18n.global;
-let registeredGlobalShortcut: string | null = null;
+const registeredGlobalShortcuts = new Map<"recording" | "dictation", string>();
 
 export const desktopNative: NativeBridge = {
   bootstrap: () => invoke<AppSnapshot>("bootstrap"),
@@ -105,17 +107,19 @@ export const desktopNative: NativeBridge = {
   openSystemAudioPermissionSettings: () =>
     invoke("open_system_audio_permission_settings"),
 
-  async configureGlobalShortcut(shortcut, onTrigger) {
+  async configureGlobalShortcut(shortcutId, shortcut, onTrigger) {
+    const registeredShortcut = registeredGlobalShortcuts.get(shortcutId);
+
     if (!shortcut) {
-      if (registeredGlobalShortcut) {
-        await unregister(registeredGlobalShortcut);
-        registeredGlobalShortcut = null;
+      if (registeredShortcut) {
+        await unregister(registeredShortcut);
+        registeredGlobalShortcuts.delete(shortcutId);
       }
 
       return;
     }
 
-    if (shortcut === registeredGlobalShortcut) {
+    if (shortcut === registeredShortcut) {
       return;
     }
 
@@ -125,18 +129,36 @@ export const desktopNative: NativeBridge = {
       }
     });
 
-    const previousShortcut = registeredGlobalShortcut;
-
-    if (previousShortcut) {
+    if (registeredShortcut) {
       try {
-        await unregister(previousShortcut);
+        await unregister(registeredShortcut);
       } catch (reason) {
         await unregister(shortcut);
         throw reason;
       }
     }
 
-    registeredGlobalShortcut = shortcut;
+    registeredGlobalShortcuts.set(shortcutId, shortcut);
+  },
+
+  toggleDictation: () => invoke<DictationStatus>("toggle_dictation"),
+
+  dictationStatus: () => invoke<DictationStatus>("dictation_status"),
+
+  dictationShortcut: () => invoke<string>("dictation_shortcut"),
+
+  dictationHistory: () => invoke<DictationHistoryEntry[]>("dictation_history"),
+
+  clearDictationHistory: () => invoke<void>("clear_dictation_history"),
+
+  cancelDictation: () => invoke<DictationStatus>("cancel_dictation"),
+
+  dismissDictation: () => invoke("dismiss_dictation"),
+
+  subscribeDictationStatus(onStatus) {
+    const channel = new Channel<DictationStatus>();
+    channel.onmessage = onStatus;
+    return invoke("subscribe_dictation_status", { channel });
   },
 
   pauseRecording: (paused: boolean) =>

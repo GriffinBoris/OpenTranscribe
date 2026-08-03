@@ -3,6 +3,7 @@ mod app_reset;
 mod audio;
 mod commands;
 mod credentials;
+mod dictation;
 mod error;
 mod events;
 mod exports;
@@ -35,7 +36,9 @@ pub fn run() {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
 
-                if let Err(error) = window.hide() {
+                if window.label() == "dictation" {
+                    crate::dictation::dismiss(window.app_handle());
+                } else if let Err(error) = window.hide() {
                     log::error!("failed to hide the main window: {error}");
                 }
             }
@@ -72,6 +75,14 @@ pub fn run() {
             commands::credentials::save_openai_api_key,
             commands::credentials::remove_openai_api_key,
             commands::credentials::test_openai_connection,
+            commands::dictation::toggle_dictation,
+            commands::dictation::dictation_status,
+            commands::dictation::dictation_shortcut,
+            commands::dictation::dictation_history,
+            commands::dictation::clear_dictation_history,
+            commands::dictation::cancel_dictation,
+            commands::dictation::dismiss_dictation,
+            commands::dictation::subscribe_dictation_status,
             commands::jobs::enqueue_transcription,
             commands::jobs::retry_job,
             commands::jobs::cancel_job,
@@ -89,23 +100,27 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("OpenTranscribe failed to start");
 
-    app.run(|app_handle, event| {
-        if let tauri::RunEvent::ExitRequested {
+    app.run(|app_handle, event| match event {
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } => tray::show_main_window(app_handle),
+        tauri::RunEvent::ExitRequested {
             code: None, api, ..
-        } = event
-            && prevent_exit_while_recording(app_handle)
-        {
-            api.prevent_exit();
-        }
+        } if prevent_exit_while_recording(app_handle) => api.prevent_exit(),
+        _ => {}
     });
 }
 
 pub(crate) fn prevent_exit_while_recording(app: &tauri::AppHandle) -> bool {
-    if app.state::<AppState>().recorder.status().is_none() {
+    let state = app.state::<AppState>();
+
+    if state.recorder.status().is_none() && !dictation::is_active(&state) {
         return false;
     }
 
-    let message = "Stop the current recording before quitting OpenTranscribe.".to_owned();
+    let message = "Stop the current recording or wait for dictation to finish before quitting OpenTranscribe.".to_owned();
     log::warn!("{message}");
     tray::show_main_window(app);
     send_event(

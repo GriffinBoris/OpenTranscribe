@@ -1,8 +1,12 @@
 export const messages = {
   appName: "OpenTranscribe",
+  common: {
+    copied: "Copied",
+  },
   navigation: {
     home: "Home",
     inbox: "Inbox",
+    dictation: "Dictation",
     projects: "Projects",
     processing: "Processing",
     trash: "Trash",
@@ -152,6 +156,7 @@ export const messages = {
       storage: "Storage",
       localModels: "Local models",
       openAi: "OpenAI",
+      dictation: "Dictation",
       shortcuts: "Shortcuts",
       appearance: "Appearance",
       application: "Application",
@@ -185,6 +190,29 @@ export const messages = {
       importMedia: "Import media",
       searchSession: "Search this session",
       addTimestamp: "Add a timestamped note",
+    },
+    dictation: {
+      title: "Dictation",
+      description:
+        "Capture a quick thought, transcribe it, then copy and paste the result.",
+      enabled: "Dictate from anywhere",
+      enabledDescription:
+        "Press the shortcut once to start and again to transcribe the recording.",
+      shortcut: "Dictation shortcut",
+      provider: "Transcription provider",
+      local: "Local",
+      openAi: "OpenAI",
+      localModel: "Local model",
+      chooseLocalModel: "Choose an installed model",
+      openAiModel: "OpenAI model",
+      autoPaste: "Paste automatically",
+      autoPasteDescription:
+        "Copy every dictation to the clipboard and paste it into the previously active app when allowed.",
+      captureTitle: "Set dictation shortcut",
+      captureDescription:
+        "Press Option/Alt, Command/Control, or both with a letter, number, Space, or function key.",
+      registrationError: "This shortcut could not be registered: {message}",
+      disabled: "Disabled",
     },
     recording: {
       description: "Choose the sources used for new sessions.",
@@ -272,6 +300,32 @@ export const messages = {
         confirm: "Delete all data",
       },
     },
+  },
+  dictationHistory: {
+    title: "Dictation",
+    description: "Recent thoughts captured with Dictation.",
+    loading: "Loading dictation history",
+    loadFailed: "Unable to load dictation history",
+    retry: "Retry",
+    empty: "No dictations yet",
+    emptyDescription: "Completed dictations will appear here.",
+    copy: "Copy dictation",
+    clearAction: "Clear dictation history",
+    clearTitle: "Clear dictation history?",
+    clearConfirmation:
+      "This permanently deletes every saved dictation from your history.",
+    clearConfirm: "Clear history",
+    local: "Local",
+    openAi: "OpenAI",
+  },
+  dictationPanel: {
+    recording: "Listening…",
+    transcribingLocal: "Transcribing locally…",
+    transcribingOpenAi: "Sending audio to OpenAI…",
+    ready: "Ready for dictation",
+    start: "Start",
+    stop: "Stop and transcribe",
+    cancel: "Cancel",
   },
   recordingDock: {
     localAfterStop: "Transcribes locally after stop",
@@ -410,6 +464,9 @@ export const messages = {
     },
   },
   session: {
+    copyNotes: "Copy notes",
+    copyTranscript: "Copy transcript",
+    copySegment: "Copy segment",
     untitledRecording: "Untitled recording",
     justNow: "Just now",
     recording: "Recording",

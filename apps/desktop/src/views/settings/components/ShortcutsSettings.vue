@@ -27,21 +27,21 @@ const selectedGlobalShortcut = computed(
   () => application.settings?.global_shortcut ?? "CommandOrControl+Shift+R",
 );
 const globalShortcutStatus = computed(() => {
-  if (globalShortcut.isConfiguring) {
+  if (globalShortcut.shortcuts.recording.isConfiguring) {
     return {
       label: t("settings.shortcuts.updating"),
       tone: "neutral" as const,
     };
   }
 
-  if (globalShortcut.errorMessage) {
+  if (globalShortcut.shortcuts.recording.errorMessage) {
     return {
       label: t("settings.shortcuts.unavailable"),
       tone: "warning" as const,
     };
   }
 
-  if (globalShortcut.isRegistered) {
+  if (globalShortcut.shortcuts.recording.isRegistered) {
     return {
       label: t("settings.shortcuts.active"),
       tone: "success" as const,
@@ -64,8 +64,11 @@ async function updateGlobalShortcutEnabled(value: boolean) {
   await application.saveSettings({ global_shortcut_enabled: value });
 }
 
-function openShortcutCapture() {
+async function openShortcutCapture() {
   capturedShortcut.value = null;
+  if (!(await globalShortcut.beginShortcutCapture())) {
+    return;
+  }
   bindingDialogOpen.value = true;
 }
 
@@ -99,7 +102,12 @@ async function saveCapturedShortcut() {
     return;
   }
 
-  if (!(await globalShortcut.configureCandidate(capturedShortcut.value))) {
+  if (
+    !(await globalShortcut.configureCandidate(
+      "recording",
+      capturedShortcut.value,
+    ))
+  ) {
     return;
   }
 
@@ -108,7 +116,7 @@ async function saveCapturedShortcut() {
       global_shortcut: capturedShortcut.value,
     }))
   ) {
-    await globalShortcut.configureCandidate(previousShortcut);
+    await globalShortcut.configureCandidate("recording", previousShortcut);
     return;
   }
 
@@ -122,9 +130,16 @@ watch(bindingDialogOpen, (isOpen) => {
   }
 
   window.removeEventListener("keydown", captureShortcut);
+  void globalShortcut.endShortcutCapture();
 });
 
-onBeforeUnmount(() => window.removeEventListener("keydown", captureShortcut));
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", captureShortcut);
+
+  if (bindingDialogOpen.value) {
+    void globalShortcut.endShortcutCapture();
+  }
+});
 </script>
 
 <template>
@@ -154,7 +169,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", captureShortcut));
       <AppToggleSwitch
         :model-value="globalShortcutEnabled"
         :accessible-label="t('settings.shortcuts.globalRecording')"
-        :disabled="globalShortcut.isConfiguring"
+        :disabled="globalShortcut.shortcuts.recording.isConfiguring"
         @update:model-value="updateGlobalShortcutEnabled"
       />
     </div>
@@ -164,13 +179,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", captureShortcut));
       <span class="grid gap-1">
         <strong>{{ t("settings.shortcuts.globalShortcut") }}</strong>
         <small
-          v-if="globalShortcut.errorMessage"
+          v-if="globalShortcut.shortcuts.recording.errorMessage"
           class="text-accent"
           role="alert"
         >
           {{
             t("settings.shortcuts.registrationError", {
-              message: globalShortcut.errorMessage,
+              message: globalShortcut.shortcuts.recording.errorMessage,
             })
           }}
         </small>
@@ -178,7 +193,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", captureShortcut));
       <AppButton
         variant="secondary"
         :aria-label="t('settings.shortcuts.globalShortcut')"
-        :disabled="globalShortcut.isConfiguring"
+        :disabled="globalShortcut.shortcuts.recording.isConfiguring"
         @click="openShortcutCapture"
       >
         {{ formatGlobalShortcut(selectedGlobalShortcut) }}
@@ -220,8 +235,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", captureShortcut));
           {{ t("settings.shortcuts.cancel") }}
         </AppButton>
         <AppButton
-          :disabled="!capturedShortcut || globalShortcut.isConfiguring"
-          :loading="globalShortcut.isConfiguring"
+          :disabled="
+            !capturedShortcut ||
+            globalShortcut.shortcuts.recording.isConfiguring
+          "
+          :loading="globalShortcut.shortcuts.recording.isConfiguring"
           @click="saveCapturedShortcut"
         >
           {{ t("settings.shortcuts.save") }}

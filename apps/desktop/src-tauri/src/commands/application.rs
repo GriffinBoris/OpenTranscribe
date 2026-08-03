@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use opentranscribe_domain::{
-    APP_SETTINGS_SCHEMA_VERSION, AppSettings, AppSnapshot, Appearance, OpenAiTranscriptionModel,
-    Project, RecordingMode, RecordingProjectSelection, SearchFilters, SearchPage, Session,
+    APP_SETTINGS_SCHEMA_VERSION, AppSettings, AppSnapshot, Appearance, DictationProvider,
+    OpenAiTranscriptionModel, Project, RecordingMode, RecordingProjectSelection, SearchFilters,
+    SearchPage, Session,
 };
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
@@ -49,6 +50,13 @@ struct SettingsPatch {
     recording_project_selection: Option<RecordingProjectSelection>,
     global_shortcut_enabled: Option<bool>,
     global_shortcut: Option<opentranscribe_domain::GlobalShortcut>,
+    dictation_shortcut_enabled: Option<bool>,
+    dictation_shortcut: Option<opentranscribe_domain::GlobalShortcut>,
+    dictation_provider: Option<DictationProvider>,
+    #[serde(default)]
+    dictation_local_model_id: PatchValue<Option<String>>,
+    dictation_openai_model: Option<OpenAiTranscriptionModel>,
+    dictation_auto_paste: Option<bool>,
     appearance: Option<Appearance>,
 }
 
@@ -99,6 +107,24 @@ impl SettingsPatch {
         }
         if let Some(value) = self.global_shortcut {
             settings.global_shortcut = value;
+        }
+        if let Some(value) = self.dictation_shortcut_enabled {
+            settings.dictation_shortcut_enabled = value;
+        }
+        if let Some(value) = self.dictation_shortcut {
+            settings.dictation_shortcut = value;
+        }
+        if let Some(value) = self.dictation_provider {
+            settings.dictation_provider = value;
+        }
+        if let PatchValue::Set(value) = self.dictation_local_model_id {
+            settings.dictation_local_model_id = value;
+        }
+        if let Some(value) = self.dictation_openai_model {
+            settings.dictation_openai_model = value;
+        }
+        if let Some(value) = self.dictation_auto_paste {
+            settings.dictation_auto_paste = value;
         }
         if let Some(value) = self.appearance {
             settings.appearance = value;
@@ -280,7 +306,7 @@ fn default_library_path(app: &tauri::AppHandle) -> AppResult<PathBuf> {
 pub(crate) fn load_settings(app: &tauri::AppHandle) -> AppResult<AppSettings> {
     let path = settings_path(app)?;
     if path.exists() {
-        let settings: AppSettings = serde_json::from_slice(&std::fs::read(path)?)?;
+        let settings = read_settings_file(&path)?;
 
         if settings.schema_version > APP_SETTINGS_SCHEMA_VERSION {
             return Err(AppError::Application(
@@ -292,6 +318,12 @@ pub(crate) fn load_settings(app: &tauri::AppHandle) -> AppResult<AppSettings> {
     }
 
     Ok(AppSettings::default())
+}
+
+fn read_settings_file(path: &Path) -> AppResult<AppSettings> {
+    let mut stored_settings: serde_json::Value = serde_json::from_slice(&std::fs::read(path)?)?;
+    normalize_stored_global_shortcut(&mut stored_settings);
+    Ok(serde_json::from_value(stored_settings)?)
 }
 
 fn settings_path(app: &tauri::AppHandle) -> AppResult<PathBuf> {
@@ -327,19 +359,42 @@ pub(crate) fn update_settings(
     update(&mut settings);
     settings.schema_version = APP_SETTINGS_SCHEMA_VERSION;
     settings.revision = current.revision + 1;
-    crate::storage::atomic_file::write_json(&settings_path(app)?, &settings)?;
+    write_settings_file(&settings_path(app)?, &settings)?;
     *current = settings.clone();
     Ok(settings)
+}
+
+fn write_settings_file(path: &Path, settings: &AppSettings) -> AppResult<()> {
+    let mut stored_settings = serde_json::to_value(settings)?;
+    normalize_stored_global_shortcut(&mut stored_settings);
+    crate::storage::atomic_file::write_json(path, &stored_settings)
+}
+
+fn normalize_stored_global_shortcut(settings: &mut serde_json::Value) {
+    let Some(serde_json::Value::String(shortcut)) = settings.get_mut("global_shortcut") else {
+        return;
+    };
+
+    let legacy_shortcut = match shortcut.as_str() {
+        "CommandOrControl+Shift+R" => "command_or_control_shift_r",
+        "CommandOrControl+Shift+Space" => "command_or_control_shift_space",
+        "Alt+Shift+R" => "alt_shift_r",
+        _ => return,
+    };
+    *shortcut = legacy_shortcut.to_owned();
 }
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
-    use opentranscribe_domain::{AppSettings, RecordingMode};
+    use opentranscribe_domain::{AppSettings, GlobalShortcut, RecordingMode};
     use tempfile::tempdir;
 
-    use super::{LibrarySelection, SettingsPatch, load_remembered_library};
+    use super::{
+        LibrarySelection, SettingsPatch, load_remembered_library, read_settings_file,
+        write_settings_file,
+    };
 
     #[test]
     fn settings_patch_updates_only_its_provided_fields() {
@@ -347,7 +402,8 @@ mod tests {
             r#"{
                 "recording_mode": "local_after_recording",
                 "microphone_device_id": null,
-                "capture_system_audio": true
+                "capture_system_audio": true,
+                "dictation_shortcut": "Alt+Shift+D"
             }"#,
         )
         .expect("settings patch should deserialize");
@@ -363,6 +419,7 @@ mod tests {
         assert_eq!(settings.microphone_device_id, None);
         assert!(settings.capture_system_audio);
         assert!(settings.setup_completed);
+        assert_eq!(settings.dictation_shortcut.0, "Alt+Shift+D");
     }
 
     #[test]
@@ -385,5 +442,32 @@ mod tests {
         assert_eq!(selected, Some(library_path));
         assert!(!legacy_path.exists());
         assert!(directory.path().join("selected-library.json").exists());
+    }
+
+    #[test]
+    fn saves_and_loads_a_custom_dictation_shortcut() {
+        let directory = tempdir().expect("temporary config directory should be created");
+        let path = directory.path().join("settings.json");
+        let settings = AppSettings {
+            global_shortcut: GlobalShortcut("CommandOrControl+Shift+R".to_owned()),
+            dictation_shortcut: GlobalShortcut("Alt+Shift+D".to_owned()),
+            ..AppSettings::default()
+        };
+
+        write_settings_file(&path, &settings).expect("settings should be written");
+        let stored_settings: serde_json::Value =
+            serde_json::from_slice(&fs::read(&path).expect("settings should be readable"))
+                .expect("settings should be valid JSON");
+        let loaded_settings = read_settings_file(&path).expect("settings should be loaded");
+
+        assert_eq!(
+            stored_settings["global_shortcut"],
+            "command_or_control_shift_r"
+        );
+        assert_eq!(
+            loaded_settings.global_shortcut.0,
+            "CommandOrControl+Shift+R"
+        );
+        assert_eq!(loaded_settings.dictation_shortcut.0, "Alt+Shift+D");
     }
 }
