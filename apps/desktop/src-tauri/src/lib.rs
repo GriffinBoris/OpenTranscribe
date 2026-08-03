@@ -22,9 +22,10 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let app = tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::default().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
         .manage(AppState::default())
         .setup(|app| {
@@ -49,6 +50,7 @@ pub fn run() {
             commands::application::save_settings,
             commands::application::reset_application_settings,
             commands::application::delete_all_application_data,
+            commands::application::updater_configured,
             commands::application::initialize_library,
             commands::application::create_project,
             commands::application::search_library,
@@ -96,7 +98,17 @@ pub fn run() {
             local_models::remove_local_model,
             commands::session::export_session,
             commands::events::subscribe,
-        ])
+        ]);
+
+    if let Some(public_key) = commands::application::updater_public_key() {
+        builder = builder.plugin(
+            tauri_plugin_updater::Builder::new()
+                .pubkey(public_key)
+                .build(),
+        );
+    }
+
+    let app = builder
         .build(tauri::generate_context!())
         .expect("OpenTranscribe failed to start");
 

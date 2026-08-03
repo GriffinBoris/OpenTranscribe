@@ -53,9 +53,9 @@ xattr -dr com.apple.quarantine /Applications/OpenTranscribe.app
 **Windows** installers are unsigned, so SmartScreen shows a warning on first
 run. Choose More info, then Run anyway. Nothing degrades on later updates.
 
-**Linux** provides an AppImage and a `.deb`. Both need PipeWire 1.0 or newer
-running for system-output capture. Mark the AppImage executable before running
-it.
+**Linux** provides an AppImage and a `.deb`, built on Ubuntu 22.04 for systems
+with glibc 2.35 or newer. Both need PipeWire 1.0 or newer running for
+system-output capture. Mark the AppImage executable before running it.
 
 ## Stack
 

@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import WindowTitlebar from "@/views/application/components/WindowTitlebar.vue";
+import AppButton from "@/components/ui/AppButton.vue";
 import AppStatusState from "@/components/ui/AppStatusState.vue";
 import AppSidebar from "@/views/application/components/AppSidebar.vue";
 import LocalModelDownloadStatus from "@/views/application/components/LocalModelDownloadStatus.vue";
@@ -12,10 +13,12 @@ import { useApplicationStore } from "@/views/application/applicationStore";
 import { native } from "@/core/native";
 import { useGlobalShortcutStore } from "@/views/application/globalShortcutStore";
 import { useRecordingStore } from "@/views/application/recordingStore";
+import { useUpdateStore } from "@/views/application/updateStore";
 
 const application = useApplicationStore();
 const globalShortcut = useGlobalShortcutStore();
 const recording = useRecordingStore();
+const updater = useUpdateStore();
 const { t } = useI18n();
 const router = useRouter();
 const isHandlingGlobalShortcut = ref(false);
@@ -196,6 +199,25 @@ watch(
         >
           {{ application.operationError }}
         </p>
+        <div
+          v-if="updater.availableUpdate"
+          class="shell-state rounded-app-sm bg-canvas-subtle mx-5 mt-3.5 flex items-center justify-between gap-3 border border-[var(--border)] px-3 py-2.5 max-[600px]:items-start"
+        >
+          <span class="text-sm font-medium">
+            {{
+              t("settings.application.updates.available", {
+                version: updater.availableUpdate.version,
+              })
+            }}
+          </span>
+          <AppButton
+            variant="ghost"
+            size="small"
+            @click="router.push('/settings#application')"
+          >
+            {{ t("settings.application.updates.review") }}
+          </AppButton>
+        </div>
         <LocalModelDownloadStatus />
         <div class="application-main__route min-h-0 flex-1">
           <RouterView v-slot="{ Component }">

@@ -1003,10 +1003,15 @@ updater signatures, and updater JSON. Pin third-party Actions to reviewed full
 commit SHAs; let Dependabot propose controlled updates rather than following
 mutable tags.
 
+Each platform build should upload its installers as a workflow artifact. A
+single publish job downloads the completed artifact set and creates the draft
+GitHub Release, avoiding concurrent matrix jobs racing to upload assets.
+
 ### Signing and release boundary
 
-`release.yaml` should target a protected `release` environment and request only
-`contents: write`. It should receive named secrets rather than
+`release.yaml` should target a protected `release` environment. Only its final
+publish job needs `contents: write`; platform builds stay read-only. It should
+receive named secrets rather than
 `secrets: inherit`:
 
 - Tauri updater private key and password

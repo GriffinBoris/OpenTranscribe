@@ -11,12 +11,12 @@ the report.
 
 ## Supported targets
 
-| Platform                   | Release level | Required package              |
-| -------------------------- | ------------- | ----------------------------- |
-| macOS 14+ on Apple Silicon | Supported     | Signed and notarized DMG      |
-| macOS 14+ on Intel         | Supported     | Signed and notarized DMG      |
-| Windows 10 22H2/11 x64     | Supported     | Signed MSI and NSIS installer |
-| Linux x64 with PipeWire    | Beta          | AppImage and deb              |
+| Platform                                | Release level | Required package              |
+| --------------------------------------- | ------------- | ----------------------------- |
+| macOS 14+ on Apple Silicon              | Supported     | Signed and notarized DMG      |
+| macOS 14+ on Intel                      | Supported     | Signed and notarized DMG      |
+| Windows 10 22H2/11 x64                  | Supported     | Signed MSI and NSIS installer |
+| Linux x64 with PipeWire and glibc 2.35+ | Beta          | AppImage and deb              |
 
 ## Installation and desktop integration
 

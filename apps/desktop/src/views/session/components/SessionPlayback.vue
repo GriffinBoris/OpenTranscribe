@@ -170,7 +170,7 @@ defineExpose({ seek });
         :max="duration"
         :step="0.1"
         :disabled="duration === 0"
-        :trackless="Boolean(normalizedWaveform.length)"
+        trackless
         :accessible-label="t('playback.seek')"
         @update:model-value="seek"
       />

@@ -17,6 +17,9 @@ jobs:
 
   validate:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -31,11 +34,18 @@ jobs:
       - name: Validate tagged version
         run: node scripts/verify-release-version.mjs
 
+      - name: Resolve release identity
+        id: release
+        run: |
+          version="$(node -p "require('./apps/desktop/package.json').version")"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          echo "tag=v$version" >>"$GITHUB_OUTPUT"
+
   build:
     needs: [quality, test, validate]
     environment: release
     permissions:
-      contents: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -49,7 +59,7 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             bundles: nsis,msi
-          - os: ubuntu-24.04
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             bundles: appimage,deb
     runs-on: ${{ matrix.os }}
@@ -93,12 +103,6 @@ jobs:
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
-          if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
-            echo "release_body=macOS installers are signed and notarized. Windows and Linux installers are unsigned." >>"$GITHUB_OUTPUT"
-          else
-            echo "release_body=Installers are unsigned preview artifacts until platform signing is configured." >>"$GITHUB_OUTPUT"
-          fi
-
           if [ "$RUNNER_OS" = "macOS" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
             echo "sign_args=" >>"$GITHUB_OUTPUT"
             echo "macos_signed=true" >>"$GITHUB_OUTPUT"
@@ -107,10 +111,22 @@ jobs:
             echo "macos_signed=false" >>"$GITHUB_OUTPUT"
           fi
 
-      - name: Build draft installers
+      - name: Resolve updater mode
+        id: updater
+        shell: bash
+        env:
+          OPENTRANSCRIBE_UPDATER_PUBLIC_KEY: ${{ vars.OPENTRANSCRIBE_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$OPENTRANSCRIBE_UPDATER_PUBLIC_KEY" ] && [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "args=--config src-tauri/tauri.updater.conf.json" >>"$GITHUB_OUTPUT"
+          else
+            echo "args=" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Build installers
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_ENV_TARGET_TRIPLE: ${{ matrix.target }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -118,20 +134,137 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          OPENTRANSCRIBE_UPDATER_PUBLIC_KEY: ${{ vars.OPENTRANSCRIBE_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
-          tagName: v__VERSION__
-          releaseName: OpenTranscribe v__VERSION__
-          releaseBody: ${{ steps.signing.outputs.release_body }}
-          releaseDraft: true
-          prerelease: true
           uploadUpdaterJson: false
-          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci ${{ steps.signing.outputs.sign_args }} -- --locked
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci ${{ steps.signing.outputs.sign_args }} ${{ steps.updater.outputs.args }} -- --locked
 
-      # tauri-action already fails the build when signing or notarization
-      # fails. Missing entitlements do not fail the build, so verify them
-      # here rather than discovering silent microphone denial after release.
+      - name: Verify Linux GLIBC baseline
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: >-
+          node scripts/verify-linux-glibc.mjs 2.35
+          target/${{ matrix.target }}/release/opentranscribe
+          apps/desktop/src-tauri/binaries/local-transcriber-${{ matrix.target }}
+
+      # Tauri fails the build when signing or notarization fails. Missing
+      # entitlements do not fail the build, so verify them here instead.
       - name: Verify signed macOS bundle
         if: steps.signing.outputs.macos_signed == 'true'
         run: npm run verify:signing:macos -- ../../target/${{ matrix.target }}/release/bundle/macos/OpenTranscribe.app
         working-directory: apps/desktop
+
+      - name: Name updater assets by target
+        if: steps.updater.outputs.args != ''
+        shell: bash
+        run: |
+          while IFS= read -r -d '' asset; do
+            case "$asset" in
+              *.app.tar.gz)
+                renamed="${asset%.app.tar.gz}.${{ matrix.target }}.app.tar.gz"
+                ;;
+              *.AppImage)
+                renamed="${asset%.AppImage}.${{ matrix.target }}.AppImage"
+                ;;
+              *.exe)
+                renamed="${asset%.exe}.${{ matrix.target }}.exe"
+                ;;
+            esac
+
+            mv "$asset" "$renamed"
+            mv "$asset.sig" "$renamed.sig"
+          done < <(
+            find "target/${{ matrix.target }}/release/bundle" -type f \( \
+              -name '*.app.tar.gz' -o \
+              -name '*.AppImage' -o \
+              -name '*.exe' \
+            \) -print0
+          )
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-assets-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/bundle/**/*.dmg
+            target/${{ matrix.target }}/release/bundle/**/*.exe
+            target/${{ matrix.target }}/release/bundle/**/*.msi
+            target/${{ matrix.target }}/release/bundle/**/*.AppImage
+            target/${{ matrix.target }}/release/bundle/**/*.deb
+            target/${{ matrix.target }}/release/bundle/**/*.tar.gz
+            target/${{ matrix.target }}/release/bundle/**/*.sig
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: [build, validate]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: release-assets-*
+          path: release-assets
+
+      - name: Create updater manifest
+        env:
+          OPENTRANSCRIBE_UPDATER_PUBLIC_KEY: ${{ vars.OPENTRANSCRIBE_UPDATER_PUBLIC_KEY }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "$OPENTRANSCRIBE_UPDATER_PUBLIC_KEY" ] || [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            exit 0
+          fi
+
+          node scripts/create-updater-manifest.mjs \
+            --assets-directory release-assets \
+            --output release-assets/latest.json \
+            --release-tag "$RELEASE_TAG" \
+            --version "$RELEASE_VERSION"
+
+      - name: Create draft release
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          mapfile -d '' release_assets < <(
+            find release-assets -type f \( \
+              -name '*.dmg' -o \
+              -name '*.exe' -o \
+              -name '*.msi' -o \
+              -name '*.AppImage' -o \
+              -name '*.deb' -o \
+              -name '*.tar.gz' -o \
+              -name '*.sig' -o \
+              -name 'latest.json' \
+            \) -print0
+          )
+
+          if [ "${#release_assets[@]}" -eq 0 ]; then
+            echo "No release assets were downloaded." >&2
+            exit 1
+          fi
+
+          if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            release_body="macOS installers are signed and notarized. Windows and Linux installers are unsigned."
+          else
+            release_body="Installers are unsigned preview artifacts until platform signing is configured."
+          fi
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${release_assets[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${release_assets[@]}" \
+              --draft \
+              --prerelease \
+              --title "OpenTranscribe v$RELEASE_VERSION" \
+              --notes "$release_body"
+          fi

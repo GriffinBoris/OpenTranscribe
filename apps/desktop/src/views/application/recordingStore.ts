@@ -111,7 +111,7 @@ export const useRecordingStore = defineStore("recording", () => {
         captureSystemAudio:
           options.captureSystemAudio ??
           application.settings?.capture_system_audio ??
-          false,
+          true,
         languageHint: options.languageHint ?? null,
         recordingMode: mode,
         openAiModel:

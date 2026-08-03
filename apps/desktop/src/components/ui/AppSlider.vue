@@ -33,8 +33,9 @@ const sliderParts = computed(() => ({
   range: props.trackless
     ? "absolute h-full bg-transparent"
     : "absolute h-full rounded-[inherit] bg-accent",
-  handle:
-    "absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-surface-raised bg-accent shadow-[0_0_0_1px_var(--border-strong)] focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2",
+  handle: props.trackless
+    ? "absolute top-0 h-full w-5 -translate-x-1/2 cursor-ew-resize before:absolute before:inset-y-0 before:left-1/2 before:w-0.5 before:-translate-x-1/2 before:bg-accent before:shadow-[0_0_0_1px_var(--surface-raised)] focus-visible:before:w-1"
+    : "absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-surface-raised bg-accent shadow-[0_0_0_1px_var(--border-strong)] focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2",
 }));
 </script>
 

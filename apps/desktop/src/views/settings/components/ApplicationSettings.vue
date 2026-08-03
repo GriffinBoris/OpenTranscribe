@@ -11,6 +11,7 @@ import AppSurface from "@/components/ui/AppSurface.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { useLocalModelsStore } from "@/views/application/localModelsStore";
 import { useRecordingStore } from "@/views/application/recordingStore";
+import ApplicationUpdates from "@/views/settings/components/ApplicationUpdates.vue";
 
 const application = useApplicationStore();
 const localModels = useLocalModelsStore();
@@ -67,6 +68,8 @@ async function deleteAllData() {
         {{ t("settings.application.description") }}
       </p>
     </div>
+
+    <ApplicationUpdates :has-active-work="hasActiveWork" />
 
     <div
       class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"

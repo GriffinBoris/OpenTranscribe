@@ -33,7 +33,7 @@ const { t } = useI18n();
 const title = ref("");
 const projectId = ref("");
 const microphoneDeviceId = ref("");
-const captureSystemAudio = ref(false);
+const captureSystemAudio = ref(true);
 const recordingMode = ref<RecordingMode>("record_only");
 const languageHint = ref("");
 const openAiModel = ref<OpenAiTranscriptionModel>("gpt_transcribe");
@@ -93,8 +93,7 @@ function reset() {
       ?.id ??
     application.audioDevices?.microphones[0]?.id ??
     "";
-  captureSystemAudio.value =
-    application.settings?.capture_system_audio ?? false;
+  captureSystemAudio.value = application.settings?.capture_system_audio ?? true;
   recordingMode.value = application.settings?.recording_mode ?? "record_only";
   languageHint.value = "";
   openAiModel.value =

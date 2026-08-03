@@ -21,6 +21,9 @@ type ApplicationBridge = Pick<
   | "saveSettings"
   | "resetApplicationSettings"
   | "deleteAllApplicationData"
+  | "updaterConfigured"
+  | "checkForUpdate"
+  | "installUpdate"
   | "initializeLibrary"
   | "chooseLibrary"
   | "createProject"
@@ -61,7 +64,7 @@ export const previewApplicationBridge = {
       setup_completed: false,
       recording_mode: "record_only",
       microphone_device_id: null,
-      capture_system_audio: false,
+      capture_system_audio: true,
       recording_project_selection: { kind: "automatic" },
       global_shortcut_enabled: false,
       dictation_shortcut_enabled: true,
@@ -78,6 +81,28 @@ export const previewApplicationBridge = {
 
   async deleteAllApplicationData() {
     window.location.assign("/?firstRun=1&resetReady=1");
+  },
+
+  async updaterConfigured() {
+    return new URLSearchParams(window.location.search).has("updater");
+  },
+
+  async checkForUpdate() {
+    const searchParameters = new URLSearchParams(window.location.search);
+
+    if (searchParameters.get("update") !== "available") {
+      return null;
+    }
+
+    return {
+      version: "0.1.2",
+      notes: "Preview update notes.",
+    };
+  },
+
+  async installUpdate(onProgress) {
+    onProgress({ completed_bytes: 0, total_bytes: 100 });
+    onProgress({ completed_bytes: 100, total_bytes: 100 });
   },
 
   async initializeLibrary(path: string) {

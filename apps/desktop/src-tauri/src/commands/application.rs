@@ -210,6 +210,23 @@ pub fn delete_all_application_data(
 }
 
 #[tauri::command]
+pub fn updater_configured() -> bool {
+    updater_public_key().is_some()
+}
+
+pub(crate) fn updater_public_key() -> Option<&'static str> {
+    let public_key = option_env!("OPENTRANSCRIBE_UPDATER_PUBLIC_KEY")
+        .filter(|public_key| !public_key.trim().is_empty())?;
+
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("APPIMAGE").is_none() {
+        return None;
+    }
+
+    Some(public_key)
+}
+
+#[tauri::command]
 pub fn initialize_library(
     path: String,
     app: tauri::AppHandle,

@@ -147,7 +147,7 @@ pub struct AppSettings {
     pub openai_transcription_model: OpenAiTranscriptionModel,
     #[serde(default)]
     pub microphone_device_id: Option<String>,
-    #[serde(default)]
+    #[serde(default = "default_capture_system_audio")]
     pub capture_system_audio: bool,
     #[serde(default)]
     pub local_models_directory: Option<String>,
@@ -181,7 +181,7 @@ impl Default for AppSettings {
             recording_mode: RecordingMode::RecordOnly,
             openai_transcription_model: OpenAiTranscriptionModel::default(),
             microphone_device_id: None,
-            capture_system_audio: false,
+            capture_system_audio: default_capture_system_audio(),
             local_models_directory: None,
             recording_project_selection: RecordingProjectSelection::default(),
             global_shortcut_enabled: false,
@@ -202,6 +202,10 @@ impl Default for AppSettings {
 
 fn default_dictation_shortcut() -> GlobalShortcut {
     GlobalShortcut(DEFAULT_DICTATION_SHORTCUT.to_owned())
+}
+
+fn default_capture_system_audio() -> bool {
+    true
 }
 
 fn default_dictation_shortcut_enabled() -> bool {
@@ -236,14 +240,13 @@ mod tests {
     }
 
     #[test]
-    fn reads_existing_settings_without_a_recording_project_selection() {
+    fn reads_existing_settings_with_system_audio_defaulted_on() {
         let settings: AppSettings = serde_json::from_str(
             r#"{
                 "revision": 1,
                 "setup_completed": true,
                 "recording_mode": "record_only",
                 "microphone_device_id": null,
-                "capture_system_audio": false,
                 "global_shortcut_enabled": false,
                 "global_shortcut": "CommandOrControl+Shift+R",
                 "appearance": { "theme": "system", "reduced_motion": false }
@@ -260,6 +263,7 @@ mod tests {
             OpenAiTranscriptionModel::GptTranscribe
         );
         assert_eq!(settings.local_models_directory, None);
+        assert!(settings.capture_system_audio);
         assert_eq!(settings.global_shortcut.0, "CommandOrControl+Shift+R");
         assert!(settings.dictation_shortcut_enabled);
         assert_eq!(settings.dictation_shortcut.0, "Alt+Space");
@@ -271,6 +275,21 @@ mod tests {
         );
         assert!(settings.dictation_auto_paste);
         assert_eq!(settings.schema_version, APP_SETTINGS_SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn preserves_an_explicit_system_audio_preference() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+                "revision": 1,
+                "recording_mode": "record_only",
+                "capture_system_audio": false,
+                "appearance": { "theme": "system", "reduced_motion": false }
+            }"#,
+        )
+        .expect("settings should deserialize");
+
+        assert!(!settings.capture_system_audio);
     }
 
     #[test]

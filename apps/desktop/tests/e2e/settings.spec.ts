@@ -234,10 +234,32 @@ test("reopens recording setup from application settings", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/$/);
   await expect(
-    page.getByRole("heading", { name: "Set up recording" }),
+    page.getByRole("heading", { name: "Get started" }),
   ).toBeVisible();
-  await expect(page.getByText("Audio sources")).toBeVisible();
-  await expect(page.getByText("Audio test")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
+});
+
+test("reviews a signed application update before downloading it", async ({
+  page,
+}) => {
+  await page.goto(
+    "/settings?updater=enabled&update=available&resetReady=1#application",
+  );
+
+  const applicationSettings = page.locator("#application");
+  await expect(applicationSettings).toContainText(
+    "Version 0.1.2 is available.",
+  );
+
+  await applicationSettings
+    .getByRole("button", { name: "Check for updates" })
+    .click();
+
+  const dialog = page.getByRole("dialog", { name: "Update available" });
+  await expect(dialog).toContainText("Preview update notes.");
+  await expect(
+    dialog.getByRole("button", { name: "Download and restart" }),
+  ).toBeEnabled();
 });
 
 test("resets settings without deleting the library or credentials", async ({
@@ -256,7 +278,7 @@ test("resets settings without deleting the library or credentials", async ({
   await dialog.getByRole("button", { name: "Reset settings" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Set up recording" }),
+    page.getByRole("heading", { name: "Get started" }),
   ).toBeVisible();
 });
 
@@ -283,7 +305,7 @@ test("requires explicit confirmation before deleting all OpenTranscribe data", a
 
   await expect(page).toHaveURL(/firstRun=1/);
   await expect(
-    page.getByRole("heading", { name: "Set up recording" }),
+    page.getByRole("heading", { name: "Get started" }),
   ).toBeVisible();
 });
 
@@ -485,17 +507,15 @@ test("shows macOS system-audio permission status and recovery accurately", async
   ).not.toBeVisible();
 });
 
-test("enables system output when macOS capture is ready", async ({ page }) => {
+test("keeps system output enabled when macOS capture is ready", async ({
+  page,
+}) => {
   await page.goto("/settings?systemAudioPermission=granted");
 
   const systemOutput = page.getByRole("switch", {
     name: "Capture system output",
   });
   await expect(systemOutput).toBeEnabled();
-  await expect(systemOutput).not.toBeChecked();
-
-  await systemOutput.click();
-
   await expect(systemOutput).toBeChecked();
   await page.getByRole("link", { name: "Home", exact: true }).click();
   await expect(page.getByText("System output · On")).toBeVisible();
