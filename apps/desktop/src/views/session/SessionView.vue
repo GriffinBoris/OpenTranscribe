@@ -125,6 +125,7 @@ async function exportTranscript() {
   const result = await sessionStore.exportSession(
     sessionId.value,
     exportFormat.value,
+    session.value?.title ?? t("session.untitledRecording"),
   );
   isExporting.value = false;
 

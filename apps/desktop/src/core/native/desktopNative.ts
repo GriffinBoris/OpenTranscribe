@@ -1,5 +1,5 @@
 import { Channel, convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 
 import type { NativeBridge } from "@/core/native/NativeBridge";
@@ -32,6 +32,14 @@ import type {
 
 const { t } = i18n.global;
 const registeredGlobalShortcuts = new Map<"recording" | "dictation", string>();
+
+const exportExtensions: Record<ExportFormat, string> = {
+  markdown: "md",
+  text: "txt",
+  json: "json",
+  srt: "srt",
+  vtt: "vtt",
+};
 
 export const desktopNative: NativeBridge = {
   bootstrap: () => invoke<AppSnapshot>("bootstrap"),
@@ -269,10 +277,38 @@ export const desktopNative: NativeBridge = {
   removeLocalModel: (modelId: string) =>
     invoke<LocalModel>("remove_local_model", { modelId }),
 
-  exportSession: (sessionId: string, format: ExportFormat) =>
-    invoke<ExportResult>("export_session", {
-      request: { session_id: sessionId, format },
-    }),
+  async exportSession(
+    sessionId: string,
+    format: ExportFormat,
+    sessionTitle: string,
+  ) {
+    const extension = exportExtensions[format];
+    const fileName =
+      sessionTitle
+        .replace(/[<>:"/\\|?*]/g, "-")
+        .trim()
+        .slice(0, 80) || t("session.untitledRecording");
+    const destinationPath = await save({
+      defaultPath: `${fileName}.${extension}`,
+      filters: [
+        {
+          name: t("native.transcriptFile"),
+          extensions: [extension],
+        },
+      ],
+      title: t("native.exportSession"),
+    });
+
+    return destinationPath
+      ? invoke<ExportResult>("export_session", {
+          request: {
+            session_id: sessionId,
+            format,
+            destination_path: destinationPath,
+          },
+        })
+      : null;
+  },
 
   sessionWorkspace: (sessionId: string) =>
     invoke<SessionWorkspace>("session_workspace", { sessionId }),

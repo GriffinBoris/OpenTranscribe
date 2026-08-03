@@ -69,6 +69,10 @@ order: 0
   configuration. The ScreenCaptureKit Rust adapter includes a Swift bridge, so
   `build.rs` derives the active toolchain's Swift runtime library path through
   `xcrun` instead of hardcoding an Xcode installation path.
+- When a dependency update raises the Rust compiler requirement, update the
+  workspace `rust-version`, `rust-toolchain.toml`, and every GitHub Actions
+  toolchain pin together so local development, CI, and release builds stay on
+  one supported compiler.
 - Local inference runs in the supervised sidecar. A sidecar failure must not stop or corrupt recording.
 - Build the macOS sidecar with Whisper Metal support and explicitly request its GPU path. Keep Windows and Linux acceleration as opt-in target variants rather than universally enabling CUDA or Vulkan, because those backends impose hardware- and SDK-specific build requirements that would make ordinary cross-platform installs unreliable.
 - Keep recording completion native-owned. Dock, tray, and global-shortcut stop

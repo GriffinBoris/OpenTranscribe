@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::PathBuf;
 
 use opentranscribe_domain::Transcript;
 use serde::{Deserialize, Serialize};
@@ -37,37 +38,45 @@ pub struct ExportResult {
 pub struct ExportService;
 
 impl ExportService {
-    pub fn export(input: ExportInput, format: ExportFormat) -> AppResult<ExportResult> {
-        fs::create_dir_all(&input.directory)?;
+    pub fn export(
+        input: ExportInput,
+        format: ExportFormat,
+        mut destination_path: PathBuf,
+    ) -> AppResult<ExportResult> {
         validate_speakers(&input.transcript)?;
-        let path = input.directory.join(format!(
-            "{}.{}",
-            export_file_name(&input.session.title),
-            format.extension()
-        ));
+        let directory = destination_path.parent().ok_or_else(|| {
+            AppError::Export("export destination must include a directory".to_owned())
+        })?;
+        fs::create_dir_all(directory)?;
+
+        if destination_path.extension().is_none() {
+            destination_path.set_extension(format.extension());
+        }
 
         match format {
             ExportFormat::Markdown => atomic_file::write(
-                &path,
+                &destination_path,
                 transcript_markdown(&input.session.title, &input.transcript, &input.notes)
                     .as_bytes(),
             )?,
             ExportFormat::Text => atomic_file::write(
-                &path,
+                &destination_path,
                 transcript_text(&input.transcript, &input.notes).as_bytes(),
             )?,
-            ExportFormat::Json => atomic_file::write_json(&path, &input.transcript)?,
-            ExportFormat::Srt => {
-                atomic_file::write(&path, transcript_srt(&input.transcript)?.as_bytes())?
-            }
-            ExportFormat::Vtt => {
-                atomic_file::write(&path, transcript_vtt(&input.transcript)?.as_bytes())?
-            }
+            ExportFormat::Json => atomic_file::write_json(&destination_path, &input.transcript)?,
+            ExportFormat::Srt => atomic_file::write(
+                &destination_path,
+                transcript_srt(&input.transcript)?.as_bytes(),
+            )?,
+            ExportFormat::Vtt => atomic_file::write(
+                &destination_path,
+                transcript_vtt(&input.transcript)?.as_bytes(),
+            )?,
         }
 
         Ok(ExportResult {
             format,
-            path: path.to_string_lossy().into_owned(),
+            path: destination_path.to_string_lossy().into_owned(),
         })
     }
 }
@@ -85,17 +94,6 @@ fn validate_speakers(transcript: &Transcript) -> AppResult<()> {
     }
 
     Ok(())
-}
-
-fn export_file_name(title: &str) -> String {
-    let sanitized: String = title
-        .chars()
-        .map(|character| match character {
-            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '-',
-            _ => character,
-        })
-        .collect();
-    sanitized.trim().chars().take(80).collect()
 }
 
 fn transcript_markdown(title: &str, transcript: &Transcript, notes: &str) -> String {
@@ -245,9 +243,11 @@ mod tests {
                     session: session(),
                     transcript: transcript(2_500),
                     notes: "- Follow up".to_owned(),
-                    directory: directory.path().to_owned(),
                 },
                 format,
+                directory
+                    .path()
+                    .join(format!("Weekly sync.{}", format.extension())),
             )
             .expect("export should succeed");
             assert!(std::path::Path::new(&result.path).exists());
@@ -269,9 +269,9 @@ mod tests {
                 session: session(),
                 transcript: transcript(1_250),
                 notes: String::new(),
-                directory: directory.path().to_owned(),
             },
             ExportFormat::Vtt,
+            directory.path().join("Weekly sync.vtt"),
         )
         .expect_err("zero-length cues should fail");
 

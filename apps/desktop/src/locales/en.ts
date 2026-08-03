@@ -364,6 +364,8 @@ export const messages = {
     downloadComplete: "Download complete",
     localDesktopOnly:
       "Local transcription requires the native desktop runtime.",
+    exportSession: "Export transcript",
+    transcriptFile: "Transcript file",
     previewExportPath: "Preview exports/transcript.{extension}",
   },
   models: {

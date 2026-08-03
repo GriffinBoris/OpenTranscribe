@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
 
 use opentranscribe_domain::{
     SearchFilters, SearchPage, SearchResult, Session, Transcript, TranscriptRun,
@@ -22,7 +21,6 @@ pub struct ExportInput {
     pub session: Session,
     pub transcript: Transcript,
     pub notes: String,
-    pub directory: PathBuf,
 }
 
 #[derive(Serialize)]
@@ -131,7 +129,6 @@ impl LibraryRepository {
     }
 
     pub fn export_input(&self, session_id: &str) -> AppResult<ExportInput> {
-        let directory = self.session_directory(session_id)?;
         let workspace = self.session_workspace(session_id)?;
         let transcript = workspace.transcript.ok_or_else(|| {
             AppError::Export("transcribe this session before exporting it".to_owned())
@@ -141,7 +138,6 @@ impl LibraryRepository {
             session: workspace.session,
             transcript,
             notes: workspace.notes,
-            directory: directory.join("exports"),
         })
     }
 

@@ -228,11 +228,12 @@ export const useSessionStore = defineStore("session", () => {
   async function exportSession(
     sessionId: string,
     format: ExportFormat,
+    sessionTitle: string,
   ): Promise<ExportResult | null> {
     application.operationError = null;
 
     try {
-      return await native.exportSession(sessionId, format);
+      return await native.exportSession(sessionId, format, sessionTitle);
     } catch (reason) {
       application.operationError =
         reason instanceof Error ? reason.message : String(reason);

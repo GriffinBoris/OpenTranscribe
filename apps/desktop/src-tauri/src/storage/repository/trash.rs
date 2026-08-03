@@ -8,7 +8,7 @@ use crate::error::{AppError, AppResult};
 
 impl LibraryRepository {
     pub fn trashed_sessions(&self) -> AppResult<Vec<Session>> {
-        let mut sessions = Vec::new();
+        let mut sessions: Vec<Session> = Vec::new();
 
         for entry in read_directories(&self.root.join("Trash/sessions"))? {
             let manifest_path = entry.path().join("session.json");
@@ -18,7 +18,7 @@ impl LibraryRepository {
             }
         }
 
-        sessions.sort_by(|left: &Session, right: &Session| right.created_at.cmp(&left.created_at));
+        sessions.sort_by_key(|session| std::cmp::Reverse(session.created_at));
         Ok(sessions)
     }
 

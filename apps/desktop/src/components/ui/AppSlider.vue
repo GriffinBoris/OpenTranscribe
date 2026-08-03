@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import Slider from "primevue/slider";
 import { computed } from "vue";
+
+import Slider from "primevue/slider";
 
 const props = withDefaults(
   defineProps<{
