@@ -61,7 +61,7 @@ export const previewApplicationBridge = {
       setup_completed: false,
       recording_mode: "record_only",
       microphone_device_id: null,
-      capture_system_audio: false,
+      capture_system_audio: true,
       recording_project_selection: { kind: "automatic" },
       global_shortcut_enabled: false,
       dictation_shortcut_enabled: true,

@@ -62,9 +62,10 @@ order: 0
   - ScreenCaptureKit on macOS
   - WASAPI loopback on Windows
   - PipeWire on Linux
-- Linux compilation requires PipeWire/SPA 1.0 or newer development headers;
-  keep Linux CI on Ubuntu 24.04 or newer so bindgen sees the API expected by
-  `pipewire-rs` 0.10.
+- Linux release bundles build on Ubuntu 22.04, our glibc 2.35 compatibility
+  baseline. Native compile checks can run on Ubuntu 24.04 with PipeWire/SPA
+  1.0 or newer development headers; do not move installer builds to a newer
+  base image without intentionally raising the published glibc requirement.
 - Keep the macOS deployment target at 14.0 in both Cargo and Tauri bundle
   configuration. The ScreenCaptureKit Rust adapter includes a Swift bridge, so
   `build.rs` derives the active toolchain's Swift runtime library path through
@@ -237,9 +238,12 @@ order: 0
   bulk-move-dialog workflow rather than adding a project selector to every
   row. Session workspaces use the compact move utility in their header; the
   Home recents list may retain its compact single-row control.
-- First-run audio testing uses the normal recorder, finalizer, and playback
-  path. Keep it compact, request only the permissions needed by selected
-  sources, and show recording-consent guidance before the test.
+- First-run setup confirms the default Documents library, microphone and
+  system-audio choices, and the default transcription path. Keep it compact
+  and skippable: do not require a provider account, model download, permission
+  grant, or audio test to continue. The optional audio test uses the normal
+  recorder, finalizer, and playback path, requests only the permissions needed
+  by selected sources, and shows recording-consent guidance before the test.
 - Treat adapter support and operating-system permission as separate states.
   Do not label a capture source ready merely because its adapter is available;
   give platform-specific recovery guidance when the app can open the relevant
@@ -280,6 +284,9 @@ task build
   notarization credentials; local signed builds receive the identity through
   `APPLE_SIGNING_IDENTITY` instead of committing machine-specific configuration.
   Tauri updater artifacts are always signed.
+- Release builds upload their platform installers as workflow artifacts. One
+  publish job downloads the complete set and creates the draft GitHub Release;
+  do not let matrix jobs race to create or mutate the same release.
 - Public releases are dual licensed under MIT OR Apache-2.0.
 - Do not publish updater metadata until every intended artifact and updater signature is available.
 

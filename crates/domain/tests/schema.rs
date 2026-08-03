@@ -27,7 +27,7 @@ fn session_starts_as_a_draft() {
 }
 
 #[test]
-fn settings_from_before_device_selection_use_safe_capture_defaults() {
+fn settings_from_before_device_selection_enable_system_audio_by_default() {
     let json = r#"{
         "revision": 1,
         "recording_mode": "record_only",
@@ -42,7 +42,7 @@ fn settings_from_before_device_selection_use_safe_capture_defaults() {
         serde_json::from_str(json).expect("legacy settings should deserialize");
 
     assert_eq!(settings.microphone_device_id, None);
-    assert!(!settings.capture_system_audio);
+    assert!(settings.capture_system_audio);
     assert!(!settings.setup_completed);
     assert!(!settings.global_shortcut_enabled);
     assert_eq!(settings.global_shortcut.0, "CommandOrControl+Shift+R");

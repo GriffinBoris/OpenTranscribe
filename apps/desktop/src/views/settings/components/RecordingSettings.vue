@@ -18,7 +18,7 @@ const recordingMode = ref<RecordingMode>(
   application.settings?.recording_mode ?? "record_only",
 );
 const captureSystemAudio = ref(
-  application.settings?.capture_system_audio ?? false,
+  application.settings?.capture_system_audio ?? true,
 );
 const openAiModel = ref<OpenAiTranscriptionModel>(
   application.settings?.openai_transcription_model ?? "gpt_transcribe",
@@ -113,8 +113,7 @@ onMounted(async () => {
       ?.id ??
     application.audioDevices?.microphones[0]?.id ??
     "";
-  captureSystemAudio.value =
-    application.settings?.capture_system_audio ?? false;
+  captureSystemAudio.value = application.settings?.capture_system_audio ?? true;
   openAiModel.value =
     application.settings?.openai_transcription_model ?? "gpt_transcribe";
 });

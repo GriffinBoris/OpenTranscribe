@@ -107,12 +107,14 @@ export const messages = {
     processingSession: "Processing session",
   },
   firstRun: {
-    title: "Set up recording",
+    title: "Get started",
     description:
-      "Choose where recordings live, what to capture, and how they should be transcribed.",
+      "Confirm where recordings live and your audio defaults. You can change these anytime in Settings.",
+    ready: "Ready",
     library: "Library",
     libraryReady: "Recordings are saved in {path}",
     chooseLibrary: "Choose a folder",
+    changeLibrary: "Change folder",
     sources: "Audio sources",
     sourcesDescription:
       "Your microphone captures you. System output captures everyone you hear.",
@@ -132,7 +134,8 @@ export const messages = {
     openAiNeeded:
       "Add an API key before using OpenAI. API usage is billed separately.",
     configureOpenAi: "Configure OpenAI",
-    sourceTest: "Audio test",
+    sourceTest: "Test your audio",
+    sourceTestOptional: "Optional",
     sourceTestDescription:
       "Record ten seconds, check the input meters, then play the result back.",
     consent:
@@ -146,7 +149,11 @@ export const messages = {
       "Play the recording below and confirm that the sources sound right.",
     noPlayback:
       "The test was saved, but no playable audio source was available.",
-    finish: "Finish setup",
+    continue: "Continue to workspace",
+    back: "Back",
+    next: "Continue",
+    skip: "Skip setup",
+    setupProgress: "Setup progress",
     openSession: "Open test session",
   },
   settings: {

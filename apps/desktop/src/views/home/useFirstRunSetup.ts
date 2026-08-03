@@ -16,6 +16,7 @@ import { useLocalModelsStore } from "@/views/application/localModelsStore";
 type SourceTestPhase = "configure" | "running" | "stopping" | "review";
 
 const SOURCE_TEST_DURATION_MS = 10_000;
+const SETUP_STEP_COUNT = 4;
 
 export function useFirstRunSetup() {
   const application = useApplicationStore();
@@ -26,6 +27,7 @@ export function useFirstRunSetup() {
   const { t } = useI18n();
 
   const phase = ref<SourceTestPhase>("configure");
+  const setupStep = ref(1);
   const testSessionId = ref<string | null>(null);
   const audioSources = ref<SessionAudioSource[]>([]);
   const waveform = ref<number[]>([]);
@@ -39,7 +41,7 @@ export function useFirstRunSetup() {
     application.settings?.recording_mode ?? "record_only",
   );
   const captureSystemAudio = ref(
-    application.settings?.capture_system_audio ?? false,
+    application.settings?.capture_system_audio ?? true,
   );
 
   const microphoneOptions = computed(
@@ -105,9 +107,10 @@ export function useFirstRunSetup() {
     () =>
       Boolean(application.snapshot?.library) &&
       microphoneOptions.value.length > 0 &&
-      providerReady.value &&
       !recording.activeRecording,
   );
+  const isFirstSetupStep = computed(() => setupStep.value === 1);
+  const isLastSetupStep = computed(() => setupStep.value === SETUP_STEP_COUNT);
 
   async function chooseLibrary() {
     isChoosingLibrary.value = true;
@@ -136,6 +139,14 @@ export function useFirstRunSetup() {
   async function updateRecordingMode(value: string) {
     recordingMode.value = value as RecordingMode;
     await application.saveSettings({ recording_mode: recordingMode.value });
+  }
+
+  function previousSetupStep() {
+    setupStep.value = Math.max(1, setupStep.value - 1);
+  }
+
+  function nextSetupStep() {
+    setupStep.value = Math.min(SETUP_STEP_COUNT, setupStep.value + 1);
   }
 
   async function startSourceTest() {
@@ -276,6 +287,7 @@ export function useFirstRunSetup() {
   return {
     application,
     phase,
+    setupStep,
     audioSources,
     waveform,
     sourceTestError,
@@ -291,10 +303,14 @@ export function useFirstRunSetup() {
     sourceTestProgress,
     secondsRemaining,
     canStartTest,
+    isFirstSetupStep,
+    isLastSetupStep,
     chooseLibrary,
     updateMicrophone,
     updateSystemCapture,
     updateRecordingMode,
+    previousSetupStep,
+    nextSetupStep,
     startSourceTest,
     finishSetup,
     openTestSession,
