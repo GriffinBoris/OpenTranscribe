@@ -9,6 +9,7 @@ use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 
+use crate::audio::sync_and_rename;
 use crate::error::{AppError, AppResult};
 
 const OUTPUT_CHANNELS: u16 = 2;
@@ -114,8 +115,7 @@ pub fn extract_audio(source_path: &Path, output_path: &Path) -> AppResult<Import
         .ok_or_else(|| AppError::Audio("the imported audio track is empty".to_owned()))?;
     resampler.finish(&mut writer)?;
     writer.finalize().map_err(audio_error)?;
-    fs::File::open(&temporary_path)?.sync_all()?;
-    fs::rename(&temporary_path, output_path)?;
+    sync_and_rename(&temporary_path, output_path)?;
 
     Ok(ImportedAudio {
         duration_ms: resampler.output_frames * 1_000 / u64::from(OUTPUT_SAMPLE_RATE),

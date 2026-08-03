@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use hound::{SampleFormat, WavReader, WavSpec, WavWriter};
 
+use crate::audio::sync_and_rename;
 use crate::error::{AppError, AppResult};
 
 const OUTPUT_CHANNELS: u16 = 2;
@@ -55,9 +56,8 @@ pub fn mix_tracks(
     }
 
     writer.finalize().map_err(audio_error)?;
-    fs::File::open(&temporary_path)?.sync_all()?;
     validate_mix(&temporary_path, output_frames)?;
-    fs::rename(&temporary_path, output_path)?;
+    sync_and_rename(&temporary_path, output_path)?;
     Ok(output_path.to_owned())
 }
 

@@ -3,24 +3,50 @@ name: Test
 on:
   workflow_call:
     inputs:
+      frontend:
+        description: Run frontend and browser contract tests
+        required: false
+        type: boolean
+        default: true
       native:
         description: Run native contract tests on every supported operating system
         required: false
         type: boolean
         default: true
+      native_os:
+        description: Native operating system to test, or all supported operating systems
+        required: false
+        type: string
+        default: all
   workflow_dispatch:
     inputs:
+      frontend:
+        description: Run frontend and browser contract tests
+        required: false
+        type: boolean
+        default: true
       native:
         description: Run native contract tests on every supported operating system
         required: false
         type: boolean
         default: true
+      native_os:
+        description: Native operating system to test
+        required: false
+        type: choice
+        default: all
+        options:
+          - all
+          - macos-latest
+          - windows-latest
+          - ubuntu-24.04
 
 permissions:
   contents: read
 
 jobs:
   frontend:
+    if: inputs.frontend
     name: Frontend and browser contracts
     runs-on: ubuntu-latest
     steps:
@@ -70,7 +96,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-24.04]
+        os: >-
+          ${{ fromJSON(
+            inputs.native_os == 'macos-latest' && '["macos-latest"]' ||
+            inputs.native_os == 'windows-latest' && '["windows-latest"]' ||
+            inputs.native_os == 'ubuntu-24.04' && '["ubuntu-24.04"]' ||
+            '["macos-latest","windows-latest","ubuntu-24.04"]'
+          ) }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
