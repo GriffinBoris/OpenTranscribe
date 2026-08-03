@@ -16,6 +16,7 @@ export const previewState = {
   recordingStartedAt: 0,
   recordingSessionId: "",
   recordingMode: "record_only" as RecordingMode,
+  recordingWithoutLocalModels: false,
   paused: false,
   pausedStartedAt: 0,
   pausedDurationMs: 0,
@@ -171,14 +172,19 @@ export function previewSnapshot(path?: string) {
   return snapshot;
 }
 
-export function emitPostRecordingJob(sessionId: string, mode: RecordingMode) {
+export function emitPostRecordingJob(
+  sessionId: string,
+  mode: RecordingMode,
+  recordingWithoutLocalModels: boolean,
+) {
   if (mode === "record_only") {
     return;
   }
 
   if (
     mode === "local_after_recording" &&
-    !previewState.localModels.some((model) => model.installed)
+    (recordingWithoutLocalModels ||
+      !previewState.localModels.some((model) => model.installed))
   ) {
     previewState.appEventListener?.({
       type: "attention_required",

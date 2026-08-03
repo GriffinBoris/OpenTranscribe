@@ -278,9 +278,15 @@ task typecheck
 task test
 task check
 task build
+task ci:linux:docker MODE=native-test
 ```
 
 - CI uses `npm ci` and Cargo `--locked`.
+- Use `task ci:linux:docker MODE=<native-test|quality|frontend-test|browser-test|release>`
+  for local Ubuntu 22.04 x86_64 validation before dispatching a GitHub workflow.
+  It provisions one cached local Docker image and separate Cargo, npm, browser,
+  and target volumes; its release mode builds the binary and `.deb`. It does not
+  replace AppImage, macOS, or Windows validation.
 - Pull requests receive no API keys or release secrets.
 - Run `cargo fmt --check`, Clippy with warnings denied, Rust tests, ESLint, Vue type checking, frontend tests, and the production build before completion.
 - Native CI proves compilation. Physical hardware tests prove microphone and system-audio behavior.

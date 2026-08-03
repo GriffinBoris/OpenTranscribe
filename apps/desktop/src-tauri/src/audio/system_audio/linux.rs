@@ -9,8 +9,8 @@ use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError, bounded};
 use opentranscribe_domain::CaptureDevice;
 use pipewire as pw;
-use pw::prelude::ListenerBuilderT;
-use pw::properties::properties;
+use pw::prelude::{ListenerBuilderT, WritableDict};
+use pw::properties;
 
 use crate::audio::packet_writer::{
     AudioFormat, AudioPacket, CaptureSignals, PACKET_QUEUE_CAPACITY, enqueue_samples, write_chunks,

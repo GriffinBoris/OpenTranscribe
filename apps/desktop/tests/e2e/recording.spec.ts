@@ -144,7 +144,7 @@ test("queues the selected transcription when recording stops", async ({
 test("keeps the recording when automatic transcription cannot start", async ({
   page,
 }) => {
-  await page.goto("/settings");
+  await page.goto("/settings?localModels=none");
   await page.getByLabel("Default recording action").click();
   await page
     .getByRole("option", { name: "Record, then transcribe locally" })

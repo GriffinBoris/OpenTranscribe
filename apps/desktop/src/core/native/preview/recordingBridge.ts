@@ -20,6 +20,8 @@ export const previewRecordingBridge = {
     previewState.recordingStartedAt = Date.now();
     previewState.recordingSessionId = id;
     previewState.recordingMode = request.recordingMode;
+    previewState.recordingWithoutLocalModels =
+      new URLSearchParams(window.location.search).get("localModels") === "none";
     previewState.paused = false;
     previewState.pausedStartedAt = 0;
     previewState.pausedDurationMs = 0;
@@ -76,13 +78,20 @@ export const previewRecordingBridge = {
   async stopRecording() {
     const completedSessionId = previewState.recordingSessionId;
     const completedRecordingMode = previewState.recordingMode;
+    const recordingWithoutLocalModels =
+      previewState.recordingWithoutLocalModels;
     previewState.recordingStartedAt = 0;
     previewState.recordingSessionId = "";
     previewState.recordingMode = "record_only";
+    previewState.recordingWithoutLocalModels = false;
     previewState.paused = false;
     previewState.pausedStartedAt = 0;
     previewState.pausedDurationMs = 0;
-    emitPostRecordingJob(completedSessionId, completedRecordingMode);
+    emitPostRecordingJob(
+      completedSessionId,
+      completedRecordingMode,
+      recordingWithoutLocalModels,
+    );
     return null;
   },
 } satisfies RecordingBridge;

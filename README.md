@@ -117,6 +117,26 @@ and the dedicated monochrome system-tray icon from the canonical artwork in
 domain crate. Commit generated contract changes with the Rust model change that
 produced them.
 
+### Local Linux CI
+
+Use Docker to run the Linux CI gates locally before dispatching a GitHub
+workflow:
+
+```bash
+task ci:linux:docker MODE=native-test
+task ci:linux:docker MODE=quality
+task ci:linux:docker MODE=release
+```
+
+The first command creates a cached Ubuntu 22.04 x86_64 image and Docker volumes
+for Rust, npm, browser downloads, and build output. It validates the Linux
+dependencies and checks without consuming GitHub Actions minutes.
+`frontend-test` and `browser-test` are also available modes. `release` builds
+the Linux binary and `.deb`; AppImage bundling still needs a native x86_64 Linux
+host because `linuxdeploy` does not run reliably through Docker Desktop's x86
+emulation on Apple Silicon. Docker cannot validate macOS or Windows-specific
+behavior.
+
 The signed macOS task requires an installed Developer ID Application identity,
 builds the app and DMG with that identity, rejects an ad-hoc signature, and
 rejects a bundle whose capture entitlements did not survive signing. macOS is
