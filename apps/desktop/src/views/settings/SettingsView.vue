@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { nextTick, onMounted, ref } from "vue";
 import {
   FolderOpen,
   HardDrive,
   Keyboard,
   KeyRound,
+  MessageSquareText,
   Monitor,
   Settings2,
   Volume2,
@@ -14,6 +15,7 @@ import { useI18n } from "vue-i18n";
 import AppButton from "@/components/ui/AppButton.vue";
 import ApplicationSettings from "@/views/settings/components/ApplicationSettings.vue";
 import AppearanceSettings from "@/views/settings/components/AppearanceSettings.vue";
+import DictationSettings from "@/views/settings/components/DictationSettings.vue";
 import LocalModelsSettings from "@/views/settings/components/LocalModelsSettings.vue";
 import OpenAiSettings from "@/views/settings/components/OpenAiSettings.vue";
 import RecordingSettings from "@/views/settings/components/RecordingSettings.vue";
@@ -21,7 +23,7 @@ import ShortcutsSettings from "@/views/settings/components/ShortcutsSettings.vue
 import StorageSettings from "@/views/settings/components/StorageSettings.vue";
 
 const { t } = useI18n();
-const activeSection = ref("recording");
+const activeSection = ref("dictation");
 const settingsContent = ref<HTMLElement | null>(null);
 const isContentScrolled = ref(false);
 const settingsNavButtonClass =
@@ -59,7 +61,8 @@ function updateContentScroll(event: Event) {
 }
 
 onMounted(() => {
-  activeSection.value = window.location.hash.slice(1) || "recording";
+  activeSection.value = window.location.hash.slice(1) || "dictation";
+  void nextTick(() => selectSection(activeSection.value));
 });
 </script>
 
@@ -83,6 +86,17 @@ onMounted(() => {
       <nav
         class="settings-nav grid min-h-0 content-start gap-1 overflow-auto pr-1 max-[900px]:auto-cols-max max-[900px]:grid-flow-col max-[900px]:overflow-x-auto max-[900px]:overflow-y-hidden max-[900px]:pr-0"
       >
+        <AppButton
+          variant="ghost"
+          :class="[
+            settingsNavButtonClass,
+            { active: activeSection === 'dictation' },
+          ]"
+          @click="selectSection('dictation')"
+          ><MessageSquareText :size="16" />{{
+            t("settings.navigation.dictation")
+          }}</AppButton
+        >
         <AppButton
           variant="ghost"
           :class="[
@@ -171,6 +185,8 @@ onMounted(() => {
           class="settings-content grid h-full min-h-0 auto-rows-max content-start gap-4 overflow-auto pr-1"
           @scroll="updateContentScroll"
         >
+          <DictationSettings />
+
           <RecordingSettings />
 
           <StorageSettings />

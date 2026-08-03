@@ -1,4 +1,5 @@
 mod artifact;
+mod dictation;
 mod event;
 mod job;
 mod library;
@@ -8,6 +9,7 @@ mod settings;
 mod transcript;
 
 pub use artifact::{Artifact, ArtifactKind, AudioSource, Codec};
+pub use dictation::{DictationHistoryEntry, DictationPhase, DictationStatus};
 pub use event::{AppEvent, LevelSnapshot, LiveTranscriptUpdate, TranscriptionPreviewUpdate};
 pub use job::{Job, JobKind, JobProgress, JobStage, JobState, ProgressUnit};
 pub use library::{
@@ -18,8 +20,8 @@ pub use session::{
     CaptureDevice, GapEvent, PauseEvent, RecoveryState, Session, SessionLifecycle, SessionSource,
 };
 pub use settings::{
-    APP_SETTINGS_SCHEMA_VERSION, AppSettings, Appearance, GlobalShortcut, OpenAiTranscriptionModel,
-    RecordingMode, RecordingProjectSelection, ThemePreference,
+    APP_SETTINGS_SCHEMA_VERSION, AppSettings, Appearance, DictationProvider, GlobalShortcut,
+    OpenAiTranscriptionModel, RecordingMode, RecordingProjectSelection, ThemePreference,
 };
 pub use transcript::{
     Speaker, SpeakerSource, Transcript, TranscriptRun, TranscriptRunStatus, TranscriptSegment,

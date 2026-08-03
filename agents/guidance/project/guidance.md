@@ -70,6 +70,7 @@ order: 0
   `build.rs` derives the active toolchain's Swift runtime library path through
   `xcrun` instead of hardcoding an Xcode installation path.
 - Local inference runs in the supervised sidecar. A sidecar failure must not stop or corrupt recording.
+- Build the macOS sidecar with Whisper Metal support and explicitly request its GPU path. Keep Windows and Linux acceleration as opt-in target variants rather than universally enabling CUDA or Vulkan, because those backends impose hardware- and SDK-specific build requirements that would make ordinary cross-platform installs unreliable.
 - Keep recording completion native-owned. Dock, tray, and global-shortcut stop
   actions must converge on the same finalization path, and any selected
   post-recording transcription starts only after durable audio finalization.
@@ -202,9 +203,16 @@ order: 0
   `CommandOrControl` accelerator strings, migrate legacy preset values when
   settings load, require a Command/Control modifier plus a supported key, and
   render the platform-specific label in the UI. Register them through the
-  typed native bridge with narrow plugin capabilities, act only on press events,
-  serialize record/stop handling, and surface registration conflicts in
-  Settings.
+  typed native bridge with narrow plugin capabilities, key registrations by
+  action so independent features do not replace each other's handler, act only
+  on press events, serialize record/stop handling, and surface registration
+  conflicts in Settings.
+- Keep global Dictation shortcuts opt-in and configurable through the same
+  focused capture flow. Dictation may use an Option/Alt modifier without
+  Command/Control for a quick toggle, but it must still require a modifier and
+  a supported non-text key. Prevent a new Dictation run while the previous one
+  is transcribing, and snapshot its provider, model, and delivery preferences
+  before capture so a later settings change cannot alter the active run.
 - Route pages fill the available main pane with adaptive horizontal gutters.
   Do not center the whole utility workspace inside a fixed desktop max-width;
   constrain only genuinely prose-heavy content when readability requires it.

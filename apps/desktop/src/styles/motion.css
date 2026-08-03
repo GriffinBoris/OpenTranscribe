@@ -19,3 +19,16 @@
     opacity: 0.55;
   }
 }
+
+@keyframes waveform-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scaleY(0.35);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}

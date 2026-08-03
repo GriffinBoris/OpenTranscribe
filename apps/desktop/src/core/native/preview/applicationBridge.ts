@@ -5,7 +5,13 @@ import {
   previewState,
 } from "@/core/native/preview/previewState";
 import { i18n } from "@/i18n";
-import type { AppSettings, AudioDevices, SearchFilters } from "@/types/domain";
+import type {
+  AppSettings,
+  AudioDevices,
+  DictationHistoryEntry,
+  DictationStatus,
+  SearchFilters,
+} from "@/types/domain";
 
 const { t } = i18n.global;
 
@@ -23,6 +29,14 @@ type ApplicationBridge = Pick<
   | "audioDevices"
   | "openSystemAudioPermissionSettings"
   | "configureGlobalShortcut"
+  | "toggleDictation"
+  | "dictationStatus"
+  | "dictationShortcut"
+  | "dictationHistory"
+  | "clearDictationHistory"
+  | "cancelDictation"
+  | "dismissDictation"
+  | "subscribeDictationStatus"
   | "subscribe"
 >;
 
@@ -50,6 +64,12 @@ export const previewApplicationBridge = {
       capture_system_audio: false,
       recording_project_selection: { kind: "automatic" },
       global_shortcut_enabled: false,
+      dictation_shortcut_enabled: true,
+      dictation_shortcut: "Alt+Space",
+      dictation_provider: "local",
+      dictation_local_model_id: null,
+      dictation_openai_model: "gpt_transcribe",
+      dictation_auto_paste: true,
       appearance: { theme: "system", reduced_motion: false },
     };
     previewState.settings = settings;
@@ -148,14 +168,15 @@ export const previewApplicationBridge = {
 
   async openSystemAudioPermissionSettings() {},
 
-  async configureGlobalShortcut(shortcut, onTrigger) {
+  async configureGlobalShortcut(shortcutId, shortcut, onTrigger) {
+    const existingListener =
+      previewState.globalShortcutListeners.get(shortcutId);
+    const eventName = `opentranscribe:preview-global-shortcut:${shortcutId}`;
+
     if (!shortcut) {
-      if (previewState.globalShortcutListener) {
-        window.removeEventListener(
-          "opentranscribe:preview-global-shortcut",
-          previewState.globalShortcutListener,
-        );
-        previewState.globalShortcutListener = null;
+      if (existingListener) {
+        window.removeEventListener(eventName, existingListener);
+        previewState.globalShortcutListeners.delete(shortcutId);
       }
 
       return;
@@ -167,23 +188,77 @@ export const previewApplicationBridge = {
       throw new Error(t("native.previewGlobalShortcutUnavailable"));
     }
 
-    if (previewState.globalShortcutListener === onTrigger) {
+    if (existingListener === onTrigger) {
       return;
     }
 
-    const previousListener = previewState.globalShortcutListener;
-    previewState.globalShortcutListener = onTrigger;
-    window.addEventListener(
-      "opentranscribe:preview-global-shortcut",
-      previewState.globalShortcutListener,
-    );
+    previewState.globalShortcutListeners.set(shortcutId, onTrigger);
+    window.addEventListener(eventName, onTrigger);
 
-    if (previousListener) {
-      window.removeEventListener(
-        "opentranscribe:preview-global-shortcut",
-        previousListener,
-      );
+    if (existingListener) {
+      window.removeEventListener(eventName, existingListener);
     }
+  },
+
+  async toggleDictation(): Promise<DictationStatus> {
+    const isRecording = previewState.dictationStatus.phase === "recording";
+    previewState.dictationStatus = isRecording
+      ? {
+          ...previewState.dictationStatus,
+          phase: "completed",
+          text: "Preview dictation.",
+          auto_pasted: true,
+          approximate_cost_usd: null,
+        }
+      : {
+          id: crypto.randomUUID(),
+          phase: "recording",
+          provider: previewState.settings.dictation_provider ?? "local",
+          text: null,
+          error_message: null,
+          elapsed_ms: 0,
+          microphone_peak: 0.58,
+          auto_pasted: false,
+          approximate_cost_usd: null,
+        };
+    previewState.dictationStatusListener?.(previewState.dictationStatus);
+    return previewState.dictationStatus;
+  },
+
+  async dictationStatus(): Promise<DictationStatus> {
+    return previewState.dictationStatus;
+  },
+
+  async dictationShortcut() {
+    return previewState.settings.dictation_shortcut ?? "Alt+Space";
+  },
+
+  async dictationHistory(): Promise<DictationHistoryEntry[]> {
+    return [];
+  },
+
+  async clearDictationHistory() {},
+
+  async cancelDictation(): Promise<DictationStatus> {
+    previewState.dictationStatus = {
+      id: null,
+      phase: "idle",
+      provider: null,
+      text: null,
+      error_message: null,
+      elapsed_ms: 0,
+      microphone_peak: 0,
+      auto_pasted: false,
+      approximate_cost_usd: null,
+    };
+    previewState.dictationStatusListener?.(previewState.dictationStatus);
+    return previewState.dictationStatus;
+  },
+
+  async dismissDictation() {},
+
+  async subscribeDictationStatus(onStatus) {
+    previewState.dictationStatusListener = onStatus;
   },
 
   async subscribe(onEvent) {

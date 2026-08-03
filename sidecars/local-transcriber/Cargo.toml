@@ -8,4 +8,9 @@ rust-version.workspace = true
 [dependencies]
 opentranscribe-transcriber-protocol = { path = "../../crates/transcriber-protocol" }
 symphonia = { version = "0.6.0", features = ["all"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+whisper-rs = { version = "0.16.0", features = ["metal"] }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
 whisper-rs = "0.16.0"

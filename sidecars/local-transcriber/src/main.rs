@@ -38,8 +38,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             )?,
             Command::LoadModel(model) => {
                 let request_id = envelope.request_id;
-                let event = match runtime.load_model(model.model_id.clone(), Path::new(&model.path))
-                {
+                let event = match runtime.load_model(
+                    model.model_id.clone(),
+                    Path::new(&model.path),
+                    model.use_gpu,
+                ) {
                     Ok(()) => Event::Status {
                         model_id: Some(model.model_id),
                         backlog_ms: 0,

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "dictation-panel",
+  "description": "OpenTranscribe's floating dictation panel",
+  "windows": ["dictation"],
+  "permissions": ["core:default", "core:window:allow-start-dragging"]
+}

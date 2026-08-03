@@ -68,6 +68,36 @@ impl LocalTranscriptionService {
     }
 }
 
+pub async fn transcribe_file(
+    app: &tauri::AppHandle,
+    model_id: String,
+    audio_path: std::path::PathBuf,
+    on_progress: impl FnMut(u64, u64),
+) -> AppResult<String> {
+    let model_path = installed_path(app, &model_id)?;
+    let segments = run_sidecar(
+        app,
+        &model_id,
+        &model_path,
+        FileTranscription {
+            job_id: opentranscribe_domain::new_id(),
+            path: audio_path.to_string_lossy().into_owned(),
+            language_hint: None,
+            prompt: None,
+        },
+        on_progress,
+        || false,
+    )
+    .await?;
+
+    Ok(segments
+        .iter()
+        .map(|segment| segment.text.trim())
+        .filter(|text| !text.is_empty())
+        .collect::<Vec<_>>()
+        .join(" "))
+}
+
 async fn run_sidecar(
     app: &tauri::AppHandle,
     model_id: &str,
@@ -85,7 +115,7 @@ async fn run_sidecar(
         Command::LoadModel(ModelDescriptor {
             model_id: model_id.to_owned(),
             path: model_path.to_string_lossy().into_owned(),
-            use_gpu: false,
+            use_gpu: cfg!(target_os = "macos"),
         }),
     )?;
     write_command(

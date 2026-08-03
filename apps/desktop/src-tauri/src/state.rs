@@ -27,6 +27,10 @@ pub struct AppState {
     pub(crate) openai_credentials: OpenAiCredentials,
     pub(crate) active_recording_intent: Mutex<Option<ActiveRecordingIntent>>,
     pub(crate) live_transcription: Mutex<Option<OpenAiRealtimeController>>,
+    pub(crate) dictation: Mutex<crate::dictation::DictationRun>,
+    pub(crate) dictation_transition: Mutex<()>,
+    pub(crate) dictation_status_channel:
+        Mutex<Option<Channel<opentranscribe_domain::DictationStatus>>>,
 }
 
 pub(crate) fn with_repository<T>(

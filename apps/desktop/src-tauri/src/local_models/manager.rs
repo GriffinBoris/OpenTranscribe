@@ -63,7 +63,7 @@ pub fn move_models(app: &tauri::AppHandle, target: &Path) -> AppResult<Option<Pa
 }
 
 pub fn move_models_between(source: &Path, target: &Path) -> AppResult<()> {
-    if target.starts_with(&source) || source.starts_with(target) {
+    if target.starts_with(source) || source.starts_with(target) {
         return Err(AppError::Model(
             "choose a model folder outside the current model folder".to_owned(),
         ));
@@ -84,8 +84,8 @@ pub fn move_models_between(source: &Path, target: &Path) -> AppResult<()> {
     })?;
     fs::create_dir_all(parent)?;
 
-    if fs::rename(&source, target).is_err() {
-        if let Err(error) = copy_directory(&source, target) {
+    if fs::rename(source, target).is_err() {
+        if let Err(error) = copy_directory(source, target) {
             let _ = fs::remove_dir_all(target);
             return Err(error);
         }

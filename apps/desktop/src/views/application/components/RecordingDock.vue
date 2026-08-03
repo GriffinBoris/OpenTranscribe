@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { Pause, Play, Square } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
+import AppAudioWaveform from "@/components/ui/AppAudioWaveform.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
+import { AdaptiveAudioLevelNormalizer } from "@/views/application/audioLevels";
 import { useRecordingStore } from "@/views/application/recordingStore";
 
 withDefaults(
@@ -22,6 +24,8 @@ defineEmits<{
 
 const recording = useRecordingStore();
 const { t } = useI18n();
+const waveformSamples = ref<number[]>(Array.from({ length: 34 }, () => 0));
+const inputMeter = new AdaptiveAudioLevelNormalizer();
 
 const elapsed = computed(() => {
   const elapsedSeconds = Math.floor((recording.status?.elapsed_ms ?? 0) / 1000);
@@ -33,16 +37,14 @@ const elapsed = computed(() => {
     .join(":");
 });
 
-function meterLevel(level: number) {
-  return Math.min(1, Math.sqrt(Math.max(0, level)) * 0.92);
-}
-
-const microphoneLevel = computed(() => ({
-  "--audio-level": String(meterLevel(recording.status?.microphone_peak ?? 0)),
-}));
-const systemLevel = computed(() => ({
-  "--audio-level": String(meterLevel(recording.status?.system_peak ?? 0)),
-}));
+const inputPeak = computed(() =>
+  Math.max(
+    recording.status?.microphone_peak ?? 0,
+    recording.status?.captures_system_audio
+      ? (recording.status.system_peak ?? 0)
+      : 0,
+  ),
+);
 const recordingOutcome = computed(() => {
   if (recording.activeMode === "local_after_recording") {
     return t("recordingDock.localAfterStop");
@@ -53,6 +55,13 @@ const recordingOutcome = computed(() => {
   }
 
   return t("recordingDock.saveToDisk");
+});
+
+watch(inputPeak, (peak) => {
+  waveformSamples.value = [
+    ...waveformSamples.value.slice(1),
+    inputMeter.normalize(peak),
+  ];
 });
 </script>
 
@@ -75,22 +84,8 @@ const recordingOutcome = computed(() => {
       <StatusPill tone="local">{{ recordingOutcome }}</StatusPill>
     </div>
 
-    <div class="grid gap-1.5" :aria-label="t('recordingDock.inputLevels')">
-      <span class="bg-canvas-subtle block h-[5px] overflow-hidden rounded-full"
-        ><span
-          class="bg-lichen block size-full origin-left [transform:scaleX(var(--audio-level,0))] rounded-[inherit] transition-transform duration-[var(--duration-meter)] ease-[var(--easing-linear)] will-change-transform"
-          :style="microphoneLevel"
-        ></span
-      ></span>
-      <span
-        v-if="recording.status?.captures_system_audio"
-        class="bg-canvas-subtle block h-[5px] overflow-hidden rounded-full"
-      >
-        <span
-          class="bg-lichen block size-full origin-left [transform:scaleX(var(--audio-level,0))] rounded-[inherit] transition-transform duration-[var(--duration-meter)] ease-[var(--easing-linear)] will-change-transform"
-          :style="systemLevel"
-        ></span>
-      </span>
+    <div class="h-9 min-w-0" :aria-label="t('recordingDock.inputLevels')">
+      <AppAudioWaveform :samples="waveformSamples" :maximum-height="32" />
       <small v-if="recording.status?.dropped_packets">
         {{
           t("recordingDock.droppedPackets", recording.status.dropped_packets)

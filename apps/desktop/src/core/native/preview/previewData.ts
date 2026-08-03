@@ -145,6 +145,12 @@ export function createPreviewSnapshot(
       recording_project_selection: { kind: "automatic" },
       global_shortcut_enabled: false,
       global_shortcut: "CommandOrControl+Shift+R",
+      dictation_shortcut_enabled: true,
+      dictation_shortcut: "Alt+Space",
+      dictation_provider: "local",
+      dictation_local_model_id: null,
+      dictation_openai_model: "gpt_transcribe",
+      dictation_auto_paste: true,
       appearance: {
         theme: "system",
         reduced_motion: false,

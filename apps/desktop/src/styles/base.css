@@ -39,6 +39,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html[data-window="dictation"],
+html[data-window="dictation"] body {
+  background: transparent;
+}
+
 button,
 input,
 select,

@@ -13,6 +13,15 @@ pub enum RecordingMode {
     OpenAiLive,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "snake_case")]
+pub enum DictationProvider {
+    #[default]
+    Local,
+    OpenAi,
+}
+
 impl<'de> Deserialize<'de> for RecordingMode {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -71,6 +80,7 @@ pub enum RecordingProjectSelection {
 }
 
 const DEFAULT_GLOBAL_SHORTCUT: &str = "CommandOrControl+Shift+R";
+const DEFAULT_DICTATION_SHORTCUT: &str = "Alt+Space";
 
 #[derive(Clone, Debug, PartialEq, TS)]
 #[ts(export)]
@@ -147,6 +157,18 @@ pub struct AppSettings {
     pub global_shortcut_enabled: bool,
     #[serde(default)]
     pub global_shortcut: GlobalShortcut,
+    #[serde(default = "default_dictation_shortcut_enabled")]
+    pub dictation_shortcut_enabled: bool,
+    #[serde(default = "default_dictation_shortcut")]
+    pub dictation_shortcut: GlobalShortcut,
+    #[serde(default)]
+    pub dictation_provider: DictationProvider,
+    #[serde(default)]
+    pub dictation_local_model_id: Option<String>,
+    #[serde(default)]
+    pub dictation_openai_model: OpenAiTranscriptionModel,
+    #[serde(default = "default_dictation_auto_paste")]
+    pub dictation_auto_paste: bool,
     pub appearance: Appearance,
 }
 
@@ -164,12 +186,30 @@ impl Default for AppSettings {
             recording_project_selection: RecordingProjectSelection::default(),
             global_shortcut_enabled: false,
             global_shortcut: GlobalShortcut::default(),
+            dictation_shortcut_enabled: default_dictation_shortcut_enabled(),
+            dictation_shortcut: default_dictation_shortcut(),
+            dictation_provider: DictationProvider::default(),
+            dictation_local_model_id: None,
+            dictation_openai_model: OpenAiTranscriptionModel::default(),
+            dictation_auto_paste: true,
             appearance: Appearance {
                 theme: ThemePreference::System,
                 reduced_motion: false,
             },
         }
     }
+}
+
+fn default_dictation_shortcut() -> GlobalShortcut {
+    GlobalShortcut(DEFAULT_DICTATION_SHORTCUT.to_owned())
+}
+
+fn default_dictation_shortcut_enabled() -> bool {
+    true
+}
+
+fn default_dictation_auto_paste() -> bool {
+    true
 }
 
 fn default_settings_schema_version() -> u32 {
@@ -179,8 +219,8 @@ fn default_settings_schema_version() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::{
-        APP_SETTINGS_SCHEMA_VERSION, AppSettings, OpenAiTranscriptionModel, RecordingMode,
-        RecordingProjectSelection,
+        APP_SETTINGS_SCHEMA_VERSION, AppSettings, DictationProvider, GlobalShortcut,
+        OpenAiTranscriptionModel, RecordingMode, RecordingProjectSelection,
     };
 
     #[test]
@@ -205,7 +245,7 @@ mod tests {
                 "microphone_device_id": null,
                 "capture_system_audio": false,
                 "global_shortcut_enabled": false,
-                "global_shortcut": "command_or_control_shift_r",
+                "global_shortcut": "CommandOrControl+Shift+R",
                 "appearance": { "theme": "system", "reduced_motion": false }
             }"#,
         )
@@ -221,6 +261,15 @@ mod tests {
         );
         assert_eq!(settings.local_models_directory, None);
         assert_eq!(settings.global_shortcut.0, "CommandOrControl+Shift+R");
+        assert!(settings.dictation_shortcut_enabled);
+        assert_eq!(settings.dictation_shortcut.0, "Alt+Space");
+        assert_eq!(settings.dictation_provider, DictationProvider::Local);
+        assert_eq!(settings.dictation_local_model_id, None);
+        assert_eq!(
+            settings.dictation_openai_model,
+            OpenAiTranscriptionModel::GptTranscribe
+        );
+        assert!(settings.dictation_auto_paste);
         assert_eq!(settings.schema_version, APP_SETTINGS_SCHEMA_VERSION);
     }
 
@@ -242,5 +291,18 @@ mod tests {
             OpenAiTranscriptionModel::Gpt4oMiniTranscribe.model_id(),
             "gpt-4o-mini-transcribe"
         );
+    }
+
+    #[test]
+    fn preserves_a_custom_dictation_shortcut_through_settings_storage() {
+        let settings = AppSettings {
+            dictation_shortcut: GlobalShortcut("Alt+Shift+D".to_owned()),
+            ..AppSettings::default()
+        };
+        let stored_settings = serde_json::to_vec(&settings).expect("settings should serialize");
+        let loaded_settings: AppSettings =
+            serde_json::from_slice(&stored_settings).expect("settings should deserialize");
+
+        assert_eq!(loaded_settings.dictation_shortcut.0, "Alt+Shift+D");
     }
 }

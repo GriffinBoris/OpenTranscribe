@@ -43,6 +43,12 @@ pub fn ensure_idle(state: &AppState) -> AppResult<()> {
         ));
     }
 
+    if crate::dictation::is_active(state) {
+        return Err(AppError::Application(
+            "wait for dictation to finish before resetting OpenTranscribe".to_owned(),
+        ));
+    }
+
     let has_running_jobs = state
         .repository
         .lock()

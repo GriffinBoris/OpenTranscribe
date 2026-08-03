@@ -66,5 +66,4 @@ tasks:
   setup:
     desc: Refresh agent source and generate every local output
     cmds:
-      - task: install
       - task: generate

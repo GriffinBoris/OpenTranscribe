@@ -29,6 +29,11 @@ export const router = createRouter({
       component: () => import("@/views/processing/ProcessingView.vue"),
     },
     {
+      path: "/dictation",
+      name: "dictation-history",
+      component: () => import("@/views/dictation/DictationHistoryView.vue"),
+    },
+    {
       path: "/trash",
       name: "trash",
       component: () => import("@/views/trash/TrashView.vue"),

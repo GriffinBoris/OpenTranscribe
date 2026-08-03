@@ -12,6 +12,7 @@ import type {
   Session,
 } from "@/types/domain";
 import { useApplicationStore } from "@/views/application/applicationStore";
+import { playSoundCue } from "@/views/application/soundCues";
 
 export interface RecordingSessionOptions {
   title?: string;
@@ -123,6 +124,7 @@ export const useRecordingStore = defineStore("recording", () => {
       liveTranscript.value = [];
       application.snapshot.recent_sessions.unshift(session);
       await refreshStatus();
+      playSoundCue("recording-start");
       return session;
     } catch (reason) {
       application.operationError =
@@ -198,6 +200,7 @@ export const useRecordingStore = defineStore("recording", () => {
     }
 
     clear();
+    playSoundCue("recording-stop");
     return session;
   }
 

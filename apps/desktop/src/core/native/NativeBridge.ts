@@ -6,6 +6,8 @@ import type {
   ConnectionTestResult,
   CreateRecordingRequest,
   CredentialStatus,
+  DictationHistoryEntry,
+  DictationStatus,
   ExportFormat,
   ExportResult,
   Job,
@@ -36,8 +38,19 @@ export interface NativeBridge {
   audioDevices(): Promise<AudioDevices>;
   openSystemAudioPermissionSettings(): Promise<void>;
   configureGlobalShortcut(
+    shortcutId: "recording" | "dictation",
     shortcut: string | null,
     onTrigger: () => void,
+  ): Promise<void>;
+  toggleDictation(): Promise<DictationStatus>;
+  dictationStatus(): Promise<DictationStatus>;
+  dictationShortcut(): Promise<string>;
+  dictationHistory(): Promise<DictationHistoryEntry[]>;
+  clearDictationHistory(): Promise<void>;
+  cancelDictation(): Promise<DictationStatus>;
+  dismissDictation(): Promise<void>;
+  subscribeDictationStatus(
+    onStatus: (status: DictationStatus) => void,
   ): Promise<void>;
   pauseRecording(paused: boolean): Promise<RecordingStatus | null>;
   recordingStatus(): Promise<RecordingStatus | null>;

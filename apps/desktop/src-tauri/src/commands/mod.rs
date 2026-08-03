@@ -1,5 +1,6 @@
 pub(crate) mod application;
 pub(crate) mod credentials;
+pub(crate) mod dictation;
 pub(crate) mod events;
 pub(crate) mod jobs;
 pub(crate) mod recording;

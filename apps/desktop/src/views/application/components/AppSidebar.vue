@@ -7,6 +7,7 @@ import {
   Home,
   Inbox,
   ListTodo,
+  MessageSquareText,
   Mic2,
   Plus,
   Search,
@@ -37,7 +38,10 @@ const isStartingRecording = ref(false);
 const recordingShortcutLabel = computed(() => {
   const settings = application.settings;
 
-  if (!settings?.global_shortcut_enabled || !globalShortcut.isRegistered) {
+  if (
+    !settings?.global_shortcut_enabled ||
+    !globalShortcut.shortcuts.recording.isRegistered
+  ) {
     return null;
   }
 
@@ -161,6 +165,12 @@ onBeforeUnmount(() => window.removeEventListener("keydown", handleShortcut));
           t("navigation.inbox")
         }}</span></RouterLink
       >
+      <RouterLink to="/dictation" :class="sidebarLinkClass">
+        <MessageSquareText :size="17" />
+        <span class="truncate max-[900px]:hidden">{{
+          t("navigation.dictation")
+        }}</span>
+      </RouterLink>
       <RouterLink to="/processing" :class="sidebarLinkClass">
         <ListTodo :size="17" />
         <span class="truncate max-[900px]:hidden">{{

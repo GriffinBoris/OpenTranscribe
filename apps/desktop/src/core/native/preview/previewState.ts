@@ -6,6 +6,7 @@ import type {
   LocalModel,
   RecordingMode,
   RecordingStatus,
+  DictationStatus,
   Session,
 } from "@/types/domain";
 
@@ -18,7 +19,19 @@ export const previewState = {
   paused: false,
   pausedStartedAt: 0,
   pausedDurationMs: 0,
-  globalShortcutListener: null as (() => void) | null,
+  globalShortcutListeners: new Map<string, () => void>(),
+  dictationStatusListener: null as ((status: DictationStatus) => void) | null,
+  dictationStatus: {
+    id: null,
+    phase: "idle",
+    provider: null,
+    text: null,
+    error_message: null,
+    elapsed_ms: 0,
+    microphone_peak: 0,
+    auto_pasted: false,
+    approximate_cost_usd: null,
+  } as DictationStatus,
   appEventListener: null as ((event: AppEvent) => void) | null,
   systemAudioPermission: null as "granted" | "required" | null,
   sessionMoves: new Map<

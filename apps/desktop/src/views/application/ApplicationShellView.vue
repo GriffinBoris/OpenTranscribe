@@ -9,6 +9,7 @@ import AppSidebar from "@/views/application/components/AppSidebar.vue";
 import LocalModelDownloadStatus from "@/views/application/components/LocalModelDownloadStatus.vue";
 import RecordingDock from "@/views/application/components/RecordingDock.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
+import { native } from "@/core/native";
 import { useGlobalShortcutStore } from "@/views/application/globalShortcutStore";
 import { useRecordingStore } from "@/views/application/recordingStore";
 
@@ -18,6 +19,7 @@ const recording = useRecordingStore();
 const { t } = useI18n();
 const router = useRouter();
 const isHandlingGlobalShortcut = ref(false);
+const isHandlingDictationShortcut = ref(false);
 const isStopping = ref(false);
 const globalShortcutAccelerator = computed(() => {
   const settings = application.settings;
@@ -27,6 +29,15 @@ const globalShortcutAccelerator = computed(() => {
   }
 
   return settings.global_shortcut;
+});
+const dictationShortcutAccelerator = computed(() => {
+  const settings = application.settings;
+
+  if (!settings?.dictation_shortcut_enabled) {
+    return null;
+  }
+
+  return settings.dictation_shortcut;
 });
 
 function refreshApplicationOnFocus() {
@@ -46,7 +57,16 @@ function refreshApplicationOnFocus() {
 onMounted(() => window.addEventListener("focus", refreshApplicationOnFocus));
 onBeforeUnmount(() => {
   window.removeEventListener("focus", refreshApplicationOnFocus);
-  void globalShortcut.configure(null, toggleRecordingFromGlobalShortcut);
+  void globalShortcut.configure(
+    "recording",
+    null,
+    toggleRecordingFromGlobalShortcut,
+  );
+  void globalShortcut.configure(
+    "dictation",
+    null,
+    toggleDictationFromGlobalShortcut,
+  );
 });
 
 watch(
@@ -98,10 +118,43 @@ async function toggleRecordingFromGlobalShortcut() {
   }
 }
 
+async function toggleDictationFromGlobalShortcut() {
+  if (isHandlingDictationShortcut.value) {
+    return;
+  }
+
+  isHandlingDictationShortcut.value = true;
+
+  try {
+    await native.toggleDictation();
+  } catch (reason) {
+    application.operationError =
+      reason instanceof Error ? reason.message : String(reason);
+  } finally {
+    isHandlingDictationShortcut.value = false;
+  }
+}
+
 watch(
   globalShortcutAccelerator,
   (shortcut) => {
-    void globalShortcut.configure(shortcut, toggleRecordingFromGlobalShortcut);
+    void globalShortcut.configure(
+      "recording",
+      shortcut,
+      toggleRecordingFromGlobalShortcut,
+    );
+  },
+  { immediate: true },
+);
+
+watch(
+  dictationShortcutAccelerator,
+  (shortcut) => {
+    void globalShortcut.configure(
+      "dictation",
+      shortcut,
+      toggleDictationFromGlobalShortcut,
+    );
   },
   { immediate: true },
 );

@@ -28,16 +28,22 @@ test("shows storage and shortcut utilities in settings", async ({ page }) => {
   await globalRecordingToggle.focus();
   await page.keyboard.press("Space");
   await expect(page.getByLabel("Global recording shortcut")).toBeVisible();
-  await expect(page.getByText("Active", { exact: true })).toBeVisible();
+  await expect(
+    page.locator("#shortcuts").getByText("Active", { exact: true }),
+  ).toBeVisible();
 
   await page.evaluate(() => {
-    window.dispatchEvent(new Event("opentranscribe:preview-global-shortcut"));
+    window.dispatchEvent(
+      new Event("opentranscribe:preview-global-shortcut:recording"),
+    );
   });
   await expect(page).toHaveURL(/\/sessions\/[^/]+$/);
   await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
 
   await page.evaluate(() => {
-    window.dispatchEvent(new Event("opentranscribe:preview-global-shortcut"));
+    window.dispatchEvent(
+      new Event("opentranscribe:preview-global-shortcut:recording"),
+    );
   });
   await expect(page.getByRole("button", { name: "Stop" })).not.toBeVisible();
 });
@@ -86,7 +92,62 @@ test("captures and saves a custom global recording shortcut", async ({
   await expect(page.getByText("Off", { exact: true })).toBeVisible();
 });
 
-test("keeps the active global shortcut when a replacement is unavailable", async ({
+test("suspends every global shortcut while capturing a replacement", async ({
+  page,
+}) => {
+  await page.goto("/settings#shortcuts");
+
+  await page.getByRole("switch", { name: "Record from anywhere" }).click();
+  await page.getByRole("button", { name: "Global recording shortcut" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Set recording shortcut" }),
+  ).toBeVisible();
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new Event("opentranscribe:preview-global-shortcut:recording"),
+    );
+  });
+  await expect(page).toHaveURL(/\/settings/);
+
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new Event("opentranscribe:preview-global-shortcut:recording"),
+    );
+  });
+  await expect(page).toHaveURL(/\/sessions\/[^/]+$/);
+});
+
+test("keeps Dictation shortcut registration separate from recording", async ({
+  page,
+}) => {
+  await page.goto("/settings#dictation");
+
+  await expect(page.getByRole("heading", { name: "Dictation" })).toBeVisible();
+  await expect(
+    page.locator("#dictation").getByText("Active", { exact: true }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Shortcuts" }).click();
+  await page.getByRole("switch", { name: "Record from anywhere" }).click();
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new Event("opentranscribe:preview-global-shortcut:dictation"),
+    );
+  });
+  await expect(page).toHaveURL(/\/settings/);
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new Event("opentranscribe:preview-global-shortcut:recording"),
+    );
+  });
+  await expect(page).toHaveURL(/\/sessions\/[^/]+$/);
+});
+
+test("surfaces a replacement shortcut registration failure after capture closes", async ({
   page,
 }) => {
   await page.goto("/settings#shortcuts");
@@ -113,13 +174,18 @@ test("keeps the active global shortcut when a replacement is unavailable", async
 
   await expect(
     page.getByRole("dialog", { name: "Set recording shortcut" }),
+  ).not.toBeVisible();
+  await expect(shortcutButton).toContainText("K");
+  await expect(
+    page.locator("#shortcuts").getByText("Unavailable", { exact: true }),
   ).toBeVisible();
-  await expect(shortcutButton).toContainText("J");
 
   await page.evaluate(() => {
-    window.dispatchEvent(new Event("opentranscribe:preview-global-shortcut"));
+    window.dispatchEvent(
+      new Event("opentranscribe:preview-global-shortcut:recording"),
+    );
   });
-  await expect(page).toHaveURL(/\/sessions\/[^/]+$/);
+  await expect(page).toHaveURL(/\/settings/);
 });
 
 test("keeps an active local-model download from being started twice", async ({
@@ -366,11 +432,15 @@ test("surfaces a global shortcut registration conflict", async ({ page }) => {
   await globalRecordingToggle.focus();
   await page.keyboard.press("Space");
 
-  await expect(page.getByText("Unavailable", { exact: true })).toBeVisible();
   await expect(
-    page.getByText(
-      "This shortcut could not be registered: This shortcut is already in use.",
-    ),
+    page.locator("#shortcuts").getByText("Unavailable", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator("#shortcuts")
+      .getByText(
+        "This shortcut could not be registered: This shortcut is already in use.",
+      ),
   ).toBeVisible();
 });
 
