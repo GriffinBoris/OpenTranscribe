@@ -23,6 +23,7 @@ import type {
   SearchFilters,
   SearchPage,
   Transcript,
+  UpdaterInstallationStatus,
   UpdateDownloadProgress,
 } from "@/types/domain";
 
@@ -32,6 +33,7 @@ export interface NativeBridge {
   resetApplicationSettings(): Promise<AppSettings>;
   deleteAllApplicationData(): Promise<void>;
   updaterConfigured(): Promise<boolean>;
+  updaterInstallationStatus(): Promise<UpdaterInstallationStatus>;
   checkForUpdate(): Promise<AppUpdate | null>;
   installUpdate(
     onProgress: (progress: UpdateDownloadProgress) => void,

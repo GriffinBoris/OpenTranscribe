@@ -31,6 +31,7 @@ import type {
   SearchFilters,
   SearchPage,
   Transcript,
+  UpdaterInstallationStatus,
   UpdateDownloadProgress,
 } from "@/types/domain";
 
@@ -58,6 +59,9 @@ export const desktopNative: NativeBridge = {
   deleteAllApplicationData: () => invoke("delete_all_application_data"),
 
   updaterConfigured: () => invoke<boolean>("updater_configured"),
+
+  updaterInstallationStatus: () =>
+    invoke<UpdaterInstallationStatus>("updater_installation_status"),
 
   async checkForUpdate(): Promise<AppUpdate | null> {
     if (pendingUpdate) {

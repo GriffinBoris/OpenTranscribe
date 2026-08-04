@@ -22,6 +22,7 @@ type ApplicationBridge = Pick<
   | "resetApplicationSettings"
   | "deleteAllApplicationData"
   | "updaterConfigured"
+  | "updaterInstallationStatus"
   | "checkForUpdate"
   | "installUpdate"
   | "initializeLibrary"
@@ -86,6 +87,22 @@ export const previewApplicationBridge = {
 
   async updaterConfigured() {
     return new URLSearchParams(window.location.search).has("updater");
+  },
+
+  async updaterInstallationStatus() {
+    const installation = new URLSearchParams(window.location.search).get(
+      "updateInstall",
+    );
+
+    if (installation === "macos-read-only") {
+      return "macos_read_only";
+    }
+
+    if (installation === "linux-not-writable") {
+      return "linux_not_writable";
+    }
+
+    return "ready";
   },
 
   async checkForUpdate() {

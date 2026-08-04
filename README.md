@@ -99,6 +99,19 @@ run. Choose More info, then Run anyway. Nothing degrades on later updates.
 with glibc 2.35 or newer. Both need PipeWire 1.0 or newer running for
 system-output capture. Mark the AppImage executable before running it.
 
+## Updating a release
+
+OpenTranscribe checks the signed release manifest on startup and only downloads
+an update after you select **Update**. It waits until recordings, processing,
+and model downloads finish.
+
+- **macOS:** Run the copy in Applications. A mounted disk image is read-only,
+  so it cannot replace itself.
+- **Windows:** The updater starts the normal installer in passive mode;
+  Windows can show its standard elevation prompt when needed.
+- **Linux:** In-app updates apply only to the AppImage. Keep it in a writable
+  folder. Update `.deb` installations through the system package manager.
+
 ## Stack
 
 - Tauri 2 and Rust for capture, storage, credentials, and providers

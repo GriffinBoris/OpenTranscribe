@@ -12,11 +12,13 @@ import RecordingDock from "@/views/application/components/RecordingDock.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { native } from "@/core/native";
 import { useGlobalShortcutStore } from "@/views/application/globalShortcutStore";
+import { useLocalModelsStore } from "@/views/application/localModelsStore";
 import { useRecordingStore } from "@/views/application/recordingStore";
 import { useUpdateStore } from "@/views/application/updateStore";
 
 const application = useApplicationStore();
 const globalShortcut = useGlobalShortcutStore();
+const localModels = useLocalModelsStore();
 const recording = useRecordingStore();
 const updater = useUpdateStore();
 const { t } = useI18n();
@@ -24,6 +26,12 @@ const router = useRouter();
 const isHandlingGlobalShortcut = ref(false);
 const isHandlingDictationShortcut = ref(false);
 const isStopping = ref(false);
+const hasActiveWork = computed(
+  () =>
+    Boolean(recording.activeRecording) ||
+    application.runningJobs.length > 0 ||
+    localModels.downloadingModelId !== null,
+);
 const globalShortcutAccelerator = computed(() => {
   const settings = application.settings;
 
@@ -96,6 +104,14 @@ async function stopRecording() {
   } finally {
     isStopping.value = false;
   }
+}
+
+async function installUpdate() {
+  if (hasActiveWork.value) {
+    return;
+  }
+
+  await updater.installUpdate();
 }
 
 async function toggleRecordingFromGlobalShortcut() {
@@ -203,19 +219,29 @@ watch(
           v-if="updater.availableUpdate"
           class="shell-state rounded-app-sm bg-canvas-subtle mx-5 mt-3.5 flex items-center justify-between gap-3 border border-[var(--border)] px-3 py-2.5 max-[600px]:items-start"
         >
-          <span class="text-sm font-medium">
-            {{
-              t("settings.application.updates.available", {
-                version: updater.availableUpdate.version,
-              })
-            }}
+          <span class="grid gap-1">
+            <span class="text-sm font-medium">
+              {{
+                t("settings.application.updates.available", {
+                  version: updater.availableUpdate.version,
+                })
+              }}
+            </span>
+            <small v-if="updater.error" class="text-accent" role="alert">
+              {{ updater.error }}
+            </small>
+            <small v-else-if="hasActiveWork" class="text-warning">
+              {{ t("settings.application.updates.busy") }}
+            </small>
           </span>
           <AppButton
             variant="ghost"
             size="small"
-            @click="router.push('/settings#application')"
+            :disabled="hasActiveWork"
+            :loading="updater.isInstalling"
+            @click="installUpdate"
           >
-            {{ t("settings.application.updates.review") }}
+            {{ t("settings.application.updates.update") }}
           </AppButton>
         </div>
         <LocalModelDownloadStatus />

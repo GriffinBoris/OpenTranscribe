@@ -71,6 +71,7 @@ pub fn run() {
             commands::application::reset_application_settings,
             commands::application::delete_all_application_data,
             commands::application::updater_configured,
+            commands::application::updater_installation_status,
             commands::application::initialize_library,
             commands::application::create_project,
             commands::application::search_library,
