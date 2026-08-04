@@ -155,20 +155,16 @@ jobs:
             echo "updater_enabled=$updater_enabled"
           } >>"$GITHUB_OUTPUT"
 
+      # Tauri reads APPLE_CERTIFICATE by presence, not by value, and an env key
+      # set to an empty string still counts as present: it then imports an empty
+      # certificate into the keychain and fails the whole bundle. A workflow
+      # cannot omit an env key conditionally, so the signed build is its own
+      # step and the unsigned one never names the Apple variables at all.
       - name: Build installers
+        if: steps.mode.outputs.macos_signed != 'true'
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f
         env:
           TAURI_ENV_TARGET_TRIPLE: ${{ matrix.target }}
-          # Withheld unless macOS is actually being signed. tauri-action imports
-          # APPLE_CERTIFICATE into a keychain whenever it is set, which fails the
-          # whole build when the secret is a placeholder, even though nothing is
-          # being signed.
-          APPLE_CERTIFICATE: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_CERTIFICATE || '' }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          APPLE_SIGNING_IDENTITY: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
-          APPLE_ID: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_TEAM_ID || '' }}
           OPENTRANSCRIBE_UPDATER_PUBLIC_KEY: ${{ vars.OPENTRANSCRIBE_UPDATER_PUBLIC_KEY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -176,6 +172,25 @@ jobs:
           projectPath: apps/desktop
           uploadUpdaterJson: false
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci ${{ steps.mode.outputs.sign_args }} ${{ steps.mode.outputs.updater_args }} -- --locked
+
+      - name: Build signed installers
+        if: steps.mode.outputs.macos_signed == 'true'
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f
+        env:
+          TAURI_ENV_TARGET_TRIPLE: ${{ matrix.target }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          OPENTRANSCRIBE_UPDATER_PUBLIC_KEY: ${{ vars.OPENTRANSCRIBE_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          uploadUpdaterJson: false
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --ci ${{ steps.mode.outputs.updater_args }} -- --locked
 
       - name: Verify Linux GLIBC baseline
         if: matrix.target == 'x86_64-unknown-linux-gnu'
