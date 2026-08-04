@@ -100,6 +100,9 @@ export interface AppUpdate {
   notes: string | null;
 }
 
+export type UpdaterInstallationStatus =
+  "ready" | "macos_read_only" | "linux_not_writable";
+
 export interface UpdateDownloadProgress {
   completed_bytes: number;
   total_bytes: number | null;

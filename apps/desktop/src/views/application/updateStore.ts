@@ -2,7 +2,10 @@ import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 
 import { native } from "@/core/native";
+import { i18n } from "@/i18n";
 import type { AppUpdate, UpdateDownloadProgress } from "@/types/domain";
+
+const { t } = i18n.global;
 
 export const useUpdateStore = defineStore("updater", () => {
   const configured = ref(false);
@@ -54,6 +57,21 @@ export const useUpdateStore = defineStore("updater", () => {
     downloadProgress.value = null;
 
     try {
+      switch (await native.updaterInstallationStatus()) {
+        case "macos_read_only":
+          error.value = t(
+            "settings.application.updates.macosReadOnlyInstallation",
+          );
+          return;
+        case "linux_not_writable":
+          error.value = t(
+            "settings.application.updates.linuxNotWritableInstallation",
+          );
+          return;
+        case "ready":
+          break;
+      }
+
       await native.installUpdate((progress) => {
         downloadProgress.value = progress;
       });

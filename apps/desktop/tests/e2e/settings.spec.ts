@@ -262,6 +262,49 @@ test("reviews a signed application update before downloading it", async ({
   ).toBeEnabled();
 });
 
+test("starts an available update from the app banner", async ({ page }) => {
+  await page.goto("/?updater=enabled&update=available");
+
+  const updateButton = page.getByRole("button", { name: "Update" });
+  await expect(updateButton).toBeVisible();
+
+  await updateButton.click();
+
+  await expect(page).toHaveURL(/\/?updater=enabled&update=available$/);
+});
+
+test("explains when a mounted macOS app cannot update itself", async ({
+  page,
+}) => {
+  await page.goto(
+    "/?updater=enabled&update=available&updateInstall=macos-read-only",
+  );
+
+  await page.getByRole("button", { name: "Update" }).click();
+
+  await expect(
+    page.getByText(
+      "Move OpenTranscribe to Applications before updating, then open it from there.",
+    ),
+  ).toBeVisible();
+});
+
+test("explains when a Linux AppImage is not in a writable folder", async ({
+  page,
+}) => {
+  await page.goto(
+    "/?updater=enabled&update=available&updateInstall=linux-not-writable",
+  );
+
+  await page.getByRole("button", { name: "Update" }).click();
+
+  await expect(
+    page.getByText(
+      "Move the OpenTranscribe AppImage to a folder you can write to before updating.",
+    ),
+  ).toBeVisible();
+});
+
 test("resets settings without deleting the library or credentials", async ({
   page,
 }) => {

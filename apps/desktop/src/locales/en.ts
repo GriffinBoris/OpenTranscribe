@@ -293,10 +293,14 @@ export const messages = {
         upToDate: "You are up to date.",
         available: "Version {version} is available.",
         check: "Check for updates",
-        review: "Review update",
+        update: "Update",
         dialogTitle: "Update available",
         noNotes: "No release notes were provided.",
         busy: "Finish active recordings, processing, and model downloads before installing an update.",
+        macosReadOnlyInstallation:
+          "Move OpenTranscribe to Applications before updating, then open it from there.",
+        linuxNotWritableInstallation:
+          "Move the OpenTranscribe AppImage to a folder you can write to before updating.",
         downloading: "Downloading update · {percent}%",
         install: "Download and restart",
       },

@@ -3290,6 +3290,7 @@ dependencies = [
  "hound",
  "http",
  "keyring",
+ "libc",
  "libspa",
  "libspa-sys",
  "log",

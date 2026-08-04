@@ -1,5 +1,10 @@
 use std::path::{Path, PathBuf};
 
+#[cfg(target_os = "macos")]
+use std::mem::MaybeUninit;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+use std::{ffi::CString, os::unix::ffi::OsStrExt};
+
 use opentranscribe_domain::{
     APP_SETTINGS_SCHEMA_VERSION, AppSettings, AppSnapshot, Appearance, DictationProvider,
     OpenAiTranscriptionModel, Project, RecordingMode, RecordingProjectSelection, SearchFilters,
@@ -218,6 +223,31 @@ pub fn updater_configured() -> bool {
     updater_public_key().is_some()
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UpdaterInstallationStatus {
+    Ready,
+    #[cfg(target_os = "macos")]
+    MacosReadOnly,
+    #[cfg(target_os = "linux")]
+    LinuxNotWritable,
+}
+
+#[tauri::command]
+pub fn updater_installation_status() -> AppResult<UpdaterInstallationStatus> {
+    #[cfg(target_os = "macos")]
+    if macos_update_installation_is_read_only()? {
+        return Ok(UpdaterInstallationStatus::MacosReadOnly);
+    }
+
+    #[cfg(target_os = "linux")]
+    if !linux_appimage_directory_is_writable() {
+        return Ok(UpdaterInstallationStatus::LinuxNotWritable);
+    }
+
+    Ok(UpdaterInstallationStatus::Ready)
+}
+
 pub(crate) fn updater_public_key() -> Option<&'static str> {
     let public_key = option_env!("OPENTRANSCRIBE_UPDATER_PUBLIC_KEY")
         .filter(|public_key| !public_key.trim().is_empty())?;
@@ -226,6 +256,51 @@ pub(crate) fn updater_public_key() -> Option<&'static str> {
     std::env::var_os("APPIMAGE")?;
 
     Some(public_key)
+}
+
+#[cfg(target_os = "macos")]
+fn macos_update_installation_is_read_only() -> AppResult<bool> {
+    let executable_path = std::env::current_exe()?;
+    let Some(app_bundle_path) = macos_app_bundle_path(&executable_path) else {
+        return Ok(false);
+    };
+    let path = CString::new(app_bundle_path.as_os_str().as_bytes())
+        .expect("filesystem paths cannot contain NUL bytes");
+    let mut filesystem = MaybeUninit::<libc::statfs>::uninit();
+
+    // `statfs` initializes the supplied buffer whenever it returns success.
+    if unsafe { libc::statfs(path.as_ptr(), filesystem.as_mut_ptr()) } == -1 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+
+    let filesystem = unsafe { filesystem.assume_init() };
+    Ok(filesystem.f_flags & libc::MNT_RDONLY as u32 != 0)
+}
+
+#[cfg(target_os = "macos")]
+fn macos_app_bundle_path(executable_path: &Path) -> Option<&Path> {
+    executable_path
+        .ancestors()
+        .find(|path| path.extension().is_some_and(|extension| extension == "app"))
+}
+
+#[cfg(target_os = "linux")]
+fn linux_appimage_directory_is_writable() -> bool {
+    let Some(appimage_path) = std::env::var_os("APPIMAGE") else {
+        return true;
+    };
+    linux_appimage_path_is_writable(Path::new(&appimage_path))
+}
+
+#[cfg(target_os = "linux")]
+fn linux_appimage_path_is_writable(appimage_path: &Path) -> bool {
+    let Some(directory) = appimage_path.parent() else {
+        return false;
+    };
+    let path = CString::new(directory.as_os_str().as_bytes())
+        .expect("filesystem paths cannot contain NUL bytes");
+
+    (unsafe { libc::access(path.as_ptr(), libc::W_OK | libc::X_OK) }) == 0
 }
 
 #[tauri::command]
@@ -411,10 +486,16 @@ fn normalize_stored_global_shortcut(settings: &mut serde_json::Value) {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    use std::path::Path;
 
     use opentranscribe_domain::{AppSettings, GlobalShortcut, RecordingMode};
     use tempfile::tempdir;
 
+    #[cfg(target_os = "linux")]
+    use super::linux_appimage_path_is_writable;
+    #[cfg(target_os = "macos")]
+    use super::macos_app_bundle_path;
     use super::{
         LibrarySelection, SettingsPatch, load_remembered_library, read_settings_file,
         write_settings_file,
@@ -446,6 +527,36 @@ mod tests {
         assert!(settings.microphone_echo_cancellation);
         assert!(settings.setup_completed);
         assert_eq!(settings.dictation_shortcut.0, "Alt+Shift+D");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn finds_the_macos_app_bundle_containing_the_executable() {
+        let executable =
+            Path::new("/Applications/OpenTranscribe.app/Contents/MacOS/OpenTranscribe");
+
+        assert_eq!(
+            macos_app_bundle_path(executable),
+            Some(Path::new("/Applications/OpenTranscribe.app")),
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn accepts_a_writable_appimage_directory() {
+        let directory = tempdir().expect("temporary directory should be created");
+        let appimage = directory.path().join("OpenTranscribe.AppImage");
+
+        assert!(linux_appimage_path_is_writable(&appimage));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn rejects_a_missing_appimage_directory() {
+        let directory = tempdir().expect("temporary directory should be created");
+        let appimage = directory.path().join("missing/OpenTranscribe.AppImage");
+
+        assert!(!linux_appimage_path_is_writable(&appimage));
     }
 
     #[test]
