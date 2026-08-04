@@ -110,18 +110,31 @@ embedded in each release build and is not a secret.
 When both values are configured, tagged release builds create signed updater
 payloads, upload their `.sig` files, and publish `latest.json` only after every
 target is available. The app checks that manifest on launch and asks the user
-before downloading or restarting. Keep tagged releases as drafts until the
-macOS installer is Developer ID-signed and notarized; publish a stable,
-non-prerelease release to make it discoverable at the `releases/latest`
-endpoint. On Linux, in-app updating is available from the AppImage only; `.deb`
-installs remain package-manager-managed.
+before downloading or restarting. When any target fails to produce a signature,
+the workflow warns, omits `latest.json`, and still publishes the installers, so
+a broken updater key never withholds a release. On Linux, in-app updating is
+available from the AppImage only; `.deb` installs remain package-manager-managed.
+
+`--no-sign` suppresses updater signatures on every platform, not just macOS, so
+the workflow passes it only when no updater key is configured. With a key
+present, macOS builds omit the flag and Tauri skips code signing on its own
+while still signing the updater payload.
 
 The release workflow reads `APPLE_SIGNING_IDENTITY` to decide how to build.
-While the secret is unset, macOS jobs pass `--no-sign` and the release is
-described as an unsigned preview, so tagging keeps working before enrollment
-completes. Once the secret is present, macOS jobs sign and notarize, and the
-signed bundle is verified before upload. No workflow edit is needed to switch
-between the two states.
+While the secret is unset, the release is described as an unsigned preview, so
+tagging keeps working before enrollment completes. Once the secret is present,
+macOS jobs sign and notarize, and the signed bundle is verified before upload.
+No workflow edit is needed to switch between the two states.
+
+## Publishing a release
+
+Pushing a `v*` tag builds all four supported targets, uploads every installer to
+the matching GitHub release, and publishes it on the releases page. The release
+is created as a draft, populated, and only then published, so it is never
+visible half-populated. A tag carrying a semver pre-release suffix such as
+`v0.2.0-rc.1` publishes as a pre-release; a stable tag publishes as a full
+release so it stays discoverable at the `releases/latest` endpoint the updater
+reads.
 
 ## Verifying a release build
 
