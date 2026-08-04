@@ -486,7 +486,7 @@ fn normalize_stored_global_shortcut(settings: &mut serde_json::Value) {
 #[cfg(test)]
 mod tests {
     use std::fs;
-    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    #[cfg(target_os = "macos")]
     use std::path::Path;
 
     use opentranscribe_domain::{AppSettings, GlobalShortcut, RecordingMode};

@@ -263,21 +263,23 @@ test("reviews a signed application update before downloading it", async ({
 });
 
 test("starts an available update from the app banner", async ({ page }) => {
-  await page.goto("/?updater=enabled&update=available");
+  await page.goto("/?updater=enabled&update=available&resetReady");
 
   const updateButton = page.getByRole("button", { name: "Update" });
   await expect(updateButton).toBeVisible();
 
   await updateButton.click();
 
-  await expect(page).toHaveURL(/\/?updater=enabled&update=available$/);
+  await expect(page).toHaveURL(
+    /\/?updater=enabled&update=available&resetReady$/,
+  );
 });
 
 test("explains when a mounted macOS app cannot update itself", async ({
   page,
 }) => {
   await page.goto(
-    "/?updater=enabled&update=available&updateInstall=macos-read-only",
+    "/?updater=enabled&update=available&updateInstall=macos-read-only&resetReady",
   );
 
   await page.getByRole("button", { name: "Update" }).click();
@@ -293,7 +295,7 @@ test("explains when a Linux AppImage is not in a writable folder", async ({
   page,
 }) => {
   await page.goto(
-    "/?updater=enabled&update=available&updateInstall=linux-not-writable",
+    "/?updater=enabled&update=available&updateInstall=linux-not-writable&resetReady",
   );
 
   await page.getByRole("button", { name: "Update" }).click();
