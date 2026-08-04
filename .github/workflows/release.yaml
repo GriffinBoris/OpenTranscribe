@@ -159,12 +159,16 @@ jobs:
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f
         env:
           TAURI_ENV_TARGET_TRIPLE: ${{ matrix.target }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Withheld unless macOS is actually being signed. tauri-action imports
+          # APPLE_CERTIFICATE into a keychain whenever it is set, which fails the
+          # whole build when the secret is a placeholder, even though nothing is
+          # being signed.
+          APPLE_CERTIFICATE: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_ID: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ steps.mode.outputs.macos_signed == 'true' && secrets.APPLE_TEAM_ID || '' }}
           OPENTRANSCRIBE_UPDATER_PUBLIC_KEY: ${{ vars.OPENTRANSCRIBE_UPDATER_PUBLIC_KEY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
