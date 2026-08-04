@@ -1,6 +1,10 @@
 name: Nightly
 
 on:
+  # Bundling every supported target nightly catches a broken installer before a
+  # tag is pushed, instead of during the release itself.
+  schedule:
+    - cron: "0 7 * * *"
   workflow_dispatch:
 
 permissions:
