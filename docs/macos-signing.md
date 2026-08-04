@@ -134,8 +134,7 @@ is created as a draft, populated, and only then published, so it is never
 visible half-populated. A tag carrying a semver pre-release suffix such as
 `v0.2.0-rc.1` publishes as a pre-release; a stable tag publishes as a full
 release so it stays discoverable at the `releases/latest` endpoint the updater
-reads. Run the workflow manually with the `draft` input to stage a release
-without publishing it.
+reads.
 
 ## Verifying a release build
 
