@@ -17,6 +17,20 @@ pub struct CpalCapture {
     writer_thread: JoinHandle<AppResult<()>>,
 }
 
+#[derive(Clone, Copy)]
+pub enum ChannelLayout {
+    DualMono,
+    #[cfg(target_os = "windows")]
+    Preserve,
+}
+
+#[derive(Clone, Copy)]
+struct CaptureFormat {
+    source: AudioFormat,
+    output: AudioFormat,
+    layout: ChannelLayout,
+}
+
 impl CpalCapture {
     pub fn start(
         device: cpal::Device,
@@ -25,13 +39,27 @@ impl CpalCapture {
         recovery_directory: PathBuf,
         track_name: &'static str,
         signals: CaptureSignals,
+        channel_layout: ChannelLayout,
     ) -> AppResult<Self> {
         let (packet_sender, packet_receiver) = bounded(PACKET_QUEUE_CAPACITY);
         let (stop_sender, stop_receiver) = bounded(1);
         let (ready_sender, ready_receiver) = bounded(1);
-        let writer_config = AudioFormat {
+        let source_format = AudioFormat {
             channels: config.channels,
             sample_rate: config.sample_rate,
+        };
+        let writer_config = match channel_layout {
+            ChannelLayout::DualMono => AudioFormat {
+                channels: 2,
+                sample_rate: config.sample_rate,
+            },
+            #[cfg(target_os = "windows")]
+            ChannelLayout::Preserve => source_format,
+        };
+        let capture_format = CaptureFormat {
+            source: source_format,
+            output: writer_config,
+            layout: channel_layout,
         };
         let writer_thread = thread::spawn(move || {
             write_chunks(
@@ -42,7 +70,16 @@ impl CpalCapture {
             )
         });
         let capture_thread = thread::spawn(move || {
-            let stream = build_stream(&device, config, sample_format, packet_sender, signals);
+            let flush_sender = packet_sender.clone();
+            let flush_signals = signals.clone();
+            let stream = build_stream(
+                &device,
+                config,
+                sample_format,
+                packet_sender,
+                signals,
+                capture_format,
+            );
 
             match stream {
                 Ok(stream) => {
@@ -50,6 +87,12 @@ impl CpalCapture {
                     let _ = ready_sender.send(Ok(()));
                     let _ = stop_receiver.recv();
                     drop(stream);
+                    enqueue_capture_samples(
+                        flush_signals.flush_processed_samples(),
+                        &flush_sender,
+                        &flush_signals,
+                        capture_format,
+                    );
                     Ok(())
                 }
                 Err(error) => {
@@ -108,11 +151,8 @@ fn build_stream(
     sample_format: SampleFormat,
     sender: Sender<AudioPacket>,
     signals: CaptureSignals,
+    capture_format: CaptureFormat,
 ) -> AppResult<cpal::Stream> {
-    let capture_format = AudioFormat {
-        channels: config.channels,
-        sample_rate: config.sample_rate,
-    };
     let stream = match sample_format {
         SampleFormat::I8 => {
             build_typed_stream::<i8>(device, config, sender, signals, capture_format)
@@ -165,7 +205,7 @@ fn build_typed_stream<T>(
     config: StreamConfig,
     sender: Sender<AudioPacket>,
     signals: CaptureSignals,
-    capture_format: AudioFormat,
+    capture_format: CaptureFormat,
 ) -> Result<cpal::Stream, cpal::Error>
 where
     T: SizedSample,
@@ -175,11 +215,40 @@ where
         config,
         move |samples: &[T], _| {
             let samples = convert_samples(samples);
-            enqueue_samples(samples, &sender, &signals, capture_format);
+            let samples = signals.process_samples(samples, capture_format.source);
+            enqueue_capture_samples(samples, &sender, &signals, capture_format);
         },
         |error| log::error!("audio input stream error: {error}"),
         None,
     )
+}
+
+fn enqueue_capture_samples(
+    samples: Vec<f32>,
+    sender: &Sender<AudioPacket>,
+    signals: &CaptureSignals,
+    capture_format: CaptureFormat,
+) {
+    if samples.is_empty() {
+        return;
+    }
+
+    let samples = match capture_format.layout {
+        ChannelLayout::DualMono => dual_mono_samples(&samples, capture_format.source.channels),
+        #[cfg(target_os = "windows")]
+        ChannelLayout::Preserve => samples,
+    };
+    enqueue_samples(samples, sender, signals, capture_format.output);
+}
+
+fn dual_mono_samples(samples: &[f32], source_channels: u16) -> Vec<f32> {
+    samples
+        .chunks_exact(usize::from(source_channels))
+        .flat_map(|frame| {
+            let mono = frame.iter().sum::<f32>() / frame.len() as f32;
+            [mono, mono]
+        })
+        .collect()
 }
 
 fn convert_samples<T>(samples: &[T]) -> Vec<f32>
@@ -205,7 +274,7 @@ fn join_capture(handle: JoinHandle<AppResult<()>>, description: &str) -> AppResu
 
 #[cfg(test)]
 mod tests {
-    use super::convert_samples;
+    use super::{convert_samples, dual_mono_samples};
 
     #[test]
     fn converts_signed_unsigned_and_float_device_samples() {
@@ -214,5 +283,13 @@ mod tests {
 
         let floats = convert_samples(&[-1.0_f64, 0.25, 1.0]);
         assert_eq!(floats, vec![-1.0, 0.25, 1.0]);
+    }
+
+    #[test]
+    fn normalizes_microphone_audio_to_dual_mono() {
+        assert_eq!(
+            dual_mono_samples(&[0.25, 0.75, -0.5, 0.5], 2),
+            vec![0.5, 0.5, 0.0, 0.0]
+        );
     }
 }

@@ -9,10 +9,12 @@ use hound::{SampleFormat as WavSampleFormat, WavSpec, WavWriter};
 use crate::error::{AppError, AppResult};
 use crate::transcription::LiveAudioSink;
 
+use super::echo_cancellation::AudioProcessor;
+
 pub const CHUNK_SECONDS: u64 = 10;
 pub const PACKET_QUEUE_CAPACITY: usize = 128;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AudioFormat {
     pub channels: u16,
     pub sample_rate: u32,
@@ -28,6 +30,24 @@ pub struct CaptureSignals {
     pub peak: Arc<AtomicU32>,
     pub dropped_packets: Arc<AtomicU64>,
     pub live_audio: Option<LiveAudioSink>,
+    pub processor: Option<AudioProcessor>,
+}
+
+impl CaptureSignals {
+    pub fn process_samples(&self, samples: Vec<f32>, format: AudioFormat) -> Vec<f32> {
+        if let Some(processor) = &self.processor {
+            processor.process(samples, format)
+        } else {
+            samples
+        }
+    }
+
+    pub fn flush_processed_samples(&self) -> Vec<f32> {
+        self.processor
+            .as_ref()
+            .map(AudioProcessor::flush)
+            .unwrap_or_default()
+    }
 }
 
 pub fn enqueue_samples(

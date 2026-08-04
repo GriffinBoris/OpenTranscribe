@@ -199,6 +199,7 @@ fn start(app: tauri::AppHandle, state: &AppState) -> AppResult<DictationStatus> 
         session_id: id.clone(),
         microphone_device_id: settings.microphone_device_id,
         capture_system_audio: false,
+        microphone_echo_cancellation: false,
         microphone_live_audio: None,
         system_live_audio: None,
     };

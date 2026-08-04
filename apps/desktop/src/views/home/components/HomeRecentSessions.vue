@@ -1,14 +1,32 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { ArrowRight } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 import SessionRow from "@/components/session/SessionRow.vue";
+import SessionMoveDialog from "@/components/session/SessionMoveDialog.vue";
+import type { Session } from "@/types/domain";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { useMoveSession } from "@/views/application/useMoveSession";
 
 const application = useApplicationStore();
 const { t } = useI18n();
 const { isMoving, moveSession, projectOptions } = useMoveSession();
+const sessionToMove = ref<Session | null>(null);
+
+async function moveSelectedSession(projectId: string) {
+  if (sessionToMove.value) {
+    await moveSession(sessionToMove.value, projectId);
+  }
+
+  sessionToMove.value = null;
+}
+
+function updateMoveDialog(open: boolean) {
+  if (!open) {
+    sessionToMove.value = null;
+  }
+}
 </script>
 
 <template>
@@ -37,10 +55,16 @@ const { isMoving, moveSession, projectOptions } = useMoveSession();
         v-for="session in application.recentSessions.slice(0, 4)"
         :key="session.id"
         :session="session"
-        :project-options="projectOptions"
-        :moving="isMoving(session.id)"
-        @move-to-project="moveSession(session, $event)"
+        @move="sessionToMove = session"
       />
     </div>
+    <SessionMoveDialog
+      :open="Boolean(sessionToMove)"
+      :session-count="1"
+      :project-options="projectOptions"
+      :moving="sessionToMove ? isMoving(sessionToMove.id) : false"
+      @update:open="updateMoveDialog"
+      @move="moveSelectedSession"
+    />
   </section>
 </template>

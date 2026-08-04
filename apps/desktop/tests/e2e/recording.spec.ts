@@ -141,6 +141,32 @@ test("queues the selected transcription when recording stops", async ({
   await expect(page.getByText("Waiting to start")).toBeVisible();
 });
 
+test("uses the configured transcription mode for the Home recording button", async ({
+  page,
+}) => {
+  await page.goto("/settings#models");
+
+  const balancedModel = page.getByRole("group", { name: "Balanced" });
+  await balancedModel.getByRole("button", { name: "Download" }).click();
+  await expect(
+    balancedModel.getByText("Installed", { exact: true }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Recording", exact: true }).click();
+  await page.getByLabel("Default recording action").click();
+  await page
+    .getByRole("option", { name: "Record, then transcribe locally" })
+    .click();
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+
+  const stop = page.getByRole("button", { name: "Stop" });
+  await page.getByRole("button", { name: "New recording" }).click();
+  await expect(stop).toBeVisible();
+  await stop.click();
+
+  await expect(page.getByText("Waiting to start")).toBeVisible();
+});
+
 test("keeps the recording when automatic transcription cannot start", async ({
   page,
 }) => {
@@ -161,6 +187,28 @@ test("keeps the recording when automatic transcription cannot start", async ({
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: /Untitled recording/ }),
+  ).toBeVisible();
+});
+
+test("keeps setup progress while configuring transcription", async ({
+  page,
+}) => {
+  await page.goto("/?firstRun=1");
+
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Transcription" }),
+  ).toBeVisible();
+
+  await page.getByLabel("Transcription").click();
+  await page.getByRole("option", { name: "Transcribe locally" }).click();
+  await page.getByRole("button", { name: "Choose a local model" }).click();
+
+  await expect(page).toHaveURL(/\/settings#models$/);
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Transcription" }),
   ).toBeVisible();
 });
 

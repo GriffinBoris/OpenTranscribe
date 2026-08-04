@@ -2,11 +2,15 @@ use std::path::PathBuf;
 
 use opentranscribe_domain::CaptureDevice;
 
-use crate::audio::packet_writer::CaptureSignals;
+use crate::audio::packet_writer::{AudioFormat, CaptureSignals};
 use crate::error::{AppError, AppResult};
 
 pub fn availability() -> bool {
     false
+}
+
+pub fn format() -> AppResult<AudioFormat> {
+    Err(AppError::Audio(platform_message().to_owned()))
 }
 
 pub struct SystemAudioCapture {

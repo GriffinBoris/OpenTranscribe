@@ -133,6 +133,7 @@ export const desktopNative: NativeBridge = {
         project_id: request.projectId,
         microphone_device_id: request.microphoneDeviceId,
         capture_system_audio: request.captureSystemAudio,
+        microphone_echo_cancellation: request.microphoneEchoCancellation,
         language_hint: request.languageHint,
         recording_mode: request.recordingMode,
         openai_model: request.openAiModel,

@@ -2,7 +2,7 @@ use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use ts_rs::TS;
 
-pub const APP_SETTINGS_SCHEMA_VERSION: u32 = 1;
+pub const APP_SETTINGS_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Debug, PartialEq, Serialize, TS)]
 #[ts(export)]
@@ -150,6 +150,8 @@ pub struct AppSettings {
     #[serde(default = "default_capture_system_audio")]
     pub capture_system_audio: bool,
     #[serde(default)]
+    pub microphone_echo_cancellation: bool,
+    #[serde(default)]
     pub local_models_directory: Option<String>,
     #[serde(default)]
     pub recording_project_selection: RecordingProjectSelection,
@@ -182,6 +184,7 @@ impl Default for AppSettings {
             openai_transcription_model: OpenAiTranscriptionModel::default(),
             microphone_device_id: None,
             capture_system_audio: default_capture_system_audio(),
+            microphone_echo_cancellation: false,
             local_models_directory: None,
             recording_project_selection: RecordingProjectSelection::default(),
             global_shortcut_enabled: false,
@@ -264,6 +267,7 @@ mod tests {
         );
         assert_eq!(settings.local_models_directory, None);
         assert!(settings.capture_system_audio);
+        assert!(!settings.microphone_echo_cancellation);
         assert_eq!(settings.global_shortcut.0, "CommandOrControl+Shift+R");
         assert!(settings.dictation_shortcut_enabled);
         assert_eq!(settings.dictation_shortcut.0, "Alt+Space");
@@ -290,6 +294,7 @@ mod tests {
         .expect("settings should deserialize");
 
         assert!(!settings.capture_system_audio);
+        assert!(!settings.microphone_echo_cancellation);
     }
 
     #[test]

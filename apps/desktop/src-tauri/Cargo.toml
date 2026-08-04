@@ -42,6 +42,7 @@ reqwest = { version = "0.13.4", default-features = false, features = ["blocking"
 serde.workspace = true
 serde_json.workspace = true
 sha2 = "0.11.0"
+sonora = "=0.2.0"
 symphonia = { version = "0.6.0", features = ["all"] }
 tauri = { version = "2.11.5", features = ["macos-private-api", "protocol-asset", "tray-icon"] }
 tauri-plugin-dialog = "2.7.2"

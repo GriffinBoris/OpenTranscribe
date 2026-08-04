@@ -8,13 +8,13 @@ mod unsupported;
 mod windows;
 
 #[cfg(target_os = "linux")]
-pub use linux::{SystemAudioCapture, availability};
+pub use linux::{SystemAudioCapture, availability, format};
 #[cfg(target_os = "macos")]
-pub use macos::{SystemAudioCapture, availability, permission_granted};
+pub use macos::{SystemAudioCapture, availability, format, permission_granted};
 #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
-pub use unsupported::{SystemAudioCapture, availability};
+pub use unsupported::{SystemAudioCapture, availability, format};
 #[cfg(target_os = "windows")]
-pub use windows::{SystemAudioCapture, availability};
+pub use windows::{SystemAudioCapture, availability, format};
 
 #[cfg(not(target_os = "macos"))]
 pub fn permission_granted() -> Option<bool> {

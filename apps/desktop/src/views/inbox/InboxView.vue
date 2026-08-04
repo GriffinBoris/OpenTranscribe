@@ -64,7 +64,12 @@ async function moveSelectedSessions(projectId: string) {
       >
         {{ t("library.inbox") }}
       </h1>
-      <AppButton variant="secondary" @click="importMedia">
+      <AppButton
+        variant="secondary"
+        :disabled="application.isImporting"
+        :loading="application.isImporting"
+        @click="importMedia"
+      >
         {{ t("library.importMedia") }}
       </AppButton>
     </header>
@@ -98,8 +103,6 @@ async function moveSelectedSessions(projectId: string) {
             v-for="session in sessions"
             :key="session.id"
             :session="session"
-            :project-options="projectOptions"
-            :moving="isMoving(session.id)"
             selectable
             :selected="selectedIds.has(session.id)"
             @selection-change="select(session.id, $event)"

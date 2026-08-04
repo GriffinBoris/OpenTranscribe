@@ -20,6 +20,9 @@ const recordingMode = ref<RecordingMode>(
 const captureSystemAudio = ref(
   application.settings?.capture_system_audio ?? true,
 );
+const microphoneEchoCancellation = ref(
+  application.settings?.microphone_echo_cancellation ?? false,
+);
 const openAiModel = ref<OpenAiTranscriptionModel>(
   application.settings?.openai_transcription_model ?? "gpt_transcribe",
 );
@@ -39,6 +42,11 @@ const recordingModeOptions = computed(() => [
   { label: t("home.recordOpenAi"), value: "open_ai_live" },
 ]);
 const cloudModelOptions = computed(() => openAiModelOptions(t));
+const echoCancellationDisabled = computed(
+  () =>
+    !captureSystemAudio.value ||
+    !application.audioDevices?.system_audio_available,
+);
 const systemStatusDescription = computed(() => {
   if (!application.audioDevices?.system_audio_available) {
     return t("settings.recording.systemUnsupported");
@@ -98,6 +106,13 @@ async function updateSystemCapture(value: boolean) {
   });
 }
 
+async function updateMicrophoneEchoCancellation(value: boolean) {
+  microphoneEchoCancellation.value = value;
+  await application.saveSettings({
+    microphone_echo_cancellation: value,
+  });
+}
+
 async function updateOpenAiModel(value: string) {
   openAiModel.value = value as OpenAiTranscriptionModel;
   await application.saveSettings({
@@ -114,6 +129,8 @@ onMounted(async () => {
     application.audioDevices?.microphones[0]?.id ??
     "";
   captureSystemAudio.value = application.settings?.capture_system_audio ?? true;
+  microphoneEchoCancellation.value =
+    application.settings?.microphone_echo_cancellation ?? false;
   openAiModel.value =
     application.settings?.openai_transcription_model ?? "gpt_transcribe";
 });
@@ -183,6 +200,24 @@ onMounted(async () => {
       />
     </div>
     <div
+      class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
+    >
+      <span class="grid gap-1">
+        <strong>{{
+          t("settings.recording.microphoneEchoCancellation")
+        }}</strong>
+        <small>
+          {{ t("settings.recording.microphoneEchoCancellationDescription") }}
+        </small>
+      </span>
+      <AppToggleSwitch
+        :model-value="microphoneEchoCancellation"
+        :accessible-label="t('settings.recording.microphoneEchoCancellation')"
+        :disabled="echoCancellationDisabled"
+        @update:model-value="updateMicrophoneEchoCancellation"
+      />
+    </div>
+    <div
       class="grid grid-cols-[minmax(220px,1fr)_auto] items-center gap-5 border-t border-[var(--divider)] py-3 max-[1050px]:grid-cols-1"
     >
       <span class="grid gap-1">
@@ -223,6 +258,12 @@ onMounted(async () => {
           </StatusPill>
         </div>
       </div>
+    </div>
+    <div class="border-t border-[var(--divider)] py-3">
+      <strong>{{ t("settings.recording.microphoneBleed") }}</strong>
+      <p class="text-ink-muted mt-1 text-sm leading-[var(--line-height-body)]">
+        {{ t("settings.recording.microphoneBleedDescription") }}
+      </p>
     </div>
   </AppSurface>
 </template>

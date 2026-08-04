@@ -9,10 +9,11 @@ use cpal::traits::{DeviceTrait, HostTrait};
 use opentranscribe_domain::CaptureDevice;
 use serde::{Deserialize, Serialize};
 
+use super::echo_cancellation::{AudioProcessor, EchoCancellation};
 use super::microphone::MicrophoneCapture;
-use super::packet_writer::CaptureSignals;
+use super::packet_writer::{AudioFormat, CaptureSignals};
 use super::system_audio::{
-    SystemAudioCapture, availability as system_audio_availability,
+    SystemAudioCapture, availability as system_audio_availability, format as system_audio_format,
     permission_granted as system_audio_permission_granted,
 };
 use crate::error::{AppError, AppResult};
@@ -38,6 +39,7 @@ pub struct StartRecordingOptions {
     pub session_id: String,
     pub microphone_device_id: Option<String>,
     pub capture_system_audio: bool,
+    pub microphone_echo_cancellation: bool,
     pub microphone_live_audio: Option<LiveAudioSink>,
     pub system_live_audio: Option<LiveAudioSink>,
 }
@@ -173,12 +175,14 @@ impl RecordingController {
             peak: Arc::clone(&microphone_peak),
             dropped_packets: Arc::clone(&dropped_packets),
             live_audio: options.microphone_live_audio.clone(),
+            processor: None,
         };
         let system_signals = CaptureSignals {
             paused: Arc::clone(&paused),
             peak: Arc::clone(&system_peak),
             dropped_packets: Arc::clone(&dropped_packets),
             live_audio: options.system_live_audio.clone(),
+            processor: None,
         };
         let (capture, streams) = start_streams(
             &options,
@@ -244,14 +248,23 @@ impl RecordingController {
 fn start_native_streams(
     options: &StartRecordingOptions,
     recovery_directory: PathBuf,
-    microphone_signals: CaptureSignals,
-    system_signals: CaptureSignals,
+    mut microphone_signals: CaptureSignals,
+    mut system_signals: CaptureSignals,
 ) -> AppResult<(RecordingCapture, Box<dyn RecordingStreams>)> {
     let host = cpal::default_host();
     let device = select_input_device(&host, options.microphone_device_id.as_deref())?;
     let supported_config = device.default_input_config().map_err(audio_error)?;
     let sample_format = supported_config.sample_format();
     let config: StreamConfig = supported_config.into();
+    let microphone_format = AudioFormat {
+        channels: config.channels,
+        sample_rate: config.sample_rate,
+    };
+    if options.microphone_echo_cancellation && options.capture_system_audio {
+        let cancellation = EchoCancellation::new(microphone_format, system_audio_format()?);
+        microphone_signals.processor = Some(AudioProcessor::microphone(cancellation.clone()));
+        system_signals.processor = Some(AudioProcessor::system(cancellation));
+    }
     let system_audio = options
         .capture_system_audio
         .then(|| SystemAudioCapture::start(recovery_directory.clone(), system_signals))
@@ -261,7 +274,7 @@ fn start_native_streams(
         stable_id: device.id().map_err(audio_error)?.to_string(),
         label: device.description().map_err(audio_error)?.name().to_owned(),
         sample_rate_hz: config.sample_rate,
-        channels: config.channels,
+        channels: 2,
     };
     let microphone = match MicrophoneCapture::start(
         device,
@@ -377,6 +390,7 @@ mod tests {
             session_id: "session-1".to_owned(),
             microphone_device_id: None,
             capture_system_audio,
+            microphone_echo_cancellation: false,
             microphone_live_audio: None,
             system_live_audio: None,
         }

@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 
 mod cpal_capture;
+mod echo_cancellation;
 mod finalizer;
 mod importer;
 mod microphone;

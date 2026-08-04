@@ -11,6 +11,9 @@ pub struct Segment {
     pub text: String,
 }
 
+const MAX_SENTENCE_GAP_MS: u64 = 1_000;
+const MAX_SENTENCE_DURATION_MS: u64 = 30_000;
+
 #[derive(Default)]
 pub struct TranscriberRuntime {
     context: Option<WhisperContext>,
@@ -104,6 +107,106 @@ impl TranscriberRuntime {
             }
         }
 
-        Ok((segments, audio.duration_ms))
+        Ok((merge_sentence_fragments(segments), audio.duration_ms))
+    }
+}
+
+fn merge_sentence_fragments(segments: Vec<Segment>) -> Vec<Segment> {
+    let mut merged = Vec::new();
+
+    for segment in segments {
+        let should_merge = merged.last().is_some_and(|previous: &Segment| {
+            !ends_sentence(&previous.text)
+                && segment.start_ms.saturating_sub(previous.end_ms) <= MAX_SENTENCE_GAP_MS
+                && segment.end_ms.saturating_sub(previous.start_ms) <= MAX_SENTENCE_DURATION_MS
+        });
+
+        if should_merge {
+            let previous = merged.last_mut().expect("previous segment should exist");
+            previous.text.push(' ');
+            previous.text.push_str(&segment.text);
+            previous.end_ms = segment.end_ms;
+        } else {
+            merged.push(segment);
+        }
+    }
+
+    merged
+}
+
+fn ends_sentence(text: &str) -> bool {
+    matches!(
+        text.trim_end()
+            .trim_end_matches(['"', '”', '’', ')', ']', '}'])
+            .chars()
+            .last(),
+        Some('.' | '!' | '?' | '…' | '。' | '！' | '？')
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Segment, merge_sentence_fragments};
+
+    #[test]
+    fn joins_adjacent_whisper_fragments_into_a_sentence() {
+        let merged = merge_sentence_fragments(vec![
+            Segment {
+                start_ms: 0,
+                end_ms: 700,
+                text: "We should ship".to_owned(),
+            },
+            Segment {
+                start_ms: 750,
+                end_ms: 1_500,
+                text: "the playback bar.".to_owned(),
+            },
+        ]);
+
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].start_ms, 0);
+        assert_eq!(merged[0].end_ms, 1_500);
+        assert_eq!(merged[0].text, "We should ship the playback bar.");
+    }
+
+    #[test]
+    fn keeps_completed_sentences_and_distant_fragments_separate() {
+        let merged = merge_sentence_fragments(vec![
+            Segment {
+                start_ms: 0,
+                end_ms: 700,
+                text: "First sentence.".to_owned(),
+            },
+            Segment {
+                start_ms: 750,
+                end_ms: 1_500,
+                text: "Second sentence".to_owned(),
+            },
+            Segment {
+                start_ms: 3_000,
+                end_ms: 3_500,
+                text: "after a pause.".to_owned(),
+            },
+        ]);
+
+        assert_eq!(merged.len(), 3);
+    }
+
+    #[test]
+    fn preserves_completed_quoted_and_multilingual_sentences() {
+        let merged = merge_sentence_fragments(vec![
+            Segment {
+                start_ms: 0,
+                end_ms: 700,
+                text: "They said, \"ship it.\"".to_owned(),
+            },
+            Segment {
+                start_ms: 750,
+                end_ms: 1_500,
+                text: "次の文です。".to_owned(),
+            },
+        ]);
+
+        assert_eq!(merged.len(), 2);
     }
 }

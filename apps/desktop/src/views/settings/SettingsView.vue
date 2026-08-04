@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import {
   FolderOpen,
   HardDrive,
@@ -26,43 +26,97 @@ const { t } = useI18n();
 const activeSection = ref("dictation");
 const settingsContent = ref<HTMLElement | null>(null);
 const isContentScrolled = ref(false);
+let scrollEndTimer: number | null = null;
+let pendingNavigation: { section: string; top: number } | null = null;
 const settingsNavButtonClass =
   "w-full justify-start gap-2.5 rounded-app-sm px-2.5 py-[9px] text-ink hover:bg-canvas-subtle [&.active]:bg-canvas-subtle [&.active]:text-ink max-[900px]:w-auto";
 
-function selectSection(section: string) {
+function updateActiveSection(section: string) {
   activeSection.value = section;
   window.history.replaceState({ ...window.history.state }, "", `#${section}`);
+}
+
+function selectSection(section: string) {
+  updateActiveSection(section);
 
   const scrollPane = settingsContent.value!;
-
-  if (section === "recording") {
-    isContentScrolled.value = false;
-    scrollPane.scrollTo({ top: 0, behavior: "smooth" });
-    return;
-  }
-
   const target = document.getElementById(section)!;
   const offset = Number.parseFloat(
     getComputedStyle(scrollPane).getPropertyValue("--space-5"),
   );
+  const top = Math.max(
+    0,
+    Math.min(
+      scrollPane.scrollHeight - scrollPane.clientHeight,
+      scrollPane.scrollTop +
+        target.getBoundingClientRect().top -
+        scrollPane.getBoundingClientRect().top -
+        offset,
+    ),
+  );
+
+  pendingNavigation = { section, top };
 
   scrollPane.scrollTo({
     behavior: "smooth",
-    top:
-      scrollPane.scrollTop +
-      target.getBoundingClientRect().top -
-      scrollPane.getBoundingClientRect().top -
-      offset,
+    top,
   });
 }
 
 function updateContentScroll(event: Event) {
-  isContentScrolled.value = (event.currentTarget as HTMLElement).scrollTop > 0;
+  const scrollPane = event.currentTarget as HTMLElement;
+  isContentScrolled.value = scrollPane.scrollTop > 0;
+
+  if (scrollEndTimer !== null) {
+    window.clearTimeout(scrollEndTimer);
+  }
+
+  scrollEndTimer = window.setTimeout(() => {
+    const navigation = pendingNavigation;
+    pendingNavigation = null;
+
+    if (navigation && Math.abs(scrollPane.scrollTop - navigation.top) <= 2) {
+      updateActiveSection(navigation.section);
+      return;
+    }
+
+    const activeTarget = Array.from(
+      scrollPane.children,
+    ).reduce<HTMLElement | null>((closestTarget, child) => {
+      if (!(child instanceof HTMLElement)) {
+        return closestTarget;
+      }
+
+      if (!closestTarget) {
+        return child;
+      }
+
+      const contentTop = scrollPane.getBoundingClientRect().top;
+      const currentDistance = Math.abs(
+        child.getBoundingClientRect().top - contentTop,
+      );
+      const closestDistance = Math.abs(
+        closestTarget.getBoundingClientRect().top - contentTop,
+      );
+
+      return currentDistance < closestDistance ? child : closestTarget;
+    }, null);
+
+    if (activeTarget?.id) {
+      updateActiveSection(activeTarget.id);
+    }
+  }, 100);
 }
 
 onMounted(() => {
   activeSection.value = window.location.hash.slice(1) || "dictation";
   void nextTick(() => selectSection(activeSection.value));
+});
+
+onBeforeUnmount(() => {
+  if (scrollEndTimer !== null) {
+    window.clearTimeout(scrollEndTimer);
+  }
 });
 </script>
 

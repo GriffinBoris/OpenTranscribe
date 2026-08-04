@@ -246,6 +246,7 @@ watch(
     }
 
     void sessionStore.loadWorkspace(sessionId.value);
+    void loadMedia();
   },
 );
 

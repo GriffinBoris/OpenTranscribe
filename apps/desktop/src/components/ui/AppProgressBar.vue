@@ -35,7 +35,7 @@ const progressStyle = computed(() =>
       value:
         normalizedValue === undefined
           ? 'h-full !w-[42%] rounded-[inherit] bg-lichen origin-left will-change-transform animate-[progress-indeterminate_850ms_linear_infinite]'
-          : 'app-progress__value h-full !w-full rounded-[inherit] bg-lichen origin-left [transform:scaleX(var(--app-progress-value,0))]',
+          : 'app-progress__value h-full !w-full rounded-[inherit] bg-lichen origin-left transition-transform duration-300 ease-out motion-reduce:transition-none [transform:scaleX(var(--app-progress-value,0))]',
     }"
   />
 </template>

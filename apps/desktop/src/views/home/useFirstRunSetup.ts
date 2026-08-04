@@ -12,6 +12,7 @@ import { useApplicationStore } from "@/views/application/applicationStore";
 import { useOpenAiStore } from "@/views/application/openAiStore";
 import { useRecordingStore } from "@/views/application/recordingStore";
 import { useLocalModelsStore } from "@/views/application/localModelsStore";
+import { useFirstRunSetupStore } from "@/views/home/firstRunSetupStore";
 
 type SourceTestPhase = "configure" | "running" | "stopping" | "review";
 
@@ -23,11 +24,17 @@ export function useFirstRunSetup() {
   const openAi = useOpenAiStore();
   const recording = useRecordingStore();
   const localModels = useLocalModelsStore();
+  const firstRunSetup = useFirstRunSetupStore();
   const router = useRouter();
   const { t } = useI18n();
 
   const phase = ref<SourceTestPhase>("configure");
-  const setupStep = ref(1);
+  const setupStep = computed({
+    get: () => firstRunSetup.step,
+    set: (value: number) => {
+      firstRunSetup.step = value;
+    },
+  });
   const testSessionId = ref<string | null>(null);
   const audioSources = ref<SessionAudioSource[]>([]);
   const waveform = ref<number[]>([]);

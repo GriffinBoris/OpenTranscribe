@@ -1,5 +1,9 @@
 import type { NativeBridge } from "@/core/native/NativeBridge";
-import { desktopOnly, previewState } from "@/core/native/preview/previewState";
+import {
+  desktopOnly,
+  previewSnapshot,
+  previewState,
+} from "@/core/native/preview/previewState";
 import { i18n } from "@/i18n";
 import type { Job, JobProgress } from "@/types/domain";
 
@@ -72,8 +76,21 @@ export const previewTranscriptionBridge = {
     return desktopOnly(t("native.localDesktopOnly"));
   },
 
-  async cancelJob() {
-    return desktopOnly(t("native.localDesktopOnly"));
+  async cancelJob(jobId: string): Promise<Job> {
+    const job = previewSnapshot().active_jobs.find(
+      (candidate) => candidate.id === jobId,
+    );
+
+    if (!job) {
+      return desktopOnly(t("native.requestedItemMissing"));
+    }
+
+    return {
+      ...job,
+      state: "canceled",
+      progress: null,
+      updated_at: new Date().toISOString(),
+    };
   },
 
   async localModelStatuses() {

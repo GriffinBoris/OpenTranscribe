@@ -1,21 +1,19 @@
 <script setup lang="ts">
-import { AlertCircle, FileAudio, Mic2 } from "@lucide/vue";
+import { AlertCircle, FileAudio, FolderInput, Mic2 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
+import AppButton from "@/components/ui/AppButton.vue";
 import AppCheckbox from "@/components/ui/AppCheckbox.vue";
-import AppSelect from "@/components/ui/AppSelect.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import type { Session } from "@/types/domain";
 
 defineProps<{
   session: Session;
-  projectOptions: Array<{ label: string; value: string }>;
-  moving: boolean;
   selectable?: boolean;
   selected?: boolean;
 }>();
 const emit = defineEmits<{
-  "move-to-project": [projectId: string];
+  move: [];
   "selection-change": [event: Event];
 }>();
 const { t } = useI18n();
@@ -75,17 +73,16 @@ function formatDuration(durationMs: number) {
         {{ t("session.recovery.recovered") }}
       </StatusPill>
     </RouterLink>
-    <AppSelect
+    <AppButton
       v-if="!selectable"
-      class="session-row__project-select w-[var(--control-width-project)] shrink-0 text-sm"
-      :model-value="session.project_id ?? ''"
-      :options="projectOptions"
-      :accessible-label="
+      size="small"
+      variant="ghost"
+      :aria-label="
         t('session.moveProject.recordingLabel', { title: session.title })
       "
-      :placeholder="t('navigation.inbox')"
-      :disabled="moving"
-      @update:model-value="emit('move-to-project', $event)"
-    />
+      @click="emit('move')"
+    >
+      <FolderInput :size="15" />{{ t("session.moveProject.action") }}
+    </AppButton>
   </div>
 </template>

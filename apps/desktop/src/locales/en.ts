@@ -81,6 +81,7 @@ export const messages = {
   home: {
     title: "Home",
     importMedia: "Import media",
+    importingMedia: "Importing media…",
     dropMedia: "Import this recording",
     dropMediaDescription: "Drop the audio or video file anywhere on Home.",
     chooseLibraryPrompt: "Choose a library folder to start.",
@@ -244,6 +245,12 @@ export const messages = {
       openSystemSettings: "Open System Settings",
       microphoneReady: "Microphone ready",
       noMicrophoneStatus: "No microphone",
+      microphoneEchoCancellation: "Remove speaker audio from microphone",
+      microphoneEchoCancellationDescription:
+        "Uses the captured system-output track as a local reference to reduce speaker bleed. System output must be enabled.",
+      microphoneBleed: "Avoid microphone speaker bleed",
+      microphoneBleedDescription:
+        "Echo cancellation reduces audio played through speakers on macOS, Windows, and Linux. Headphones remain the most reliable choice in reverberant rooms.",
       systemSupported: "System audio supported",
       systemReady: "System audio ready",
       systemPermissionRequired: "Permission required",
