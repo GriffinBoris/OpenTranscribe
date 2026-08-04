@@ -56,6 +56,7 @@ export interface CreateRecordingRequest {
   projectId: string | null;
   microphoneDeviceId: string | null;
   captureSystemAudio: boolean;
+  microphoneEchoCancellation: boolean;
   languageHint: string | null;
   recordingMode: RecordingMode;
   openAiModel: OpenAiTranscriptionModel;

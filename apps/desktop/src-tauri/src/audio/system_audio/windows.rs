@@ -4,12 +4,24 @@ use cpal::StreamConfig;
 use cpal::traits::{DeviceTrait, HostTrait};
 use opentranscribe_domain::CaptureDevice;
 
-use crate::audio::cpal_capture::CpalCapture;
-use crate::audio::packet_writer::CaptureSignals;
+use crate::audio::cpal_capture::{ChannelLayout, CpalCapture};
+use crate::audio::packet_writer::{AudioFormat, CaptureSignals};
 use crate::error::{AppError, AppResult};
 
 pub fn availability() -> bool {
     cpal::default_host().default_output_device().is_some()
+}
+
+pub fn format() -> AppResult<AudioFormat> {
+    let output = cpal::default_host()
+        .default_output_device()
+        .ok_or_else(|| AppError::Audio("no default system output is available".to_owned()))?;
+    let config: StreamConfig = output.default_output_config().map_err(audio_error)?.into();
+
+    Ok(AudioFormat {
+        channels: config.channels,
+        sample_rate: config.sample_rate,
+    })
 }
 
 pub struct SystemAudioCapture {
@@ -38,6 +50,7 @@ impl SystemAudioCapture {
             recovery_directory,
             "system",
             signals,
+            ChannelLayout::Preserve,
         )?;
 
         Ok(Self { device, capture })

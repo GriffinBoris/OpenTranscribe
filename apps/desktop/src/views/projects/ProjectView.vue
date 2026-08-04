@@ -105,8 +105,6 @@ async function moveSelectedSessions(projectId: string) {
             v-for="session in sessions"
             :key="session.id"
             :session="session"
-            :project-options="projectOptions"
-            :moving="isMoving(session.id)"
             selectable
             :selected="selectedIds.has(session.id)"
             @selection-change="select(session.id, $event)"

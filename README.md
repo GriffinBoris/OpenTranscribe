@@ -4,6 +4,45 @@ OpenTranscribe is a local-first desktop meeting workspace. It records audio to
 readable files you control, keeps notes beside each session, and can transcribe
 completed recordings locally or with an OpenAI API key.
 
+## What it does
+
+| Area              | Features                                                                                                                                                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Record            | Capture a microphone and system output as separate tracks, optionally reduce speaker bleed locally with echo cancellation, pause and resume, monitor live levels, control recording from the Dock, tray, menu, or an optional global shortcut, and recover sealed crash-recovery chunks after an interrupted session. |
+| Organize          | Keep sessions in an Inbox or named projects, search titles, notes, and transcripts, rename and move sessions, import existing audio or video, and use recoverable Trash rather than deleting work immediately.                                                                                                        |
+| Work in a session | Play the mixed or source tracks with a cached waveform, write timestamped Markdown notes, review live captions, edit transcript segments, rename or merge speakers, and export a completed transcript as Markdown, text, JSON, SRT, or VTT.                                                                           |
+| Transcribe        | Choose local whisper.cpp transcription after recording, OpenAI file transcription, or OpenAI live captions while recording. Jobs are durable, show progress and estimates where applicable, and can be retried without risking the recording.                                                                         |
+| Dictate           | Use a compact dictation panel with its own optional global shortcut. A run snapshots its provider and delivery choices, transcribes after capture, and preserves a history for review.                                                                                                                                |
+| Configure         | Guide first-time setup through library selection, audio sources, a transcription preference, and an optional ten-second audio test. Settings cover appearance, capture, keyboard shortcuts, storage, local-model downloads, OpenAI credentials, updates, and application reset controls.                              |
+
+### Screenshots
+
+<p align="center">
+  <img src="docs/images/home-workspace.png" alt="OpenTranscribe home workspace with recording controls and recent sessions" width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/images/session-workspace.png" alt="OpenTranscribe session workspace with transcript and notes" width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/images/settings-workspace.png" alt="OpenTranscribe settings workspace" width="900" />
+</p>
+
+## How your data stays yours
+
+- Your selected library is the source of truth: sessions stay as readable JSON
+  manifests, Markdown notes, PCM WAV tracks, and JSON transcripts. SQLite only
+  accelerates search and can be rebuilt from those files.
+- Audio never crosses the Tauri IPC boundary, and recording is finalized before
+  local inference, uploads, waveform generation, indexing, or export begin.
+- Local transcription runs in a supervised sidecar. A sidecar or provider
+  failure leaves the completed recording intact for a manual retry.
+- OpenAI is optional. Its API key is stored only in the native operating-system
+  credential vault, and the interface states when audio will be sent to OpenAI.
+- OpenTranscribe has no account requirement, telemetry, hosted sync, or remote
+  crash reporting.
+
 OpenAI API keys are stored in the native macOS Keychain, Windows Credential
 Manager, or Linux Secret Service vault. See
 [`docs/credentials.md`](docs/credentials.md) for storage details and macOS
@@ -18,12 +57,15 @@ search; cached waveform playback; recoverable trash; media import; and Markdown,
 text, JSON, SRT, and VTT export. First run configures the library, capture
 sources, and default transcription path before a real ten-second audio test.
 
-macOS capture is the current physically tested development path. Windows WASAPI
-loopback and Linux PipeWire capture compile in the platform CI matrix but still
-need the hardware, interruption, and duration validation in
-`docs/platform-validation.md`. OpenAI live transcription is implemented; local
-transcription runs after the recording is durably finalized so model latency
-cannot interrupt capture.
+Microphone echo cancellation is an opt-in local path shared by the macOS,
+Windows, and Linux capture adapters. It uses the captured system-output track
+as a reference, so it does not rely on a platform-specific Voice Isolation
+feature and never sends audio to a service. Physical validation remains
+required on every supported operating system because acoustic suppression also
+depends on the room, microphone, speaker, and Bluetooth latency. The full
+release matrix is in [`docs/platform-validation.md`](docs/platform-validation.md).
+OpenAI live transcription is implemented; local transcription runs after the
+recording is durably finalized so model latency cannot interrupt capture.
 
 Pull requests run the shared native tests on macOS, Windows, and Linux plus
 compile checks for every supported release triple. Trusted `main` and nightly

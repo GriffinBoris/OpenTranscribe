@@ -14,6 +14,7 @@ pub(crate) struct RecordingRequest {
     pub(crate) project_id: Option<String>,
     pub(crate) microphone_device_id: Option<String>,
     pub(crate) capture_system_audio: bool,
+    pub(crate) microphone_echo_cancellation: bool,
     pub(crate) language_hint: Option<String>,
     pub(crate) recording_mode: RecordingMode,
     pub(crate) openai_model: Option<OpenAiTranscriptionModel>,
@@ -59,6 +60,8 @@ pub(crate) fn start(
         session_id: session.id.clone(),
         microphone_device_id: request.microphone_device_id,
         capture_system_audio: request.capture_system_audio,
+        microphone_echo_cancellation: request.microphone_echo_cancellation
+            && request.capture_system_audio,
         microphone_live_audio: live_transcription
             .as_ref()
             .map(OpenAiRealtimeController::microphone_sink),

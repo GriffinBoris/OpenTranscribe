@@ -11,11 +11,13 @@ import AppSurface from "@/components/ui/AppSurface.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { useLocalModelsStore } from "@/views/application/localModelsStore";
 import { useRecordingStore } from "@/views/application/recordingStore";
+import { useFirstRunSetupStore } from "@/views/home/firstRunSetupStore";
 import ApplicationUpdates from "@/views/settings/components/ApplicationUpdates.vue";
 
 const application = useApplicationStore();
 const localModels = useLocalModelsStore();
 const recording = useRecordingStore();
+const firstRunSetup = useFirstRunSetupStore();
 const router = useRouter();
 const { t } = useI18n();
 const resetSettingsDialogOpen = ref(false);
@@ -32,6 +34,8 @@ const hasActiveWork = computed(
 );
 
 async function runSetup() {
+  firstRunSetup.reset();
+
   if (await application.saveSettings({ setup_completed: false })) {
     await router.push("/");
   }

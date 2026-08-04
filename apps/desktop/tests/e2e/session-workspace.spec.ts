@@ -1,5 +1,15 @@
 import { expect, test } from "./fixtures";
 
+test("cancels transcription from the session workspace", async ({ page }) => {
+  await page.goto("/sessions/01KDEMOSESSION3");
+
+  const cancel = page.getByRole("button", { name: "Cancel" });
+  await expect(cancel).toBeVisible();
+  await cancel.click();
+
+  await expect(cancel).not.toBeVisible();
+});
+
 test("recovers an interrupted session from its crash-safe chunks", async ({
   page,
 }) => {

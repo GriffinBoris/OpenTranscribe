@@ -45,6 +45,7 @@ struct SettingsPatch {
     #[serde(default)]
     microphone_device_id: PatchValue<Option<String>>,
     capture_system_audio: Option<bool>,
+    microphone_echo_cancellation: Option<bool>,
     #[serde(default)]
     local_models_directory: PatchValue<Option<String>>,
     recording_project_selection: Option<RecordingProjectSelection>,
@@ -95,6 +96,9 @@ impl SettingsPatch {
         }
         if let Some(value) = self.capture_system_audio {
             settings.capture_system_audio = value;
+        }
+        if let Some(value) = self.microphone_echo_cancellation {
+            settings.microphone_echo_cancellation = value;
         }
         if let PatchValue::Set(value) = self.local_models_directory {
             settings.local_models_directory = value;
@@ -277,10 +281,15 @@ pub fn search_library(
 }
 
 #[tauri::command]
-pub fn import_media(path: String, state: tauri::State<'_, AppState>) -> AppResult<Session> {
-    with_repository(&state, |repository| {
-        repository.import_media(&PathBuf::from(path))
+pub async fn import_media(path: String, app: tauri::AppHandle) -> AppResult<Session> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        with_repository(&state, |repository| {
+            repository.import_media(&PathBuf::from(path))
+        })
     })
+    .await
+    .map_err(|error| AppError::Application(format!("media import task failed: {error}")))?
 }
 
 fn remembered_library(app: &tauri::AppHandle) -> AppResult<Option<PathBuf>> {
@@ -418,6 +427,7 @@ mod tests {
                 "recording_mode": "local_after_recording",
                 "microphone_device_id": null,
                 "capture_system_audio": true,
+                "microphone_echo_cancellation": true,
                 "dictation_shortcut": "Alt+Shift+D"
             }"#,
         )
@@ -433,6 +443,7 @@ mod tests {
         assert_eq!(settings.recording_mode, RecordingMode::LocalAfterRecording);
         assert_eq!(settings.microphone_device_id, None);
         assert!(settings.capture_system_audio);
+        assert!(settings.microphone_echo_cancellation);
         assert!(settings.setup_completed);
         assert_eq!(settings.dictation_shortcut.0, "Alt+Shift+D");
     }

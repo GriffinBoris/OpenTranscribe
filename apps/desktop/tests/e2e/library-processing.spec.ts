@@ -259,6 +259,26 @@ test("moves a session between a project and the inbox", async ({ page }) => {
   await expect(page.getByText("Customer discovery — Rowan")).toBeVisible();
 });
 
+test("moves a recent home session through the shared move dialog", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await page
+    .getByRole("button", {
+      name: "Move Weekly product sync to a project or Inbox",
+    })
+    .click();
+
+  const moveDialog = page.getByRole("dialog", { name: "Move meeting" });
+  await expect(moveDialog).toBeVisible();
+  await moveDialog.getByLabel("Destination").click();
+  await page.getByRole("option", { name: "Customer interviews" }).click();
+  await moveDialog.getByRole("button", { name: "Move meetings" }).click();
+
+  await expect(moveDialog).not.toBeVisible();
+});
+
 test("selects a meeting range before bulk moving it", async ({ page }) => {
   await page.goto("/projects/01KDEMOPROJECT");
 

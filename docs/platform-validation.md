@@ -79,6 +79,35 @@ Also verify:
   recovery button opens the correct settings pane;
 - PipeWire absence disables system output without disabling microphone capture.
 
+## Speaker-bleed and echo-cancellation validation
+
+OpenTranscribe can use the captured system-output track as a local reference to
+reduce speaker audio that reaches the microphone. This opt-in setting is an
+application-level audio path shared by macOS, Windows, and Linux; it does not
+depend on a device-specific Voice Isolation or driver feature. It is available
+only while both microphone and system-output capture are enabled. The saved
+system track must remain unchanged.
+
+Run the following on each supported target with the built-in output, a USB
+output when available, and the microphone classes in the recording matrix.
+
+1. With the setting off, play a spoken-word fixture through speakers while one
+   person speaks near the microphone. Save a 30-second baseline.
+2. Repeat with **Remove speaker audio from microphone** on. Confirm the
+   microphone source has materially less duplicate fixture audio while nearby
+   speech remains intelligible and continuous; compare the original system
+   source to confirm it is unchanged.
+3. Repeat with headphones. The microphone must remain intelligible and the
+   setting must not introduce gaps, clicks, or a duration mismatch in either
+   source track or the mix.
+4. Change the output device, pause and resume, and stop while the setting is
+   on. The recording must either continue on its selected source or explain
+   the interruption while preserving every complete recovery chunk.
+
+This is a physical-hardware release gate, not a pass/fail audio-quality
+assertion in CI: room acoustics, speaker volume, microphone placement, and
+Bluetooth latency affect achievable suppression.
+
 ## Transcription matrix
 
 Use one short English fixture, one multilingual fixture, and one recording with

@@ -69,7 +69,7 @@ const systemAudioState = computed(() => {
 });
 
 async function startRecording(
-  mode: RecordingMode = "record_only",
+  mode: RecordingMode = application.settings?.recording_mode ?? "record_only",
   options?: RecordingSessionOptions,
 ) {
   const session = await recording.createSession(mode, options);
@@ -155,14 +155,18 @@ onBeforeUnmount(() => {
     class="page home-page relative h-full min-h-0 w-full overflow-auto px-[var(--layout-page-gutter)] pt-[var(--space-13)] pb-[var(--space-14)]"
   >
     <div
-      v-if="isDraggingMedia"
+      v-if="isDraggingMedia || application.isImporting"
       class="media-drop-overlay rounded-app-2xl pointer-events-none absolute inset-3 z-[var(--layer-drag-overlay)] grid place-items-center border-2 border-dashed border-[color-mix(in_srgb,var(--accent)_70%,var(--border))] bg-[color-mix(in_srgb,var(--surface)_88%,var(--accent-soft))]"
       aria-hidden="true"
     >
       <div class="text-ink grid justify-items-center gap-1.5">
         <Upload class="text-accent" :size="24" />
-        <strong>{{ t("home.dropMedia") }}</strong>
-        <span class="text-md text-ink-muted">{{
+        <strong>{{
+          application.isImporting
+            ? t("home.importingMedia")
+            : t("home.dropMedia")
+        }}</strong>
+        <span v-if="!application.isImporting" class="text-md text-ink-muted">{{
           t("home.dropMediaDescription")
         }}</span>
       </div>
@@ -176,7 +180,12 @@ onBeforeUnmount(() => {
       >
         {{ t("home.title") }}
       </h1>
-      <AppButton variant="secondary" @click="importMedia()">
+      <AppButton
+        variant="secondary"
+        :disabled="application.isImporting"
+        :loading="application.isImporting"
+        @click="importMedia()"
+      >
         <Upload :size="17" />{{ t("home.importMedia") }}
       </AppButton>
     </header>

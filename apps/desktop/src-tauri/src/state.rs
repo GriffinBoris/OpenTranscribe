@@ -31,6 +31,8 @@ pub struct AppState {
     pub(crate) dictation_transition: Mutex<()>,
     pub(crate) dictation_status_channel:
         Mutex<Option<Channel<opentranscribe_domain::DictationStatus>>>,
+    #[cfg(target_os = "macos")]
+    pub(crate) hide_main_window_after_fullscreen_exit: Mutex<bool>,
 }
 
 pub(crate) fn with_repository<T>(

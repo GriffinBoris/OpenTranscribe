@@ -333,7 +333,7 @@ test("uses quieter one-pixel dividers in settings", async ({ page }) => {
   expect(dividerStyle.color).not.toBe(controlStyle.color);
 });
 
-test("keeps settings navigation within the natural scroll range", async ({
+test("keeps settings navigation aligned with manual scrolling", async ({
   page,
 }) => {
   await page.goto("/settings");
@@ -393,8 +393,13 @@ test("keeps settings navigation within the natural scroll range", async ({
     )
     .toBeLessThanOrEqual(1);
 
-  await page.getByRole("button", { name: "Recording", exact: true }).click();
-
+  await page.locator(".settings-content").evaluate((scrollPane) => {
+    scrollPane.scrollTo({ top: 0 });
+    scrollPane.dispatchEvent(new Event("scroll"));
+  });
+  await expect(
+    page.getByRole("button", { name: "Dictation", exact: true }),
+  ).toHaveClass(/active/);
   await expect
     .poll(() =>
       page
@@ -402,9 +407,27 @@ test("keeps settings navigation within the natural scroll range", async ({
         .evaluate((scrollPane) => scrollPane.scrollTop),
     )
     .toBe(0);
-  await expect(page.locator(".settings-content-frame")).not.toHaveClass(
-    /settings-content-frame--scrolled/,
-  );
+
+  await page.getByRole("button", { name: "Recording", exact: true }).click();
+
+  await expect
+    .poll(() =>
+      page.locator("#recording").evaluate((section) => {
+        const scrollPane = document.querySelector(".settings-content");
+        if (!scrollPane) {
+          return 0;
+        }
+
+        return Math.round(
+          section.getBoundingClientRect().top -
+            scrollPane.getBoundingClientRect().top,
+        );
+      }),
+    )
+    .toBe(20);
+  await expect(
+    page.getByRole("button", { name: "Recording", exact: true }),
+  ).toHaveClass(/active/);
 });
 
 test("keeps route scrolling inside each workspace", async ({ page }) => {
@@ -519,6 +542,28 @@ test("keeps system output enabled when macOS capture is ready", async ({
   await expect(systemOutput).toBeChecked();
   await page.getByRole("link", { name: "Home", exact: true }).click();
   await expect(page.getByText("System output · On")).toBeVisible();
+});
+
+test("stores local microphone echo cancellation and requires system output", async ({
+  page,
+}) => {
+  await page.goto("/settings?systemAudioPermission=granted#recording");
+
+  const systemOutput = page.getByRole("switch", {
+    name: "Capture system output",
+  });
+  const echoCancellation = page.getByRole("switch", {
+    name: "Remove speaker audio from microphone",
+  });
+
+  await expect(echoCancellation).toBeEnabled();
+  await expect(echoCancellation).not.toBeChecked();
+  await echoCancellation.click();
+  await expect(echoCancellation).toBeChecked();
+
+  await systemOutput.click();
+  await expect(systemOutput).not.toBeChecked();
+  await expect(echoCancellation).toBeDisabled();
 });
 
 test("keeps inline form controls on the medium design-token tier", async ({

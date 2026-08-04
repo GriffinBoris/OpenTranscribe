@@ -26,6 +26,13 @@ pub fn availability() -> bool {
         .is_some_and(|directory| directory.join("pipewire-0").exists())
 }
 
+pub fn format() -> AppResult<AudioFormat> {
+    Ok(AudioFormat {
+        channels: SYSTEM_CHANNELS,
+        sample_rate: SYSTEM_SAMPLE_RATE,
+    })
+}
+
 pub struct SystemAudioCapture {
     pub device: CaptureDevice,
     stop_sender: Sender<()>,
@@ -39,15 +46,7 @@ impl SystemAudioCapture {
         let (stop_sender, stop_receiver) = bounded(1);
         let (ready_sender, ready_receiver) = bounded(1);
         let writer_thread = thread::spawn(move || {
-            write_chunks(
-                packet_receiver,
-                &recovery_directory,
-                "system",
-                AudioFormat {
-                    channels: SYSTEM_CHANNELS,
-                    sample_rate: SYSTEM_SAMPLE_RATE,
-                },
-            )
+            write_chunks(packet_receiver, &recovery_directory, "system", format()?)
         });
         let capture_thread =
             thread::spawn(move || run_capture(packet_sender, stop_receiver, ready_sender, signals));
@@ -159,6 +158,13 @@ fn run_capture(
                 )
             })
             .collect();
+        let samples = user_data.signals.process_samples(
+            samples,
+            AudioFormat {
+                channels: SYSTEM_CHANNELS,
+                sample_rate: SYSTEM_SAMPLE_RATE,
+            },
+        );
         enqueue_samples(
             samples,
             &user_data.packet_sender,

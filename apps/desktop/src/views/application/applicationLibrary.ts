@@ -1,4 +1,4 @@
-import { computed, type Ref } from "vue";
+import { computed, ref, type Ref } from "vue";
 
 import { native } from "@/core/native";
 import { i18n } from "@/i18n";
@@ -17,6 +17,7 @@ export function createApplicationLibrary(
   const { t } = i18n.global;
   const projects = computed(() => snapshot.value?.projects ?? []);
   const recentSessions = computed(() => snapshot.value?.recent_sessions ?? []);
+  const isImporting = ref(false);
   const projectSessionCounts = computed(() => {
     const counts = new Map<string, number>();
 
@@ -94,17 +95,22 @@ export function createApplicationLibrary(
   }
 
   async function importMedia(path?: string) {
-    operationError.value = null;
-
-    if (!snapshot.value?.library) {
-      await chooseLibrary();
-    }
-
-    if (!snapshot.value?.library) {
+    if (isImporting.value) {
       return null;
     }
 
+    operationError.value = null;
+    isImporting.value = true;
+
     try {
+      if (!snapshot.value?.library) {
+        await chooseLibrary();
+      }
+
+      if (!snapshot.value?.library) {
+        return null;
+      }
+
       const session = await native.importMedia(path);
 
       if (session) {
@@ -116,6 +122,8 @@ export function createApplicationLibrary(
       operationError.value =
         reason instanceof Error ? reason.message : String(reason);
       return null;
+    } finally {
+      isImporting.value = false;
     }
   }
 
@@ -160,6 +168,7 @@ export function createApplicationLibrary(
   return {
     projects,
     recentSessions,
+    isImporting,
     projectSessionCounts,
     chooseLibrary,
     createProject,

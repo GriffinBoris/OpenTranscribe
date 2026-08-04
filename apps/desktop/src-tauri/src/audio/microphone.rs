@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use cpal::{SampleFormat, StreamConfig};
 
-use super::cpal_capture::CpalCapture;
+use super::cpal_capture::{ChannelLayout, CpalCapture};
 use super::packet_writer::CaptureSignals;
 use crate::error::AppResult;
 
@@ -26,6 +26,7 @@ impl MicrophoneCapture {
                 recovery_directory,
                 "microphone",
                 signals,
+                ChannelLayout::DualMono,
             )?,
         })
     }

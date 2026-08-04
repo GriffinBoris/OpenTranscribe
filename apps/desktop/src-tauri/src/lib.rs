@@ -34,13 +34,33 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            #[cfg(target_os = "macos")]
+            if window.label() == "main"
+                && matches!(
+                    event,
+                    tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_)
+                )
+                && std::mem::take(
+                    &mut *window
+                        .state::<AppState>()
+                        .hide_main_window_after_fullscreen_exit
+                        .lock()
+                        .expect("app state lock poisoned"),
+                )
+            {
+                if let Err(error) = window.hide() {
+                    log::error!("failed to hide the main window after exiting fullscreen: {error}");
+                }
+                return;
+            }
+
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
 
                 if window.label() == "dictation" {
                     crate::dictation::dismiss(window.app_handle());
-                } else if let Err(error) = window.hide() {
-                    log::error!("failed to hide the main window: {error}");
+                } else {
+                    close_main_window(window);
                 }
             }
         })
@@ -123,6 +143,33 @@ pub fn run() {
         } if prevent_exit_while_recording(app_handle) => api.prevent_exit(),
         _ => {}
     });
+}
+
+fn close_main_window(window: &tauri::Window) {
+    #[cfg(target_os = "macos")]
+    if let Ok(true) = window.is_fullscreen() {
+        *window
+            .state::<AppState>()
+            .hide_main_window_after_fullscreen_exit
+            .lock()
+            .expect("app state lock poisoned") = true;
+
+        match window.set_fullscreen(false) {
+            Ok(()) => return,
+            Err(error) => {
+                *window
+                    .state::<AppState>()
+                    .hide_main_window_after_fullscreen_exit
+                    .lock()
+                    .expect("app state lock poisoned") = false;
+                log::error!("failed to leave fullscreen before hiding the main window: {error}");
+            }
+        }
+    }
+
+    if let Err(error) = window.hide() {
+        log::error!("failed to hide the main window: {error}");
+    }
 }
 
 pub(crate) fn prevent_exit_while_recording(app: &tauri::AppHandle) -> bool {

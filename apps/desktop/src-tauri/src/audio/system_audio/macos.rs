@@ -24,6 +24,13 @@ pub fn availability() -> bool {
     true
 }
 
+pub fn format() -> AppResult<AudioFormat> {
+    Ok(AudioFormat {
+        channels: SYSTEM_CHANNELS,
+        sample_rate: SYSTEM_SAMPLE_RATE,
+    })
+}
+
 pub fn permission_granted() -> Option<bool> {
     // SAFETY: CoreGraphics exposes this parameterless process-level permission check.
     Some(unsafe { CGPreflightScreenCaptureAccess() })
@@ -43,15 +50,7 @@ impl SystemAudioCapture {
         let (ready_sender, ready_receiver) = bounded(1);
         let writer_directory = recovery_directory.clone();
         let writer_thread = thread::spawn(move || {
-            write_chunks(
-                packet_receiver,
-                &writer_directory,
-                "system",
-                AudioFormat {
-                    channels: SYSTEM_CHANNELS,
-                    sample_rate: SYSTEM_SAMPLE_RATE,
-                },
-            )
+            write_chunks(packet_receiver, &writer_directory, "system", format()?)
         });
         let capture_thread =
             thread::spawn(move || run_capture(packet_sender, stop_receiver, ready_sender, signals));
@@ -174,6 +173,13 @@ impl SCStreamOutputTrait for SystemAudioHandler {
             return;
         };
 
+        let samples = self.signals.process_samples(
+            samples,
+            AudioFormat {
+                channels: SYSTEM_CHANNELS,
+                sample_rate: SYSTEM_SAMPLE_RATE,
+            },
+        );
         enqueue_samples(
             samples,
             &self.packet_sender,
