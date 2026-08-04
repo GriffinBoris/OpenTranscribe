@@ -206,3 +206,6 @@ docker_data/
 /.gemini/
 /.opencode/
 /.github/copilot-instructions.md
+
+# Written by scripts/write-updater-config.mjs during release builds.
+apps/desktop/src-tauri/tauri.updater.conf.json

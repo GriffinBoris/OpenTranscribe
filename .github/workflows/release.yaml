@@ -134,9 +134,17 @@ jobs:
           fi
 
           if [ -n "$OPENTRANSCRIBE_UPDATER_PUBLIC_KEY" ] && [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            updater_enabled=true
-            updater_args="--config src-tauri/tauri.updater.conf.json"
-          elif [ "$RUNNER_OS" = "macOS" ] && [ "$macos_signed" = false ]; then
+            # An unusable key must not withhold the installers, so fall back to
+            # a build without updater artifacts instead of failing the release.
+            if node scripts/write-updater-config.mjs apps/desktop/src-tauri/tauri.updater.conf.json; then
+              updater_enabled=true
+              updater_args="--config src-tauri/tauri.updater.conf.json"
+            else
+              echo "::warning::Updater public key is unusable; building without updater artifacts."
+            fi
+          fi
+
+          if [ "$updater_enabled" = false ] && [ "$RUNNER_OS" = "macOS" ] && [ "$macos_signed" = false ]; then
             sign_args=--no-sign
           fi
 

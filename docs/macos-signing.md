@@ -107,6 +107,13 @@ environment as `TAURI_SIGNING_PRIVATE_KEY`. Store its optional passphrase as
 repository variable `OPENTRANSCRIBE_UPDATER_PUBLIC_KEY`; it is intentionally
 embedded in each release build and is not a secret.
 
+Tauri validates that public key while it bundles updater artifacts, so the
+release workflow writes `src-tauri/tauri.updater.conf.json` from the variable
+rather than committing it. Store the base64 value `tauri signer generate`
+prints; the raw key file and a bare key line are also accepted. A key that is
+neither is reported and the build continues without updater artifacts, so an
+unusable key never withholds the installers.
+
 When both values are configured, tagged release builds create signed updater
 payloads, upload their `.sig` files, and publish `latest.json` only after every
 target is available. The app checks that manifest on launch and asks the user
