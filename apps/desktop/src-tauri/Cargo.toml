@@ -63,7 +63,7 @@ screencapturekit = { version = "8.0.1", features = ["macos_13_0"] }
 [target.'cfg(target_os = "windows")'.dependencies]
 # CPAL 0.18 allows both the 0.61 and 0.62 Windows bindings, while Tauri 2.11
 # uses 0.61. Keeping CPAL on the same bindings prevents incompatible COM traits.
-windows = "=0.61.3"
+windows = "=0.62.2"
 windows-core = "=0.61.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
