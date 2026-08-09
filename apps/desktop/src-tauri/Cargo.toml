@@ -18,7 +18,7 @@ default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 
 [build-dependencies]
-bindgen = { version = "=0.64.0", default-features = false, features = ["runtime"] }
+bindgen = { version = "=0.72.1", default-features = false, features = ["runtime"] }
 tauri-build = { version = "2.5.6", features = [] }
 
 [dependencies]
