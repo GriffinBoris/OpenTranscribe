@@ -1,4 +1,5 @@
 # Node artifact files
+.DS_Store
 node_modules/
 .vite/
 playwright-report/
