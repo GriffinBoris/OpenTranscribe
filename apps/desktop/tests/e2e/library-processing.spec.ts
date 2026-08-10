@@ -106,6 +106,7 @@ test("renders substantial smoothly composited processing progress", async ({
 
   await expect(progress).toHaveCSS("height", "10px");
   await expect(value).toHaveCSS("transition-property", "transform");
+  await expect(value).toHaveAttribute("style", /width: 100%/);
   await expect
     .poll(() =>
       value.evaluate((element) => getComputedStyle(element).transform),
