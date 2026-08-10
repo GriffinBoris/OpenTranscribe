@@ -248,7 +248,7 @@ watch(
         <div class="application-main__route min-h-0 flex-1">
           <RouterView v-slot="{ Component }">
             <Transition name="workspace-fade" mode="out-in">
-              <component :is="Component" :key="$route.fullPath" />
+              <component :is="Component" :key="$route.path" />
             </Transition>
           </RouterView>
         </div>
