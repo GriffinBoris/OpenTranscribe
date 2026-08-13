@@ -69,6 +69,6 @@ windows-core = "=0.61.2"
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "=0.2.189"
 pipewire = "=0.6.0"
-pipewire-sys = "=0.6.0"
+pipewire-sys = "=0.7.2"
 libspa = "=0.6.0"
 libspa-sys = "=0.6.0"
