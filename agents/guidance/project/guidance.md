@@ -35,6 +35,8 @@ order: 0
 - `crates/domain/` owns persisted manifests, IDs, transcript types, jobs, and shared DTOs.
 - `crates/transcriber-protocol/` owns the versioned MessagePack protocol shared with the local transcriber.
 - `sidecars/local-transcriber/` owns whisper.cpp model lifecycle and inference.
+- `sidecars/text-normalizer/` owns S1-mini text cleanup through llama.cpp. Keep
+  these runtimes in separate processes to isolate their GGML implementations.
 - `tests/fixtures/` contains non-sensitive audio, provider, migration, and recovery fixtures.
 - Keep files focused. Split modules before they become mixed command, persistence, capture, and provider catch-alls.
 
@@ -84,6 +86,18 @@ order: 0
   toolchain pin together so local development, CI, and release builds stay on
   one supported compiler.
 - Local inference runs in the supervised sidecar. A sidecar failure must not stop or corrupt recording.
+- Dictation uses supervised warm speech and cleanup workers. Preload during
+  capture, serialize requests per worker, and kill/reset the worker on canceled
+  or failed inference. Never load S1-mini through the Whisper runtime or offer
+  it as a speech model. Pin its artifact checksum and retain the S1-mini by
+  Superwhisper attribution and bundled LICENSE/NOTICE.
+- Cancellation must suppress delivery even when a provider request is already
+  in flight. Failed dictation retains temporary audio only for the current
+  retryable run; discard, replacement, and app restart clear it. Save recognized
+  words before optional cleanup, preserve the raw transcript, and treat empty
+  cleanup output as valid. Keep copied results and delivery failures visible.
+- Model removal/moves, reset, and update checks must include dictation work.
+  Release idle worker processes before moving or deleting model artifacts.
 - Build the macOS sidecar with Whisper Metal support and explicitly request its GPU path. Keep Windows and Linux acceleration as opt-in target variants rather than universally enabling CUDA or Vulkan, because those backends impose hardware- and SDK-specific build requirements that would make ordinary cross-platform installs unreliable.
 - Keep recording completion native-owned. Dock, tray, and global-shortcut stop
   actions must converge on the same finalization path, and any selected
@@ -162,7 +176,7 @@ order: 0
   `Documents/OpenTranscribe/models`. Show the resolved path in settings and
   move existing model files only after explicit confirmation; do not allow a
   move while recording, processing, or downloading. Local model artifacts come
-  from the pinned upstream `ggerganov/whisper.cpp` Hugging Face revisions and
+  from pinned upstream Whisper and Superwhisper S1-mini Hugging Face revisions and
   must pass their catalog SHA-256 integrity check before use.
 - Schema changes require sequential migrations and fixtures covering the previous schema.
 
@@ -236,6 +250,9 @@ order: 0
 - Route pages fill the available main pane with adaptive horizontal gutters.
   Do not center the whole utility workspace inside a fixed desktop max-width;
   constrain only genuinely prose-heavy content when readability requires it.
+- Verify nested navigation and forms at the native minimum window size of
+  900 × 640. Account for the main sidebar when choosing breakpoints; settings
+  navigation must collapse before two-column form controls overflow their pane.
 - Prefer hierarchy, alignment, spacing, and contrasting backgrounds over
   repeated bordered cards. Avoid marketing-style heroes, decorative dashboard
   ornaments, redundant privacy claims, and equal visual weight for primary and

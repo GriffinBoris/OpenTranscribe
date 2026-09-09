@@ -76,6 +76,10 @@ pub fn move_local_models(
     app: tauri::AppHandle,
     state: tauri::State<'_, crate::state::AppState>,
 ) -> AppResult<String> {
+    let _transition = state
+        .dictation_transition
+        .lock()
+        .expect("dictation transition lock poisoned");
     let target = PathBuf::from(&request.path);
 
     if !target.is_absolute() || target.parent().is_none() {
@@ -116,6 +120,7 @@ pub fn move_local_models(
         ));
     }
 
+    ensure_models_idle(&state)?;
     let source = manager::move_models(&app, &target)?;
     if let Err(error) = crate::commands::application::update_settings(&app, &state, |settings| {
         settings.local_models_directory = Some(target.display().to_string());
@@ -173,7 +178,16 @@ pub async fn download_local_model(
 }
 
 #[tauri::command]
-pub fn remove_local_model(app: tauri::AppHandle, model_id: String) -> AppResult<LocalModel> {
+pub fn remove_local_model(
+    app: tauri::AppHandle,
+    model_id: String,
+    state: tauri::State<'_, crate::state::AppState>,
+) -> AppResult<LocalModel> {
+    let _transition = state
+        .dictation_transition
+        .lock()
+        .expect("dictation transition lock poisoned");
+    ensure_models_idle(&state)?;
     manager::remove(&app, &model_id)
 }
 
@@ -191,11 +205,25 @@ fn select_preferred_installed_model(models: &[LocalModel]) -> Option<&LocalModel
     models
         .iter()
         .find(|model| model.installed && model.preset == "balanced")
-        .or_else(|| models.iter().find(|model| model.installed))
+        .or_else(|| {
+            models
+                .iter()
+                .find(|model| model.installed && model.preset != "cleanup")
+        })
 }
 
 pub use manager::{installed_path, remove_all};
-pub use transcriber::{LocalTranscriptionService, transcribe_file};
+pub use transcriber::LocalTranscriptionService;
+
+fn ensure_models_idle(state: &crate::state::AppState) -> AppResult<()> {
+    crate::app_reset::ensure_idle(state)?;
+    let mut workers = state.dictation_workers.try_lock().map_err(|_| {
+        AppError::Model("Wait for the local runtime to finish before changing models.".to_owned())
+    })?;
+    workers.speech.unload();
+    workers.cleanup.unload();
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
@@ -236,6 +264,17 @@ mod tests {
         assert_eq!(
             select_preferred_installed_model(&models).map(|model| model.id.as_str()),
             Some("best")
+        );
+    }
+
+    #[test]
+    fn never_selects_text_cleanup_as_a_speech_model() {
+        let cleanup = model("s1-mini-q4_k_m", "cleanup", true);
+        assert!(select_preferred_installed_model(std::slice::from_ref(&cleanup)).is_none());
+        let models = [cleanup, model("fast", "fast", true)];
+        assert_eq!(
+            select_preferred_installed_model(&models).map(|model| model.id.as_str()),
+            Some("fast")
         );
     }
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDictationStore } from "@/views/application/dictationStore";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -16,6 +17,7 @@ import { useLocalModelsStore } from "@/views/application/localModelsStore";
 import { useRecordingStore } from "@/views/application/recordingStore";
 import { useUpdateStore } from "@/views/application/updateStore";
 
+const dictation = useDictationStore();
 const application = useApplicationStore();
 const globalShortcut = useGlobalShortcutStore();
 const localModels = useLocalModelsStore();
@@ -29,6 +31,7 @@ const isStopping = ref(false);
 const hasActiveWork = computed(
   () =>
     Boolean(recording.activeRecording) ||
+    dictation.isActive ||
     application.runningJobs.length > 0 ||
     localModels.downloadingModelId !== null,
 );
@@ -52,6 +55,7 @@ const dictationShortcutAccelerator = computed(() => {
 });
 
 function refreshApplicationOnFocus() {
+  void dictation.refresh();
   if (application.isLoading) {
     return;
   }
@@ -67,7 +71,10 @@ function refreshApplicationOnFocus() {
   void application.refreshLibrary();
 }
 
-onMounted(() => window.addEventListener("focus", refreshApplicationOnFocus));
+onMounted(() => {
+  void dictation.refresh();
+  window.addEventListener("focus", refreshApplicationOnFocus);
+});
 onBeforeUnmount(() => {
   window.removeEventListener("focus", refreshApplicationOnFocus);
   void globalShortcut.configure(
@@ -248,7 +255,7 @@ watch(
         <div class="application-main__route min-h-0 flex-1">
           <RouterView v-slot="{ Component }">
             <Transition name="workspace-fade" mode="out-in">
-              <component :is="Component" :key="$route.fullPath" />
+              <component :is="Component" :key="$route.path" />
             </Transition>
           </RouterView>
         </div>

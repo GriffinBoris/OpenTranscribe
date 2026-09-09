@@ -173,4 +173,6 @@ the packaged app rather than the development binary.
 
 **Permissions reset after an update.** The signing identity changed between
 releases. Confirm both builds report the same `TeamIdentifier` and `Authority`
-under `codesign -dvv`.
+under `codesign -dvv`. For unsigned or ad-hoc builds, follow the
+[README permission reset steps](../README.md#macos-reset-permissions-after-reinstalling-an-unsigned-build)
+to clear stale grants and authorize the installed copy again.

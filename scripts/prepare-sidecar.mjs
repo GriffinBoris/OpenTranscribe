@@ -26,6 +26,8 @@ const buildArguments = [
   "--locked",
   "--package",
   "opentranscribe-local-transcriber",
+  "--package",
+  "opentranscribe-text-normalizer",
 ];
 
 if (release) {
@@ -90,32 +92,34 @@ if (!host) {
   throw new Error("Unable to determine the Rust host target.");
 }
 
-const source = resolve(
-  projectRoot,
-  "target",
-  ...(target ? [target] : []),
-  profile,
-  `opentranscribe-local-transcriber${executableSuffix}`,
-);
-const destination = resolve(
-  projectRoot,
-  "apps",
-  "desktop",
-  "src-tauri",
-  "binaries",
-  `local-transcriber-${host}${executableSuffix}`,
-);
+for (const name of ["local-transcriber", "text-normalizer"]) {
+  const source = resolve(
+    projectRoot,
+    "target",
+    ...(target ? [target] : []),
+    profile,
+    `opentranscribe-${name}${executableSuffix}`,
+  );
+  const destination = resolve(
+    projectRoot,
+    "apps",
+    "desktop",
+    "src-tauri",
+    "binaries",
+    `${name}-${host}${executableSuffix}`,
+  );
 
-if (!existsSync(source)) {
-  throw new Error(`Sidecar build did not produce ${source}.`);
+  if (!existsSync(source)) {
+    throw new Error(`Sidecar build did not produce ${source}.`);
+  }
+
+  mkdirSync(dirname(destination), { recursive: true });
+  rmSync(destination, { force: true });
+  copyFileSync(source, destination);
+
+  if (process.platform !== "win32") {
+    chmodSync(destination, 0o755);
+  }
+
+  process.stdout.write(`Prepared ${destination}\n`);
 }
-
-mkdirSync(dirname(destination), { recursive: true });
-rmSync(destination, { force: true });
-copyFileSync(source, destination);
-
-if (process.platform !== "win32") {
-  chmodSync(destination, 0o755);
-}
-
-process.stdout.write(`Prepared ${destination}\n`);

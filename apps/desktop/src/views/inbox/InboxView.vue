@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { Inbox } from "@lucide/vue";
+import { Inbox, Upload } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
 import AppButton from "@/components/ui/AppButton.vue";
 import AppEmptyState from "@/components/ui/AppEmptyState.vue";
-import AppSurface from "@/components/ui/AppSurface.vue";
 import SessionRow from "@/components/session/SessionRow.vue";
 import SessionListToolbar from "@/components/session/SessionListToolbar.vue";
-import AppCheckbox from "@/components/ui/AppCheckbox.vue";
 import { useApplicationStore } from "@/views/application/applicationStore";
 import { useMoveSession } from "@/views/application/useMoveSession";
 import { useSessionSelection } from "@/views/application/useSessionSelection";
@@ -70,7 +68,7 @@ async function moveSelectedSessions(projectId: string) {
         :loading="application.isImporting"
         @click="importMedia"
       >
-        {{ t("library.importMedia") }}
+        <Upload :size="16" />{{ t("library.importMedia") }}
       </AppButton>
     </header>
 
@@ -78,25 +76,17 @@ async function moveSelectedSessions(projectId: string) {
       v-model="query"
       :search-placeholder="t('library.search')"
       :selected-count="selectedIds.size"
+      :result-count="sessions.length"
+      :all-selected="allSelected"
+      @toggle-all="toggleAll"
       :project-options="projectOptions"
       :moving="isMovingSelected"
       @move="moveSelectedSessions"
     />
 
-    <AppSurface
-      class="library-page__sessions grid min-h-0 grid-rows-[auto_minmax(0,1fr)]"
-      :padded="false"
+    <section
+      class="library-page__sessions grid min-h-0 grid-rows-[minmax(0,1fr)]"
     >
-      <div
-        v-if="sessions.length"
-        class="flex h-[45px] items-center border-b border-[var(--divider)] px-[15px]"
-      >
-        <AppCheckbox
-          :model-value="allSelected"
-          :accessible-label="t('session.selectAllMeetings')"
-          @change="toggleAll"
-        />
-      </div>
       <div class="library-page__scroll min-h-0 overflow-auto">
         <div v-if="sessions.length" class="session-list grid">
           <SessionRow
@@ -122,8 +112,14 @@ async function moveSelectedSessions(projectId: string) {
           "
         >
           <template #icon><Inbox :size="21" /></template>
+          <AppButton
+            v-if="query.trim()"
+            variant="secondary"
+            @click="query = ''"
+            >{{ t("library.clearSearch") }}</AppButton
+          >
         </AppEmptyState>
       </div>
-    </AppSurface>
+    </section>
   </div>
 </template>

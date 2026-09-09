@@ -159,6 +159,8 @@ export const messages = {
   },
   settings: {
     title: "Settings",
+    sections: "Settings sections",
+    browseModels: "Browse models",
     navigation: {
       recording: "Recording",
       storage: "Storage",
@@ -200,6 +202,16 @@ export const messages = {
       addTimestamp: "Add a timestamped note",
     },
     dictation: {
+      needsModel: "Choose a speech model",
+      needsCleanup: "Download S1-mini",
+      needsKey: "Add an OpenAI key",
+      installHint:
+        "Install a speech model in Local models, then choose it here.",
+      cleanupTitle: "Clean up dictation",
+      cleanupDescription:
+        "S1-mini by Superwhisper removes fillers and tidies English text after transcription. Runs locally; your original words stay in history.",
+      cleanupDownload: "Download S1-mini · 484 MB",
+      cleanupDownloading: "Downloading S1-mini…",
       title: "Dictation",
       description:
         "Capture a quick thought, transcribe it, then copy and paste the result.",
@@ -215,7 +227,7 @@ export const messages = {
       openAiModel: "OpenAI model",
       autoPaste: "Paste automatically",
       autoPasteDescription:
-        "Copy every dictation to the clipboard and paste it into the previously active app when allowed.",
+        "Copy every dictation. Paste automatically only when the original app is still active; otherwise paste manually. Linux uses copy only.",
       captureTitle: "Set dictation shortcut",
       captureDescription:
         "Press Option/Alt, Command/Control, or both with a letter, number, Space, or function key.",
@@ -336,13 +348,18 @@ export const messages = {
     },
   },
   dictationHistory: {
+    start: "Start dictation",
     title: "Dictation",
     description: "Recent thoughts captured with Dictation.",
     loading: "Loading dictation history",
     loadFailed: "Unable to load dictation history",
     retry: "Retry",
     empty: "No dictations yet",
-    emptyDescription: "Completed dictations will appear here.",
+    emptyDescription:
+      "Choose a speech model and set a shortcut to start dictating from any app.",
+    setup: "Set up dictation",
+    original: "Original transcript",
+    cleaned: "Cleaned with S1-mini by Superwhisper",
     copy: "Copy dictation",
     clearAction: "Clear dictation history",
     clearTitle: "Clear dictation history?",
@@ -353,6 +370,15 @@ export const messages = {
     openAi: "OpenAI",
   },
   dictationPanel: {
+    cleaning: "Cleaning up with S1-mini…",
+    copied: "Copied — paste when you’re ready",
+    pasted: "Pasted",
+    noSpeech: "Nothing to paste",
+    retained:
+      "Audio kept for retry until you discard it, start another dictation, or restart the app.",
+    duration: "Recording duration",
+    close: "Close",
+    retry: "Retry",
     recording: "Listening…",
     transcribingLocal: "Transcribing locally…",
     transcribingOpenAi: "Sending audio to OpenAI…",
@@ -404,7 +430,7 @@ export const messages = {
   },
   models: {
     title: "Local models",
-    description: "Download Whisper models only when you need them.",
+    description: "Download speech models and optional dictation cleanup.",
     private: "Private",
     fast: "Fast",
     balanced: "Balanced",
@@ -424,7 +450,7 @@ export const messages = {
     remove: "Remove",
     retry: "Retry",
     source:
-      "Models come from ggerganov’s whisper.cpp project on Hugging Face. Each download is pinned to a source revision and verified with SHA-256 before use.",
+      "Whisper speech models and S1-mini by Superwhisper come from pinned Hugging Face revisions. Every download is verified with SHA-256 before use.",
     storage: {
       title: "Model folder",
       loading: "Loading model folder…",
@@ -620,8 +646,11 @@ export const messages = {
   },
   library: {
     inbox: "Inbox",
+    sessionCount: "No sessions | 1 session | {count} sessions",
+    selectedCount: "{count} selected",
+    clearSearch: "Clear search",
     importMedia: "Import media",
-    search: "Search your library",
+    search: "Search this inbox",
     noMatches: "No meetings match this search.",
     noMatchesDescription: "Try another title.",
     empty: "Inbox is empty",
@@ -639,7 +668,8 @@ export const messages = {
   trash: {
     library: "Library",
     title: "Trash",
-    description: "Sessions stay recoverable until you restore them.",
+    description:
+      "Restore sessions here, or empty Trash to delete them permanently.",
     loading: "Loading trash…",
     loadFailed: "Unable to load trash",
     retry: "Retry",

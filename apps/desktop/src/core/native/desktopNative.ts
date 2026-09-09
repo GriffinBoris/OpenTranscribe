@@ -86,7 +86,8 @@ export const desktopNative: NativeBridge = {
     let completedBytes = 0;
     let totalBytes: number | null = null;
 
-    await pendingUpdate.downloadAndInstall((event) => {
+    await invoke("ensure_application_idle");
+    await pendingUpdate.download((event) => {
       if (event.event === "Started") {
         totalBytes = event.data.contentLength ?? null;
       }
@@ -101,6 +102,8 @@ export const desktopNative: NativeBridge = {
       } satisfies UpdateDownloadProgress);
     });
 
+    await invoke("ensure_application_idle");
+    await pendingUpdate.install();
     pendingUpdate = null;
     await relaunch();
   },
@@ -203,11 +206,11 @@ export const desktopNative: NativeBridge = {
     registeredGlobalShortcuts.set(shortcutId, shortcut);
   },
 
+  retryDictation: () => invoke<DictationStatus>("retry_dictation"),
+  dictationSettings: () => invoke<AppSettings>("dictation_settings"),
   toggleDictation: () => invoke<DictationStatus>("toggle_dictation"),
 
   dictationStatus: () => invoke<DictationStatus>("dictation_status"),
-
-  dictationShortcut: () => invoke<string>("dictation_shortcut"),
 
   dictationHistory: () => invoke<DictationHistoryEntry[]>("dictation_history"),
 

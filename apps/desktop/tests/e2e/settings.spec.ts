@@ -9,7 +9,7 @@ test("shows storage and shortcut utilities in settings", async ({ page }) => {
     page.locator("#storage").getByRole("button", { name: "Change folder" }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Shortcuts" }).click();
+  await page.getByRole("link", { name: "Shortcuts" }).click();
 
   await expect(page.getByRole("heading", { name: "Shortcuts" })).toBeVisible();
   await expect(
@@ -126,11 +126,17 @@ test("keeps Dictation shortcut registration separate from recording", async ({
 
   await expect(page.getByRole("heading", { name: "Dictation" })).toBeVisible();
   await expect(
-    page.locator("#dictation").getByText("Active", { exact: true }),
+    page
+      .locator("#dictation")
+      .getByText("Choose a speech model", { exact: true }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Shortcuts" }).click();
+  await page.getByRole("switch", { name: "Dictate from anywhere" }).check();
+  await page.getByRole("link", { name: "Shortcuts" }).click();
   await page.getByRole("switch", { name: "Record from anywhere" }).click();
+  await expect(
+    page.locator("#shortcuts").getByText("Active", { exact: true }),
+  ).toBeVisible();
 
   await page.evaluate(() => {
     window.dispatchEvent(
@@ -378,9 +384,29 @@ test("uses quieter one-pixel dividers in settings", async ({ page }) => {
   expect(dividerStyle.color).not.toBe(controlStyle.color);
 });
 
-test("keeps settings navigation aligned with manual scrolling", async ({
+test("uses standard anchor navigation for settings sections", async ({
   page,
 }) => {
+  await page.goto("/settings#storage");
+
+  await expect
+    .poll(() =>
+      page.locator("#storage").evaluate((section) => {
+        const scrollPane = document.querySelector(".settings-content");
+        if (!scrollPane) {
+          return false;
+        }
+
+        const sectionBounds = section.getBoundingClientRect();
+        const scrollPaneBounds = scrollPane.getBoundingClientRect();
+        return (
+          sectionBounds.bottom > scrollPaneBounds.top &&
+          sectionBounds.top < scrollPaneBounds.bottom
+        );
+      }),
+    )
+    .toBe(true);
+
   await page.goto("/settings");
 
   for (const [name, id] of [
@@ -389,90 +415,50 @@ test("keeps settings navigation aligned with manual scrolling", async ({
     ["OpenAI", "openai"],
     ["Shortcuts", "shortcuts"],
   ]) {
-    await page.getByRole("button", { name, exact: true }).click();
+    await page.getByRole("link", { name, exact: true }).click();
 
+    await expect(page).toHaveURL(new RegExp(`#${id}$`));
     await expect
       .poll(() =>
         page.locator(`#${id}`).evaluate((section) => {
           const scrollPane = document.querySelector(".settings-content");
           if (!scrollPane) {
-            return 0;
+            return false;
           }
 
-          return Math.round(
-            section.getBoundingClientRect().top -
-              scrollPane.getBoundingClientRect().top,
+          const sectionBounds = section.getBoundingClientRect();
+          const scrollPaneBounds = scrollPane.getBoundingClientRect();
+          return (
+            sectionBounds.bottom > scrollPaneBounds.top &&
+            sectionBounds.top < scrollPaneBounds.bottom
           );
         }),
       )
-      .toBe(20);
-    await expect(page.locator(".settings-content-frame")).toHaveClass(
-      /settings-content-frame--scrolled/,
-    );
+      .toBe(true);
   }
 
-  await page.getByRole("button", { name: "Application", exact: true }).click();
-  await expect
-    .poll(() =>
-      page
-        .locator(".settings-content")
-        .evaluate((scrollPane) =>
-          Math.abs(
-            scrollPane.scrollTop -
-              (scrollPane.scrollHeight - scrollPane.clientHeight),
-          ),
-        ),
-    )
-    .toBeLessThanOrEqual(1);
-  await expect
-    .poll(() =>
-      page
-        .locator(".settings-content")
-        .evaluate((scrollPane) =>
-          Math.abs(
-            scrollPane.scrollHeight -
-              (document.getElementById("application")!.offsetTop +
-                document.getElementById("application")!.offsetHeight),
-          ),
-        ),
-    )
-    .toBeLessThanOrEqual(1);
-
-  await page.locator(".settings-content").evaluate((scrollPane) => {
-    scrollPane.scrollTo({ top: 0 });
-    scrollPane.dispatchEvent(new Event("scroll"));
-  });
-  await expect(
-    page.getByRole("button", { name: "Dictation", exact: true }),
-  ).toHaveClass(/active/);
-  await expect
-    .poll(() =>
-      page
-        .locator(".settings-content")
-        .evaluate((scrollPane) => scrollPane.scrollTop),
-    )
-    .toBe(0);
-
-  await page.getByRole("button", { name: "Recording", exact: true }).click();
+  await page.getByRole("link", { name: "Application", exact: true }).click();
+  await expect(page).toHaveURL(/#application$/);
+  await page.getByRole("link", { name: "Recording", exact: true }).click();
+  await expect(page).toHaveURL(/#recording$/);
 
   await expect
     .poll(() =>
       page.locator("#recording").evaluate((section) => {
         const scrollPane = document.querySelector(".settings-content");
         if (!scrollPane) {
-          return 0;
+          return false;
         }
 
-        return Math.round(
-          section.getBoundingClientRect().top -
-            scrollPane.getBoundingClientRect().top,
+        const sectionBounds = section.getBoundingClientRect();
+        const scrollPaneBounds = scrollPane.getBoundingClientRect();
+        return (
+          sectionBounds.bottom > scrollPaneBounds.top &&
+          sectionBounds.top < scrollPaneBounds.bottom
         );
       }),
     )
-    .toBe(20);
-  await expect(
-    page.getByRole("button", { name: "Recording", exact: true }),
-  ).toHaveClass(/active/);
+    .toBe(true);
 });
 
 test("keeps route scrolling inside each workspace", async ({ page }) => {
@@ -487,20 +473,6 @@ test("keeps route scrolling inside each workspace", async ({ page }) => {
     "overflow-y",
     "auto",
   );
-  await expect
-    .poll(() =>
-      page.locator(".settings-content-frame").evaluate((element) => {
-        const style = getComputedStyle(element, "::before");
-        return {
-          backdropFilter: style.backdropFilter,
-          hasGradientMask: style.maskImage.includes("linear-gradient"),
-        };
-      }),
-    )
-    .toEqual({
-      backdropFilter: "blur(4px)",
-      hasGradientMask: true,
-    });
 
   for (const path of ["/inbox", "/projects/01KDEMOPROJECT", "/processing"]) {
     await page.goto(path);

@@ -14,7 +14,9 @@ export const useLocalModelsStore = defineStore("local-models", () => {
   const error = ref<string | null>(null);
 
   const installedModels = computed(() =>
-    models.value.filter((model) => model.installed),
+    models.value.filter(
+      (model) => model.installed && model.preset !== "cleanup",
+    ),
   );
 
   async function load() {
