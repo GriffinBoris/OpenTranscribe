@@ -43,7 +43,8 @@ case "${mode}" in
     npm --prefix apps/desktop run tauri -- build --target x86_64-unknown-linux-gnu --bundles deb --ci --no-sign -- --locked
     node scripts/verify-linux-glibc.mjs 2.35 \
       target/x86_64-unknown-linux-gnu/release/opentranscribe \
-      apps/desktop/src-tauri/binaries/local-transcriber-x86_64-unknown-linux-gnu
+      apps/desktop/src-tauri/binaries/local-transcriber-x86_64-unknown-linux-gnu \
+      apps/desktop/src-tauri/binaries/text-normalizer-x86_64-unknown-linux-gnu
     ;;
   *)
     echo "Unknown Linux CI mode: ${mode}" >&2

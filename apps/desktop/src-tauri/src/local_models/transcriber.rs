@@ -29,6 +29,11 @@ impl LocalTranscriptionService {
                 AppError::Model("record or import audio before transcribing".to_owned())
             })?
             .clone();
+        if model_id == "s1-mini-q4_k_m" {
+            return Err(AppError::Model(
+                "S1-mini cleans text; select a speech model for transcription.".to_owned(),
+            ));
+        }
         let model_path = installed_path(app, &model_id)?;
         let job_id = opentranscribe_domain::new_id();
         let request = FileTranscription {
@@ -66,36 +71,6 @@ impl LocalTranscriptionService {
             provider_response,
         ))
     }
-}
-
-pub async fn transcribe_file(
-    app: &tauri::AppHandle,
-    model_id: String,
-    audio_path: std::path::PathBuf,
-    on_progress: impl FnMut(u64, u64),
-) -> AppResult<String> {
-    let model_path = installed_path(app, &model_id)?;
-    let segments = run_sidecar(
-        app,
-        &model_id,
-        &model_path,
-        FileTranscription {
-            job_id: opentranscribe_domain::new_id(),
-            path: audio_path.to_string_lossy().into_owned(),
-            language_hint: None,
-            prompt: None,
-        },
-        on_progress,
-        || false,
-    )
-    .await?;
-
-    Ok(segments
-        .iter()
-        .map(|segment| segment.text.trim())
-        .filter(|text| !text.is_empty())
-        .collect::<Vec<_>>()
-        .join(" "))
 }
 
 async fn run_sidecar(

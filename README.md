@@ -15,6 +15,20 @@ completed recordings locally or with an OpenAI API key.
 | Dictate           | Use a compact dictation panel with its own optional global shortcut. A run snapshots its provider and delivery choices, transcribes after capture, and preserves a history for review.                                                                                                                                |
 | Configure         | Guide first-time setup through library selection, audio sources, a transcription preference, and an optional ten-second audio test. Settings cover appearance, capture, keyboard shortcuts, storage, local-model downloads, OpenAI credentials, updates, and application reset controls.                              |
 
+### Dictation and optional S1-mini cleanup
+
+Choose a speech model in **Settings → Dictation**, then start from the Dictation
+page or enable its global shortcut. The compact panel shows recording,
+transcription, and delivery status. Cancel stops pending delivery; a failed run
+offers Retry and keeps its audio until discarded, replaced, or the app restarts.
+
+For English dictation, download **S1-mini by Superwhisper** (484 MB) under
+**Clean up dictation**, then enable the toggle. S1-mini cleans the text produced
+by your selected Whisper or OpenAI speech model, removing fillers and applying
+spoken corrections. Cleanup runs locally and preserves the original transcript
+in history. It is optional and supports up to 1,000 input tokens per dictation.
+Using OpenAI for speech recognition still sends audio to OpenAI.
+
 ### Screenshots
 
 <p align="center">
@@ -112,6 +126,44 @@ and model downloads finish.
 - **Linux:** In-app updates apply only to the AppImage. Keep it in a writable
   folder. Update `.deb` installations through the system package manager.
 
+### macOS: reset permissions after reinstalling an unsigned build
+
+Replacing an unsigned or ad-hoc signed build can change the code identity macOS
+uses for privacy permissions. An old OpenTranscribe entry may still look enabled
+in System Settings even though the replacement cannot record audio or paste
+dictation. If this happens after a reinstall or update:
+
+1. Quit OpenTranscribe completely with **Quit** from its menu or tray. Closing
+   its window only hides it. Stop any development instance too.
+2. Install the replacement at `/Applications/OpenTranscribe.app` and eject the
+   installer disk image. Keep the application closed for the reset.
+3. Open Terminal and run:
+
+   ```bash
+   tccutil reset Microphone com.griffinboris.opentranscribe
+   tccutil reset ScreenCapture com.griffinboris.opentranscribe
+   tccutil reset Accessibility com.griffinboris.opentranscribe
+   ```
+
+   These reset only OpenTranscribe's microphone, Screen & System Audio Recording,
+   and Accessibility decisions. Keep the bundle ID on each command so other
+   applications' permissions are unaffected. No `sudo` is needed.
+
+4. Open `/Applications/OpenTranscribe.app` again and start a recording to request
+   capture access. In **System Settings → Privacy & Security**, allow
+   **Microphone** and **Screen & System Audio Recording**. Enable
+   **Accessibility** if you use dictation's automatic paste. If an old entry
+   remains, remove it with the minus button where available and add the current
+   application from Applications.
+5. Quit and reopen OpenTranscribe after granting access, then test recording
+   and dictation again.
+
+The reset removes permission decisions; it does not grant access or delete
+recordings, models, settings, or saved API keys. Clearing the quarantine
+attribute with `xattr` only addresses launch blocking and does not reset these
+permissions. See [Apple's permission reset documentation](https://developer.apple.com/documentation/xcode/resetting-access-to-protected-resources-in-macos)
+and [macOS signing](docs/macos-signing.md) for details.
+
 ## Stack
 
 - Tauri 2 and Rust for capture, storage, credentials, and providers
@@ -137,7 +189,7 @@ Requirements:
 
 - Node.js 22 or newer
 - Rust 1.92
-- CMake 3.20 or newer for the bundled whisper.cpp sidecar
+- CMake 3.20 or newer for the bundled Whisper and S1-mini sidecars
 - Tauri's operating-system prerequisites
 - Linux builds also need PipeWire 1.0 or newer development headers
 - Go Task is optional; every task delegates to npm or Cargo
@@ -219,7 +271,7 @@ OpenTranscribe does not require an OpenTranscribe account. A selected library
 contains readable projects and sessions. Downloaded speech models are kept in a
 separate configurable folder, defaulting to `OpenTranscribe/models` under the
 documents directory. They are shared by every library, removable from Settings,
-and fetched from pinned ggerganov/whisper.cpp revisions on Hugging Face with a
+and fetched from pinned Whisper and Superwhisper S1-mini revisions on Hugging Face with a
 SHA-256 verification step before use. OpenAI transcription is opt-in per
 session. The API key is entered in the Settings webview, passed directly to the
 native credential command, and never written to frontend persistence or the

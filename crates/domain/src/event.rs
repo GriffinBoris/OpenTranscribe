@@ -50,6 +50,7 @@ pub enum AppEvent {
         progress: JobProgress,
     },
     JobStateChanged(Job),
+    DictationStateChanged(crate::DictationStatus),
     LibraryChanged,
     ImportRequested,
     AttentionRequired(String),

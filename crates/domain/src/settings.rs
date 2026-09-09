@@ -171,6 +171,8 @@ pub struct AppSettings {
     pub dictation_openai_model: OpenAiTranscriptionModel,
     #[serde(default = "default_dictation_auto_paste")]
     pub dictation_auto_paste: bool,
+    #[serde(default)]
+    pub dictation_cleanup_enabled: bool,
     pub appearance: Appearance,
 }
 
@@ -195,6 +197,7 @@ impl Default for AppSettings {
             dictation_local_model_id: None,
             dictation_openai_model: OpenAiTranscriptionModel::default(),
             dictation_auto_paste: true,
+            dictation_cleanup_enabled: false,
             appearance: Appearance {
                 theme: ThemePreference::System,
                 reduced_motion: false,
@@ -212,7 +215,7 @@ fn default_capture_system_audio() -> bool {
 }
 
 fn default_dictation_shortcut_enabled() -> bool {
-    true
+    false
 }
 
 fn default_dictation_auto_paste() -> bool {
@@ -269,7 +272,7 @@ mod tests {
         assert!(settings.capture_system_audio);
         assert!(!settings.microphone_echo_cancellation);
         assert_eq!(settings.global_shortcut.0, "CommandOrControl+Shift+R");
-        assert!(settings.dictation_shortcut_enabled);
+        assert!(!settings.dictation_shortcut_enabled);
         assert_eq!(settings.dictation_shortcut.0, "Alt+Space");
         assert_eq!(settings.dictation_provider, DictationProvider::Local);
         assert_eq!(settings.dictation_local_model_id, None);
@@ -278,6 +281,7 @@ mod tests {
             OpenAiTranscriptionModel::GptTranscribe
         );
         assert!(settings.dictation_auto_paste);
+        assert!(!settings.dictation_cleanup_enabled);
         assert_eq!(settings.schema_version, APP_SETTINGS_SCHEMA_VERSION);
     }
 

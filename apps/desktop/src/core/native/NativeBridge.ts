@@ -52,8 +52,9 @@ export interface NativeBridge {
     onTrigger: () => void,
   ): Promise<void>;
   toggleDictation(): Promise<DictationStatus>;
+  retryDictation(): Promise<DictationStatus>;
+  dictationSettings(): Promise<AppSettings>;
   dictationStatus(): Promise<DictationStatus>;
-  dictationShortcut(): Promise<string>;
   dictationHistory(): Promise<DictationHistoryEntry[]>;
   clearDictationHistory(): Promise<void>;
   cancelDictation(): Promise<DictationStatus>;

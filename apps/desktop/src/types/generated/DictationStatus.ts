@@ -2,4 +2,4 @@
 import type { DictationPhase } from "./DictationPhase";
 import type { DictationProvider } from "./DictationProvider";
 
-export type DictationStatus = { id: string | null, phase: DictationPhase, provider: DictationProvider | null, text: string | null, error_message: string | null, elapsed_ms: number, microphone_peak: number, auto_pasted: boolean, approximate_cost_usd: number | null, };
+export type DictationStatus = { id: string | null, phase: DictationPhase, provider: DictationProvider | null, text: string | null, error_message: string | null, elapsed_ms: number, microphone_peak: number, auto_pasted: boolean, can_retry: boolean, progress_percent: number | null, approximate_cost_usd: number | null, };

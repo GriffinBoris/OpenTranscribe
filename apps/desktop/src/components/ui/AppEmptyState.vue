@@ -22,7 +22,9 @@ withDefaults(
       <slot name="icon" />
     </span>
     <strong class="text-ink text-base">{{ title }}</strong>
-    <span v-if="message" class="max-w-[360px]">{{ message }}</span>
+    <span v-if="message" class="text-ink-muted max-w-[360px] text-sm">{{
+      message
+    }}</span>
     <slot />
   </div>
 </template>

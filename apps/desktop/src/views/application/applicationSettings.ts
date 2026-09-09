@@ -1,3 +1,8 @@
+import {
+  applyAppearance,
+  applyTheme,
+  applyReducedMotion,
+} from "@/views/application/appearance";
 import { computed, ref, type Ref } from "vue";
 
 import { native } from "@/core/native";
@@ -11,19 +16,6 @@ export function createApplicationSettings(
   const settings = computed(() => snapshot.value?.settings);
   let settingsSaveSequence = 0;
 
-  function applyTheme(theme: "system" | "light" | "dark") {
-    document.documentElement.dataset.theme = theme;
-  }
-
-  function applyReducedMotion(reducedMotion: boolean) {
-    document.documentElement.dataset.reducedMotion = String(reducedMotion);
-  }
-
-  function applyAppearance(nextSettings: AppSettings) {
-    applyTheme(nextSettings.appearance.theme);
-    applyReducedMotion(nextSettings.appearance.reduced_motion);
-  }
-
   async function isAudioCaptureActive() {
     const [recordingStatus, dictationStatus] = await Promise.all([
       native.recordingStatus(),
@@ -32,7 +24,7 @@ export function createApplicationSettings(
 
     return (
       recordingStatus !== null ||
-      ["recording", "transcribing"].includes(dictationStatus.phase)
+      ["recording", "transcribing", "cleaning"].includes(dictationStatus.phase)
     );
   }
 

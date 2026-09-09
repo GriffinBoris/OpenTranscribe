@@ -6,7 +6,6 @@ import { useI18n } from "vue-i18n";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppDialog from "@/components/ui/AppDialog.vue";
 import AppEmptyState from "@/components/ui/AppEmptyState.vue";
-import AppSurface from "@/components/ui/AppSurface.vue";
 import AppStatusState from "@/components/ui/AppStatusState.vue";
 import { useTrashStore } from "@/views/trash/trashStore";
 
@@ -33,17 +32,14 @@ async function emptyTrash() {
       class="page-header page-header--compact mb-[var(--space-5-5)] flex items-start justify-between gap-6"
     >
       <div>
-        <p
-          class="eyebrow text-ink mb-1.5 text-xs font-black tracking-[0.1em] uppercase"
-        >
-          {{ t("trash.library") }}
-        </p>
         <h1
           class="text-display m-0 max-w-[730px] leading-[var(--line-height-tight)] font-bold tracking-[-0.035em]"
         >
           {{ t("trash.title") }}
         </h1>
-        <p class="text-ink">{{ t("trash.description") }}</p>
+        <p class="text-ink-muted mt-2 mb-0 text-sm">
+          {{ t("trash.description") }}
+        </p>
       </div>
       <AppButton
         v-if="trash.sessions.length"
@@ -54,9 +50,8 @@ async function emptyTrash() {
         <Trash2 :size="16" />{{ t("trash.emptyAction") }}
       </AppButton>
     </header>
-    <AppSurface
+    <section
       class="library-page__sessions grid min-h-0 grid-rows-[minmax(0,1fr)]"
-      :padded="false"
     >
       <div class="library-page__scroll min-h-0 overflow-auto">
         <AppStatusState
@@ -107,7 +102,7 @@ async function emptyTrash() {
           <template #icon><Trash2 :size="21" /></template>
         </AppEmptyState>
       </div>
-    </AppSurface>
+    </section>
     <AppDialog
       :open="emptyDialogOpen"
       :title="t('trash.emptyTitle')"
