@@ -21,7 +21,10 @@ const { t } = useI18n();
 function formatDuration(durationMs: number) {
   const minutes = Math.floor(durationMs / 60_000);
   const seconds = Math.floor((durationMs % 60_000) / 1000);
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  const remaining = `${(minutes % 60).toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  return minutes >= 60
+    ? `${Math.floor(minutes / 60)}:${remaining}`
+    : `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 </script>
 
@@ -48,9 +51,18 @@ function formatDuration(durationMs: number) {
         <Mic2 v-else :size="18" />
       </span>
       <span class="session-row__body grid min-w-0 flex-1 gap-1">
-        <strong class="truncate">{{ session.title }}</strong>
-        <small class="text-ink-muted block">
-          {{ new Date(session.created_at).toLocaleDateString() }} ·
+        <strong :title="session.title" class="truncate">{{
+          session.title
+        }}</strong>
+        <small class="text-ink-muted block tabular-nums">
+          {{
+            new Date(session.created_at).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          }}
+          ·
           {{ formatDuration(session.duration_ms) }}
         </small>
       </span>

@@ -126,9 +126,12 @@ test("keeps Dictation shortcut registration separate from recording", async ({
 
   await expect(page.getByRole("heading", { name: "Dictation" })).toBeVisible();
   await expect(
-    page.locator("#dictation").getByText("Active", { exact: true }),
+    page
+      .locator("#dictation")
+      .getByText("Choose a speech model", { exact: true }),
   ).toBeVisible();
 
+  await page.getByRole("switch", { name: "Dictate from anywhere" }).check();
   await page.getByRole("button", { name: "Shortcuts" }).click();
   await page.getByRole("switch", { name: "Record from anywhere" }).click();
 

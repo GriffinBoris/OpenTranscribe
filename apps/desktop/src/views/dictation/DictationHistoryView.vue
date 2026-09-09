@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
-import { MessageSquareText, Trash2 } from "@lucide/vue";
+import { onMounted, onBeforeUnmount, watch, ref } from "vue";
+import { MessageSquareText, Trash2, Mic } from "@lucide/vue";
+import { useRouter } from "vue-router";
+import { useApplicationStore } from "@/views/application/applicationStore";
+import { useDictationStore } from "@/views/application/dictationStore";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
@@ -8,12 +11,22 @@ import AppCopyButton from "@/components/ui/AppCopyButton.vue";
 import AppDialog from "@/components/ui/AppDialog.vue";
 import AppEmptyState from "@/components/ui/AppEmptyState.vue";
 import AppStatusState from "@/components/ui/AppStatusState.vue";
-import AppSurface from "@/components/ui/AppSurface.vue";
 import { native } from "@/core/native";
 import type { DictationProvider } from "@/types/domain";
 import { formatUsd } from "@/views/application/jobEstimates";
 
 const { t } = useI18n();
+const router = useRouter();
+const dictation = useDictationStore();
+const application = useApplicationStore();
+async function startDictation() {
+  try {
+    dictation.apply(await native.toggleDictation());
+  } catch (reason) {
+    application.operationError =
+      reason instanceof Error ? reason.message : String(reason);
+  }
+}
 const history = ref<Awaited<ReturnType<typeof native.dictationHistory>>>([]);
 const isLoading = ref(false);
 const isClearing = ref(false);
@@ -57,7 +70,15 @@ async function clearHistory() {
   }
 }
 
-onMounted(() => void loadHistory());
+onMounted(() => {
+  void loadHistory();
+  window.addEventListener("focus", loadHistory);
+});
+onBeforeUnmount(() => window.removeEventListener("focus", loadHistory));
+watch(
+  () => dictation.historyRevision,
+  () => void loadHistory(),
+);
 </script>
 
 <template>
@@ -73,25 +94,31 @@ onMounted(() => void loadHistory());
         >
           {{ t("dictationHistory.title") }}
         </h1>
-        <p class="text-ink mb-0">{{ t("dictationHistory.description") }}</p>
+        <p class="text-ink-muted mt-2 mb-0 text-sm">
+          {{ t("dictationHistory.description") }}
+        </p>
       </div>
-      <AppButton
-        v-if="history.length"
-        class="shrink-0"
-        size="small"
-        variant="danger"
-        :aria-label="t('dictationHistory.clearAction')"
-        :title="t('dictationHistory.clearAction')"
-        :disabled="isLoading || isClearing"
-        @click="clearDialogOpen = true"
-      >
-        <Trash2 :size="16" aria-hidden="true" />
-      </AppButton>
+      <div class="flex items-center gap-2">
+        <AppButton :disabled="dictation.isActive" @click="startDictation"
+          ><Mic :size="16" />{{ t("dictationHistory.start") }}</AppButton
+        >
+        <AppButton
+          v-if="history.length"
+          class="text-ink-muted hover:text-accent shrink-0"
+          size="small"
+          variant="ghost"
+          :aria-label="t('dictationHistory.clearAction')"
+          :title="t('dictationHistory.clearAction')"
+          :disabled="isLoading || isClearing"
+          @click="clearDialogOpen = true"
+        >
+          <Trash2 :size="16" aria-hidden="true" />
+        </AppButton>
+      </div>
     </header>
 
-    <AppSurface
+    <section
       class="library-page__sessions grid min-h-0 grid-rows-[minmax(0,1fr)]"
-      :padded="false"
     >
       <div class="library-page__scroll min-h-0 overflow-auto">
         <AppStatusState
@@ -126,6 +153,20 @@ onMounted(() => void loadHistory());
                 :copied-label="t('common.copied')"
               />
             </div>
+            <details
+              v-if="entry.raw_text && entry.raw_text !== entry.text"
+              class="text-ink-muted text-sm"
+            >
+              <summary class="cursor-pointer">
+                {{ t("dictationHistory.original") }}
+              </summary>
+              <p class="whitespace-pre-wrap">{{ entry.raw_text }}</p>
+              <AppCopyButton
+                :text="entry.raw_text"
+                :label="t('dictationHistory.copy')"
+                :copied-label="t('common.copied')"
+              />
+            </details>
             <div
               class="text-ink-muted flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
             >
@@ -133,7 +174,11 @@ onMounted(() => void loadHistory());
               <span aria-hidden="true">·</span>
               <span>{{ providerLabel(entry.provider) }}</span>
               <span aria-hidden="true">·</span>
-              <span>{{ entry.model_id }}</span>
+              <span>{{
+                entry.cleanup_model_id
+                  ? t("dictationHistory.cleaned")
+                  : entry.model_id
+              }}</span>
               <template v-if="entry.provider === 'open_ai'">
                 <span aria-hidden="true">·</span>
                 <span>
@@ -155,9 +200,14 @@ onMounted(() => void loadHistory());
           :message="t('dictationHistory.emptyDescription')"
         >
           <template #icon><MessageSquareText :size="21" /></template>
+          <AppButton
+            variant="secondary"
+            @click="router.push('/settings#dictation')"
+            >{{ t("dictationHistory.setup") }}</AppButton
+          >
         </AppEmptyState>
       </div>
-    </AppSurface>
+    </section>
     <AppDialog
       :open="clearDialogOpen"
       :title="t('dictationHistory.clearTitle')"

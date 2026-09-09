@@ -37,7 +37,8 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/local-transcriber"],
+    "resources": ["resources/s1-mini/LICENSE", "resources/s1-mini/NOTICE"],
+    "externalBin": ["binaries/local-transcriber", "binaries/text-normalizer"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

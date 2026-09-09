@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useOpenAiStore } from "@/views/application/openAiStore";
+import DictationCleanupSettings from "@/views/settings/components/DictationCleanupSettings.vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
@@ -21,6 +23,8 @@ import {
 import { useLocalModelsStore } from "@/views/application/localModelsStore";
 import { openAiModelOptions } from "@/views/application/openAiModels";
 
+const openAi = useOpenAiStore();
+defineEmits<{ "open-models": [] }>();
 const application = useApplicationStore();
 const globalShortcut = useGlobalShortcutStore();
 const localModels = useLocalModelsStore();
@@ -29,7 +33,7 @@ const bindingDialogOpen = ref(false);
 const capturedShortcut = ref<string | null>(null);
 
 const enabled = computed(
-  () => application.settings?.dictation_shortcut_enabled ?? true,
+  () => application.settings?.dictation_shortcut_enabled ?? false,
 );
 const selectedShortcut = computed(
   () => application.settings?.dictation_shortcut ?? "Alt+Space",
@@ -63,6 +67,32 @@ const status = computed(() => {
     };
   }
 
+  if (
+    provider.value === "local" &&
+    !localModels.installedModels.some((model) => model.id === localModel.value)
+  ) {
+    return {
+      label: t("settings.dictation.needsModel"),
+      tone: "warning" as const,
+    };
+  }
+  if (provider.value === "open_ai" && !openAi.credential?.configured) {
+    return {
+      label: t("settings.dictation.needsKey"),
+      tone: "warning" as const,
+    };
+  }
+  if (
+    application.settings?.dictation_cleanup_enabled &&
+    !localModels.models.some(
+      (model) => model.preset === "cleanup" && model.installed,
+    )
+  ) {
+    return {
+      label: t("settings.dictation.needsCleanup"),
+      tone: "warning" as const,
+    };
+  }
   return shortcut.isRegistered
     ? { label: t("settings.shortcuts.active"), tone: "success" as const }
     : { label: t("settings.dictation.disabled"), tone: "neutral" as const };
@@ -267,8 +297,22 @@ onBeforeUnmount(() => {
       />
     </label>
 
+    <div
+      v-if="provider === 'local' && !localModelOptions.length"
+      class="text-warning flex flex-wrap items-center justify-between gap-2 pb-3 text-sm"
+      role="status"
+    >
+      <span>{{ t("settings.dictation.installHint") }}</span>
+      <AppButton
+        size="small"
+        variant="secondary"
+        @click="$emit('open-models')"
+        >{{ t("settings.browseModels") }}</AppButton
+      >
+    </div>
+
     <label
-      v-else
+      v-if="provider === 'open_ai'"
       class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
     >
       <span>{{ t("settings.dictation.openAiModel") }}</span>
@@ -293,6 +337,8 @@ onBeforeUnmount(() => {
         @update:model-value="updateAutoPaste"
       />
     </div>
+
+    <DictationCleanupSettings />
 
     <AppDialog
       :open="bindingDialogOpen"

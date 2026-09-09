@@ -9,18 +9,38 @@ The library folder selected by the user contains session manifests, notes,
 audio artifacts, transcripts, and exports. A hidden `.opentranscribe` directory
 contains a rebuildable SQLite search and job index.
 
-Downloaded speech models are kept separately from meeting libraries. By
+Downloaded speech and text-cleanup models are kept separately from meeting libraries. By
 default they live in `OpenTranscribe/models` under the documents directory, and
 Settings shows the exact path. You can choose another folder; OpenTranscribe
 offers to move the installed models with it. Models are not read by the library
 index, are shared by every library, and can be deleted and refetched at any
 time.
 
-The current catalog uses pinned revisions from ggerganov's `whisper.cpp`
-project on Hugging Face. Every download is SHA-256 verified before use. A
+The catalog uses pinned revisions from ggerganov's `whisper.cpp` and
+Superwhisper's S1-mini projects on Hugging Face. Every download is SHA-256 verified before use. A
 synchronized model folder will treat models as ordinary files and can upload
 several hundred megabytes of regenerable data, so choose a non-synced folder if
 that matters to you.
+
+## Dictation
+
+Dictation uses a separate temporary audio cache and text history in application
+data. Successful dictation deletes its temporary audio. A failed run keeps its
+audio for Retry until it is discarded, replaced by a new dictation, or the app
+restarts. Cancellation suppresses delivery; an already submitted cloud request
+may still finish remotely before its local temporary files are removed.
+
+Optional S1-mini by Superwhisper cleanup runs entirely on the device after speech
+recognition. It supports English dictation and keeps the original transcript
+alongside cleaned text in history. It does not send text to Superwhisper. Local
+models remain loaded between dictations to reduce waiting; model changes and app
+shutdown release their processes.
+
+Dictation copies text to the clipboard. Automatic paste requires the original
+application to remain active on macOS or the original window on Windows; when
+that target cannot be verified, including Linux, the result remains available
+for manual paste. Changing fields within the same application is not detected
+on macOS. Clipboard contents are replaced when a result is delivered.
 
 ## OpenAI transcription
 

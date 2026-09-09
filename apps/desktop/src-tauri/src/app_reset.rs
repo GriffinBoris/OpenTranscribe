@@ -18,6 +18,12 @@ pub fn delete_all(app: &tauri::AppHandle, state: &AppState) -> AppResult<()> {
         .as_ref()
         .map(|repository| repository.root_path().to_owned());
 
+    let mut workers = state
+        .dictation_workers
+        .try_lock()
+        .map_err(|_| AppError::Application("Wait for local inference to stop.".to_owned()))?;
+    workers.speech.unload();
+    workers.cleanup.unload();
     state.openai_credentials.remove()?;
     crate::local_models::remove_all(app)?;
 

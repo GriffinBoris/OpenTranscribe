@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
-import { Check, Pencil, Users } from "@lucide/vue";
+import { Check, Pencil, Users, FileText } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 import AppButton from "@/components/ui/AppButton.vue";
+import AppEmptyState from "@/components/ui/AppEmptyState.vue";
 import AppCopyButton from "@/components/ui/AppCopyButton.vue";
 import AppTextarea from "@/components/ui/AppTextarea.vue";
 import { useClipboard } from "@/composables/useClipboard";
@@ -185,17 +186,15 @@ async function save(segment: TranscriptSegment) {
       @touchstart.passive="stopFollowingLiveTranscript"
       @wheel.passive="stopFollowingLiveTranscript"
     >
-      <div
+      <AppEmptyState
         v-if="
           segments.length === 0 && liveTranscript.length === 0 && !recording
         "
-        class="rounded-app-md border-line-strong text-ink-muted flex items-center gap-3 border border-dashed p-[18px]"
+        :title="t('session.noTranscript')"
+        :message="t('session.noTranscriptDescription')"
       >
-        <span class="grid gap-1">
-          <strong>{{ t("session.noTranscript") }}</strong>
-          <small>{{ t("session.noTranscriptDescription") }}</small>
-        </span>
-      </div>
+        <template #icon><FileText :size="21" /></template>
+      </AppEmptyState>
       <article
         v-for="segment in segments"
         :key="segment.id"

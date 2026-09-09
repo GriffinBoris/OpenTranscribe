@@ -1,3 +1,4 @@
+import { emptyDictationStatus } from "@/core/dictationStatus";
 import { createPreviewSnapshot } from "@/core/native/preview/previewData";
 import { i18n } from "@/i18n";
 import type {
@@ -22,17 +23,7 @@ export const previewState = {
   pausedDurationMs: 0,
   globalShortcutListeners: new Map<string, () => void>(),
   dictationStatusListener: null as ((status: DictationStatus) => void) | null,
-  dictationStatus: {
-    id: null,
-    phase: "idle",
-    provider: null,
-    text: null,
-    error_message: null,
-    elapsed_ms: 0,
-    microphone_peak: 0,
-    auto_pasted: false,
-    approximate_cost_usd: null,
-  } as DictationStatus,
+  dictationStatus: emptyDictationStatus(),
   appEventListener: null as ((event: AppEvent) => void) | null,
   systemAudioPermission: null as "granted" | "required" | null,
   sessionMoves: new Map<
@@ -70,6 +61,15 @@ export const previewState = {
       label: t("models.best"),
       description: t("models.bestDescription"),
       byte_count: 574_041_195,
+      installed: false,
+    },
+    {
+      id: "s1-mini-q4_k_m",
+      preset: "cleanup",
+      label: "S1-mini by Superwhisper",
+      description:
+        "English dictation cleanup · Q4 · runs locally after transcription",
+      byte_count: 484219808,
       installed: false,
     },
   ] as LocalModel[],
@@ -110,6 +110,16 @@ export function previewSnapshot(path?: string) {
   const searchParameters = new URLSearchParams(window.location.search);
   const recordingMode = searchParameters.get("recordingMode");
   const globalShortcut = searchParameters.get("globalShortcut");
+
+  if (searchParameters.has("dictation")) {
+    snapshot.settings.dictation_shortcut_enabled = true;
+    snapshot.settings.dictation_cleanup_enabled =
+      searchParameters.has("dictationCleanup");
+  }
+  if (searchParameters.get("theme") === "dark")
+    snapshot.settings.appearance.theme = "dark";
+  if (searchParameters.has("reducedMotion"))
+    snapshot.settings.appearance.reduced_motion = true;
 
   if (searchParameters.has("resetReady")) {
     snapshot.active_jobs = [];

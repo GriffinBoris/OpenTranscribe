@@ -67,6 +67,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     },
                 )?;
             }
+            Command::NormalizeText { .. } => write_event(
+                envelope.request_id,
+                Event::Error {
+                    code: "unsupported_command".to_owned(),
+                    message: "Use the text normalizer for cleanup.".to_owned(),
+                },
+            )?,
             Command::Shutdown => break,
         }
     }

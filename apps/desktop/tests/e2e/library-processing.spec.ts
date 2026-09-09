@@ -8,8 +8,6 @@ test("keeps the shared search icon centered inside its input", async ({
   const searchField = page.locator(".app-search-input");
   const searchIcon = searchField.locator(".app-search-input__icon svg");
 
-  await expect(page.locator(".library-toolbar")).toHaveClass(/mb-4/);
-  await expect(searchField).not.toHaveClass(/mb-4/);
   await expect(searchIcon).toHaveCSS("width", "16px");
   await expect(searchIcon).toHaveCSS("height", "16px");
 

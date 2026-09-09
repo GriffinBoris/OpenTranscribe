@@ -4,6 +4,7 @@ members = [
     "crates/domain",
     "crates/transcriber-protocol",
     "sidecars/local-transcriber",
+    "sidecars/text-normalizer",
     "apps/desktop/src-tauri",
 ]
 

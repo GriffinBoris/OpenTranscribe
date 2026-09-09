@@ -198,6 +198,7 @@ jobs:
           node scripts/verify-linux-glibc.mjs 2.35
           target/${{ matrix.target }}/release/opentranscribe
           apps/desktop/src-tauri/binaries/local-transcriber-${{ matrix.target }}
+          apps/desktop/src-tauri/binaries/text-normalizer-${{ matrix.target }}
 
       # Tauri fails the build when signing or notarization fails. Missing
       # entitlements do not fail the build, so verify them here instead.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDictationStore } from "@/views/application/dictationStore";
 import { computed, ref } from "vue";
 import { RotateCcw, ShieldCheck, TriangleAlert } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
@@ -14,6 +15,7 @@ import { useRecordingStore } from "@/views/application/recordingStore";
 import { useFirstRunSetupStore } from "@/views/home/firstRunSetupStore";
 import ApplicationUpdates from "@/views/settings/components/ApplicationUpdates.vue";
 
+const dictation = useDictationStore();
 const application = useApplicationStore();
 const localModels = useLocalModelsStore();
 const recording = useRecordingStore();
@@ -29,6 +31,7 @@ const deleteConfirmation = ref("");
 const hasActiveWork = computed(
   () =>
     Boolean(recording.activeRecording) ||
+    dictation.isActive ||
     application.runningJobs.length > 0 ||
     localModels.downloadingModelId !== null,
 );

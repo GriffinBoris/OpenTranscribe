@@ -63,6 +63,7 @@ struct SettingsPatch {
     dictation_local_model_id: PatchValue<Option<String>>,
     dictation_openai_model: Option<OpenAiTranscriptionModel>,
     dictation_auto_paste: Option<bool>,
+    dictation_cleanup_enabled: Option<bool>,
     appearance: Option<Appearance>,
 }
 
@@ -131,6 +132,9 @@ impl SettingsPatch {
         }
         if let Some(value) = self.dictation_openai_model {
             settings.dictation_openai_model = value;
+        }
+        if let Some(value) = self.dictation_cleanup_enabled {
+            settings.dictation_cleanup_enabled = value;
         }
         if let Some(value) = self.dictation_auto_paste {
             settings.dictation_auto_paste = value;
@@ -481,6 +485,11 @@ fn normalize_stored_global_shortcut(settings: &mut serde_json::Value) {
         _ => return,
     };
     *shortcut = legacy_shortcut.to_owned();
+}
+
+#[tauri::command]
+pub fn ensure_application_idle(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    crate::app_reset::ensure_idle(&state)
 }
 
 #[cfg(test)]

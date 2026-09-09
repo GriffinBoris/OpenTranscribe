@@ -28,8 +28,16 @@ const settingsContent = ref<HTMLElement | null>(null);
 const isContentScrolled = ref(false);
 let scrollEndTimer: number | null = null;
 let pendingNavigation: { section: string; top: number } | null = null;
-const settingsNavButtonClass =
-  "w-full justify-start gap-2.5 rounded-app-sm px-2.5 py-[9px] text-ink hover:bg-canvas-subtle [&.active]:bg-canvas-subtle [&.active]:text-ink max-[900px]:w-auto";
+const sections = [
+  { id: "dictation", label: "dictation", icon: MessageSquareText },
+  { id: "recording", label: "recording", icon: Volume2 },
+  { id: "storage", label: "storage", icon: FolderOpen },
+  { id: "models", label: "localModels", icon: HardDrive },
+  { id: "openai", label: "openAi", icon: KeyRound },
+  { id: "shortcuts", label: "shortcuts", icon: Keyboard },
+  { id: "appearance", label: "appearance", icon: Monitor },
+  { id: "application", label: "application", icon: Settings2 },
+];
 
 function updateActiveSection(section: string) {
   activeSection.value = section;
@@ -58,7 +66,11 @@ function selectSection(section: string) {
   pendingNavigation = { section, top };
 
   scrollPane.scrollTo({
-    behavior: "smooth",
+    behavior:
+      document.documentElement.dataset.reducedMotion === "true" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
     top,
   });
 }
@@ -109,7 +121,10 @@ function updateContentScroll(event: Event) {
 }
 
 onMounted(() => {
-  activeSection.value = window.location.hash.slice(1) || "dictation";
+  const section = window.location.hash.slice(1);
+  activeSection.value = sections.some((item) => item.id === section)
+    ? section
+    : "dictation";
   void nextTick(() => selectSection(activeSection.value));
 });
 
@@ -135,99 +150,24 @@ onBeforeUnmount(() => {
     </header>
 
     <div
-      class="settings-layout grid min-h-0 grid-cols-[190px_minmax(0,1fr)] items-stretch gap-6 max-[900px]:grid-cols-1 max-[900px]:grid-rows-[auto_minmax(0,1fr)] max-[900px]:gap-4"
+      class="settings-layout grid min-h-0 grid-cols-[190px_minmax(0,1fr)] items-stretch gap-6 max-[1000px]:grid-cols-1 max-[1000px]:grid-rows-[auto_minmax(0,1fr)] max-[1000px]:gap-4"
     >
       <nav
-        class="settings-nav grid min-h-0 content-start gap-1 overflow-auto pr-1 max-[900px]:auto-cols-max max-[900px]:grid-flow-col max-[900px]:overflow-x-auto max-[900px]:overflow-y-hidden max-[900px]:pr-0"
+        :aria-label="t('settings.sections')"
+        class="settings-nav grid min-h-0 content-start gap-1 overflow-auto pr-1 max-[1000px]:auto-cols-max max-[1000px]:grid-flow-col max-[1000px]:overflow-x-auto max-[1000px]:overflow-y-hidden max-[1000px]:pr-0"
       >
         <AppButton
+          v-for="section in sections"
+          :key="section.id"
           variant="ghost"
-          :class="[
-            settingsNavButtonClass,
-            { active: activeSection === 'dictation' },
-          ]"
-          @click="selectSection('dictation')"
-          ><MessageSquareText :size="16" />{{
-            t("settings.navigation.dictation")
-          }}</AppButton
+          class="rounded-app-sm text-ink hover:bg-canvas-subtle [&.active]:bg-canvas-subtle w-full justify-start gap-2.5 px-2.5 py-[9px] max-[1000px]:w-auto"
+          :class="{ active: activeSection === section.id }"
+          :aria-current="activeSection === section.id ? 'location' : undefined"
+          @click="selectSection(section.id)"
         >
-        <AppButton
-          variant="ghost"
-          :class="[
-            settingsNavButtonClass,
-            { active: activeSection === 'recording' },
-          ]"
-          @click="selectSection('recording')"
-          ><Volume2 :size="16" />{{
-            t("settings.navigation.recording")
-          }}</AppButton
-        >
-        <AppButton
-          variant="ghost"
-          :class="[
-            settingsNavButtonClass,
-            { active: activeSection === 'storage' },
-          ]"
-          @click="selectSection('storage')"
-          ><FolderOpen :size="16" />{{
-            t("settings.navigation.storage")
-          }}</AppButton
-        >
-        <AppButton
-          variant="ghost"
-          :class="[
-            settingsNavButtonClass,
-            { active: activeSection === 'models' },
-          ]"
-          @click="selectSection('models')"
-          ><HardDrive :size="16" />{{
-            t("settings.navigation.localModels")
-          }}</AppButton
-        >
-        <AppButton
-          variant="ghost"
-          :class="[
-            settingsNavButtonClass,
-            { active: activeSection === 'openai' },
-          ]"
-          @click="selectSection('openai')"
-          ><KeyRound :size="16" />{{
-            t("settings.navigation.openAi")
-          }}</AppButton
-        >
-        <AppButton
-          variant="ghost"
-          :class="[
-            settingsNavButtonClass,
-            { active: activeSection === 'shortcuts' },
-          ]"
-          @click="selectSection('shortcuts')"
-          ><Keyboard :size="16" />{{
-            t("settings.navigation.shortcuts")
-          }}</AppButton
-        >
-        <AppButton
-          variant="ghost"
-          :class="[
-            settingsNavButtonClass,
-            { active: activeSection === 'appearance' },
-          ]"
-          @click="selectSection('appearance')"
-          ><Monitor :size="16" />{{
-            t("settings.navigation.appearance")
-          }}</AppButton
-        >
-        <AppButton
-          variant="ghost"
-          :class="[
-            settingsNavButtonClass,
-            { active: activeSection === 'application' },
-          ]"
-          @click="selectSection('application')"
-          ><Settings2 :size="16" />{{
-            t("settings.navigation.application")
-          }}</AppButton
-        >
+          <component :is="section.icon" :size="16" aria-hidden="true" />
+          {{ t(`settings.navigation.${section.label}`) }}
+        </AppButton>
       </nav>
 
       <div
@@ -239,7 +179,7 @@ onBeforeUnmount(() => {
           class="settings-content grid h-full min-h-0 auto-rows-max content-start gap-4 overflow-auto pr-1"
           @scroll="updateContentScroll"
         >
-          <DictationSettings />
+          <DictationSettings @open-models="selectSection('models')" />
 
           <RecordingSettings />
 
