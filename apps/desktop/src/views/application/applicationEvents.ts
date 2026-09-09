@@ -1,3 +1,4 @@
+import { useDictationStore } from "@/views/application/dictationStore";
 import { native } from "@/core/native";
 import type { AppEvent } from "@/types/domain";
 import { useApplicationStore } from "@/views/application/applicationStore";
@@ -22,6 +23,10 @@ function handleEvent(
   application: ReturnType<typeof useApplicationStore>,
   recording: ReturnType<typeof useRecordingStore>,
 ) {
+  if (event.type === "dictation_state_changed") {
+    useDictationStore().apply(event.payload);
+    return;
+  }
   if (
     event.type === "recording_levels" ||
     event.type === "recording_state_changed" ||

@@ -19,17 +19,6 @@ pub fn dictation_status(state: tauri::State<'_, AppState>) -> DictationStatus {
 }
 
 #[tauri::command]
-pub fn dictation_shortcut(state: tauri::State<'_, AppState>) -> String {
-    state
-        .settings
-        .lock()
-        .expect("app settings lock poisoned")
-        .dictation_shortcut
-        .0
-        .clone()
-}
-
-#[tauri::command]
 pub fn dictation_history(app: tauri::AppHandle) -> AppResult<Vec<DictationHistoryEntry>> {
     crate::dictation::history(&app)
 }
@@ -61,4 +50,21 @@ pub fn subscribe_dictation_status(
         .dictation_status_channel
         .lock()
         .expect("dictation status channel lock poisoned") = Some(channel);
+}
+
+#[tauri::command]
+pub fn retry_dictation(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<DictationStatus> {
+    crate::dictation::retry(app, &state)
+}
+
+#[tauri::command]
+pub fn dictation_settings(state: tauri::State<'_, AppState>) -> opentranscribe_domain::AppSettings {
+    state
+        .settings
+        .lock()
+        .expect("settings lock poisoned")
+        .clone()
 }

@@ -28,6 +28,7 @@ pub enum Command {
     Hello,
     LoadModel(ModelDescriptor),
     TranscribeFile(FileTranscription),
+    NormalizeText { job_id: String, text: String },
     UnloadModel,
     Shutdown,
 }
@@ -35,6 +36,10 @@ pub enum Command {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(tag = "type", content = "payload", rename_all = "snake_case")]
 pub enum Event {
+    NormalizedText {
+        job_id: String,
+        text: String,
+    },
     Ready {
         runtime_version: String,
     },

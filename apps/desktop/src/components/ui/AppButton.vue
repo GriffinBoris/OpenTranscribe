@@ -30,10 +30,11 @@ const sizeClasses = {
 
 const variantClasses = {
   primary:
-    "bg-accent text-accent-contrast shadow-app-action hover:bg-accent-hover",
+    "border-transparent bg-accent text-accent-contrast shadow-app-action hover:bg-accent-hover",
   secondary: "border-line bg-surface-raised hover:border-line-strong",
   ghost: "border-transparent bg-transparent hover:bg-canvas-subtle",
-  danger: "bg-accent text-accent-contrast hover:bg-accent-hover",
+  danger:
+    "border-transparent bg-accent text-accent-contrast hover:bg-accent-hover",
 };
 
 defineEmits<{
@@ -44,7 +45,7 @@ defineEmits<{
 <template>
   <Button
     unstyled
-    class="app-button rounded-app-sm inline-flex items-center justify-center gap-2 border border-transparent font-semibold whitespace-nowrap transition-[background,border-color,transform] duration-[var(--duration-standard)] ease-[var(--easing-standard)] active:translate-y-px disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+    class="app-button rounded-app-sm inline-flex items-center justify-center gap-2 border font-semibold whitespace-nowrap transition-[background,border-color,transform] duration-[var(--duration-standard)] ease-[var(--easing-standard)] active:translate-y-px disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
     :class="[variantClasses[props.variant], sizeClasses[props.size]]"
     :type="props.type"
     :disabled="props.disabled"

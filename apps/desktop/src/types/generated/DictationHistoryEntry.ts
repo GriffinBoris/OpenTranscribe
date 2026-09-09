@@ -2,4 +2,4 @@
 import type { DictationProvider } from "./DictationProvider";
 import type { JsonValue } from "./serde_json/JsonValue";
 
-export type DictationHistoryEntry = { id: string, text: string, created_at: string, provider: DictationProvider, model_id: string, usage: JsonValue | null, approximate_cost_usd: number | null, };
+export type DictationHistoryEntry = { id: string, text: string, raw_text: string | null, cleanup_model_id: string | null, created_at: string, provider: DictationProvider, model_id: string, usage: JsonValue | null, approximate_cost_usd: number | null, };
