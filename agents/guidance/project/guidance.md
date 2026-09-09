@@ -77,6 +77,10 @@ order: 0
   validation run. The 0.6 low-level crates generate bindings at build time, so
   Linux native workflows must install `libclang-dev` alongside PipeWire headers
   and the desktop build dependencies must enable bindgen's `runtime` feature.
+  Dependabot groups this binding family and excludes newer incompatible lines,
+  including bindgen 0.65+, so isolated upgrades do not repeatedly undo the
+  compatibility pins. Revisit those exclusions as part of a coordinated Linux
+  binding migration with Ubuntu 22.04 verification.
 - Keep the macOS deployment target at 14.0 in both Cargo and Tauri bundle
   configuration. The ScreenCaptureKit Rust adapter includes a Swift bridge, so
   `build.rs` derives the active toolchain's Swift runtime library path through
