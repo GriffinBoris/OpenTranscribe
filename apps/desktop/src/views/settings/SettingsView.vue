@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import {
   FolderOpen,
   HardDrive,
@@ -12,7 +13,6 @@ import {
 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
-import AppButton from "@/components/ui/AppButton.vue";
 import ApplicationSettings from "@/views/settings/components/ApplicationSettings.vue";
 import AppearanceSettings from "@/views/settings/components/AppearanceSettings.vue";
 import DictationSettings from "@/views/settings/components/DictationSettings.vue";
@@ -23,11 +23,8 @@ import ShortcutsSettings from "@/views/settings/components/ShortcutsSettings.vue
 import StorageSettings from "@/views/settings/components/StorageSettings.vue";
 
 const { t } = useI18n();
-const activeSection = ref("dictation");
-const settingsContent = ref<HTMLElement | null>(null);
-const isContentScrolled = ref(false);
-let scrollEndTimer: number | null = null;
-let pendingNavigation: { section: string; top: number } | null = null;
+const route = useRoute();
+const activeSection = computed(() => route.hash.slice(1) || "dictation");
 const sections = [
   { id: "dictation", label: "dictation", icon: MessageSquareText },
   { id: "recording", label: "recording", icon: Volume2 },
@@ -39,99 +36,18 @@ const sections = [
   { id: "application", label: "application", icon: Settings2 },
 ];
 
-function updateActiveSection(section: string) {
-  activeSection.value = section;
-  window.history.replaceState({ ...window.history.state }, "", `#${section}`);
-}
-
 function selectSection(section: string) {
-  updateActiveSection(section);
-
-  const scrollPane = settingsContent.value!;
-  const target = document.getElementById(section)!;
-  const offset = Number.parseFloat(
-    getComputedStyle(scrollPane).getPropertyValue("--space-5"),
-  );
-  const top = Math.max(
-    0,
-    Math.min(
-      scrollPane.scrollHeight - scrollPane.clientHeight,
-      scrollPane.scrollTop +
-        target.getBoundingClientRect().top -
-        scrollPane.getBoundingClientRect().top -
-        offset,
-    ),
-  );
-
-  pendingNavigation = { section, top };
-
-  scrollPane.scrollTo({
-    behavior:
-      document.documentElement.dataset.reducedMotion === "true" ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-    top,
-  });
+  window.location.hash = section;
 }
 
-function updateContentScroll(event: Event) {
-  const scrollPane = event.currentTarget as HTMLElement;
-  isContentScrolled.value = scrollPane.scrollTop > 0;
-
-  if (scrollEndTimer !== null) {
-    window.clearTimeout(scrollEndTimer);
-  }
-
-  scrollEndTimer = window.setTimeout(() => {
-    const navigation = pendingNavigation;
-    pendingNavigation = null;
-
-    if (navigation && Math.abs(scrollPane.scrollTop - navigation.top) <= 2) {
-      updateActiveSection(navigation.section);
-      return;
-    }
-
-    const activeTarget = Array.from(
-      scrollPane.children,
-    ).reduce<HTMLElement | null>((closestTarget, child) => {
-      if (!(child instanceof HTMLElement)) {
-        return closestTarget;
-      }
-
-      if (!closestTarget) {
-        return child;
-      }
-
-      const contentTop = scrollPane.getBoundingClientRect().top;
-      const currentDistance = Math.abs(
-        child.getBoundingClientRect().top - contentTop,
-      );
-      const closestDistance = Math.abs(
-        closestTarget.getBoundingClientRect().top - contentTop,
-      );
-
-      return currentDistance < closestDistance ? child : closestTarget;
-    }, null);
-
-    if (activeTarget?.id) {
-      updateActiveSection(activeTarget.id);
-    }
-  }, 100);
-}
-
-onMounted(() => {
-  const section = window.location.hash.slice(1);
-  activeSection.value = sections.some((item) => item.id === section)
-    ? section
+onMounted(async () => {
+  await nextTick();
+  const hash = window.location.hash.slice(1);
+  const section = sections.some((item) => item.id === hash)
+    ? hash
     : "dictation";
-  void nextTick(() => selectSection(activeSection.value));
-});
-
-onBeforeUnmount(() => {
-  if (scrollEndTimer !== null) {
-    window.clearTimeout(scrollEndTimer);
-  }
+  if (section !== hash) selectSection(section);
+  document.getElementById(section)!.scrollIntoView();
 });
 </script>
 
@@ -156,45 +72,37 @@ onBeforeUnmount(() => {
         :aria-label="t('settings.sections')"
         class="settings-nav grid min-h-0 content-start gap-1 overflow-auto pr-1 max-[1000px]:auto-cols-max max-[1000px]:grid-flow-col max-[1000px]:overflow-x-auto max-[1000px]:overflow-y-hidden max-[1000px]:pr-0"
       >
-        <AppButton
+        <a
           v-for="section in sections"
           :key="section.id"
-          variant="ghost"
-          class="rounded-app-sm text-ink hover:bg-canvas-subtle [&.active]:bg-canvas-subtle w-full justify-start gap-2.5 px-2.5 py-[9px] max-[1000px]:w-auto"
+          class="rounded-app-sm text-ink hover:bg-canvas-subtle [&.active]:bg-canvas-subtle inline-flex w-full items-center justify-start gap-2.5 px-2.5 py-[9px] font-semibold max-[1000px]:w-auto"
           :class="{ active: activeSection === section.id }"
           :aria-current="activeSection === section.id ? 'location' : undefined"
-          @click="selectSection(section.id)"
+          :href="`#${section.id}`"
         >
           <component :is="section.icon" :size="16" aria-hidden="true" />
           {{ t(`settings.navigation.${section.label}`) }}
-        </AppButton>
+        </a>
       </nav>
 
       <div
-        class="settings-content-frame relative min-h-0"
-        :class="{ 'settings-content-frame--scrolled': isContentScrolled }"
+        class="settings-content grid h-full min-h-0 auto-rows-max content-start gap-4 overflow-auto pr-1"
       >
-        <div
-          ref="settingsContent"
-          class="settings-content grid h-full min-h-0 auto-rows-max content-start gap-4 overflow-auto pr-1"
-          @scroll="updateContentScroll"
-        >
-          <DictationSettings @open-models="selectSection('models')" />
+        <DictationSettings @open-models="selectSection('models')" />
 
-          <RecordingSettings />
+        <RecordingSettings />
 
-          <StorageSettings />
+        <StorageSettings />
 
-          <LocalModelsSettings />
+        <LocalModelsSettings />
 
-          <OpenAiSettings />
+        <OpenAiSettings />
 
-          <ShortcutsSettings />
+        <ShortcutsSettings />
 
-          <AppearanceSettings />
+        <AppearanceSettings />
 
-          <ApplicationSettings />
-        </div>
+        <ApplicationSettings />
       </div>
     </div>
   </div>

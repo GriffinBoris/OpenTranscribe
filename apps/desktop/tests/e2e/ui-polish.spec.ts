@@ -19,7 +19,7 @@ test("recovers an unknown settings section and opens model setup", async ({
   await expect(
     page
       .getByRole("navigation", { name: "Settings sections" })
-      .getByRole("button", { name: "Local models", exact: true }),
+      .getByRole("link", { name: "Local models", exact: true }),
   ).toHaveAttribute("aria-current", "location");
 });
 

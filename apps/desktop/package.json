@@ -1,6 +1,6 @@
 {
   "name": "open-transcribe",
-  "version": "0.1.9",
+  "version": "0.1.11",
   "private": true,
   "type": "module",
   "scripts": {
@@ -52,7 +52,7 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.65.0",
     "vite": "8.2.1",
-    "vitest": "4.1.10",
+    "vitest": "4.1.11",
     "vue-tsc": "3.3.9"
   },
   "engines": {

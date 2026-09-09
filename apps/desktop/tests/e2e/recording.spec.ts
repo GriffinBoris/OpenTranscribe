@@ -152,7 +152,7 @@ test("uses the configured transcription mode for the Home recording button", asy
     balancedModel.getByText("Installed", { exact: true }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Recording", exact: true }).click();
+  await page.getByRole("link", { name: "Recording", exact: true }).click();
   await page.getByLabel("Default recording action").click();
   await page
     .getByRole("option", { name: "Record, then transcribe locally" })
