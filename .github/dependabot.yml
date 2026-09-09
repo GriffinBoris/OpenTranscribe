@@ -9,6 +9,26 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # These bindings move together only after an Ubuntu 22.04 compatibility migration.
+    groups:
+      linux-audio-bindings:
+        patterns:
+          - pipewire
+          - pipewire-sys
+          - libspa
+          - libspa-sys
+          - bindgen
+    ignore:
+      - dependency-name: pipewire
+        versions: [">=0.7.0"]
+      - dependency-name: pipewire-sys
+        versions: [">=0.7.0"]
+      - dependency-name: libspa
+        versions: [">=0.7.0"]
+      - dependency-name: libspa-sys
+        versions: [">=0.7.0"]
+      - dependency-name: bindgen
+        versions: [">=0.65.0"]
 
   - package-ecosystem: github-actions
     directory: /
