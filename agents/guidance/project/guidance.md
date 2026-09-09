@@ -135,6 +135,11 @@ order: 0
   validation, and report support, preflight permission, and capture startup as
   distinct states.
 - Keep Tauri capabilities narrow. Do not expose an arbitrary shell, arbitrary executable paths, or broad filesystem scopes.
+- Update Tauri frontend packages and their Rust counterparts together when the
+  major or minor version changes. Cargo and frontend tests can pass with a
+  mismatched pair, but the Tauri packaging CLI refuses to build installers.
+  Run `node scripts/verify-tauri-versions.mjs` against both lockfiles before
+  merging dependency updates; quality and release validation enforce this check.
 
 ## Storage Rules
 

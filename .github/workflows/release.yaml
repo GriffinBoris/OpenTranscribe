@@ -32,7 +32,9 @@ jobs:
           cache-dependency-path: apps/desktop/package-lock.json
 
       - name: Validate tagged version
-        run: node scripts/verify-release-version.mjs
+        run: |
+          node scripts/verify-release-version.mjs
+          node scripts/verify-tauri-versions.mjs
 
       # Only a semver pre-release suffix marks a release as a pre-release.
       # Stable tags publish as full releases so the updater endpoint at

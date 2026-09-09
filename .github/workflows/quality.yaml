@@ -30,6 +30,9 @@ jobs:
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
 
+      - name: Verify Tauri frontend and native versions
+        run: node scripts/verify-tauri-versions.mjs
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
         with:
