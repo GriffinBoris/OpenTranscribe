@@ -314,6 +314,8 @@ task ci:linux:docker MODE=native-test
 
 ## Release Decisions
 
+- Repository rules require a pull request for every change to `main`, including
+  release version bumps. Merge the release PR before pushing its version tag.
 - Supported release targets are macOS 14+ arm64/x64 and Windows 10 22H2/11 x64. Linux x64/PipeWire is beta.
 - Keep CI preview packages unsigned and short-lived. Public macOS packages use
   the protected release environment's Developer ID Application identity and
