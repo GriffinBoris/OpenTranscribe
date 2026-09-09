@@ -9,7 +9,7 @@ pub struct ModelDefinition {
     pub download_url: &'static str,
 }
 
-pub const MODELS: [ModelDefinition; 3] = [
+pub const MODELS: [ModelDefinition; 4] = [
     ModelDefinition {
         id: "whisper-small-q5_1",
         preset: "fast",
@@ -39,6 +39,16 @@ pub const MODELS: [ModelDefinition; 3] = [
         byte_count: 574_041_195,
         sha256: "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
         download_url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/98aa99a0a9db05ae2342309f5096248665f7cba3/ggml-large-v3-turbo-q5_0.bin?download=true",
+    },
+    ModelDefinition {
+        id: "s1-mini-q4_k_m",
+        preset: "cleanup",
+        label: "S1-mini by Superwhisper",
+        description: "English dictation cleanup · Q4 · runs locally after transcription",
+        filename: "s1-mini-q4_k_m.gguf",
+        byte_count: 484_219_808,
+        sha256: "3b41ebe2502cbd03e811d5d16b022f5ab551eda58d62597d152f89535003c634",
+        download_url: "https://huggingface.co/superwhisper/s1-mini-GGUF/resolve/34add00a48a2e5d24e5a4ee5405a99620a3a240c/s1-mini-q4_k_m.gguf?download=true",
     },
 ];
 

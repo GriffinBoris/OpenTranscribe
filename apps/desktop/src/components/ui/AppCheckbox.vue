@@ -6,9 +6,11 @@ withDefaults(
     modelValue: boolean;
     accessibleLabel: string;
     disabled?: boolean;
+    indeterminate?: boolean;
   }>(),
   {
     disabled: false,
+    indeterminate: false,
   },
 );
 
@@ -33,6 +35,7 @@ const checkboxParts = {
       unstyled
       binary
       :model-value="modelValue"
+      :indeterminate="indeterminate"
       :aria-label="accessibleLabel"
       :disabled="disabled"
       :pt="checkboxParts"

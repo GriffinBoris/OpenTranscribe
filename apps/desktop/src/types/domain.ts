@@ -110,7 +110,7 @@ export interface UpdateDownloadProgress {
 
 export interface LocalModel {
   id: string;
-  preset: "fast" | "balanced" | "best";
+  preset: "fast" | "balanced" | "best" | "cleanup";
   label: string;
   description: string;
   byte_count: number;

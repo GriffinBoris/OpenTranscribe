@@ -73,6 +73,7 @@ const projectLabel = computed(
   >
     <div class="flex min-w-0 items-center gap-3 overflow-hidden">
       <h1
+        :title="session?.title"
         class="min-w-0 flex-1 overflow-hidden text-3xl leading-[var(--line-height-heading)] font-bold tracking-[-0.02em] text-ellipsis whitespace-nowrap"
       >
         {{ session?.title ?? t("session.untitledRecording") }}
@@ -83,6 +84,7 @@ const projectLabel = computed(
           size="small"
           variant="ghost"
           :aria-label="t('session.rename.action')"
+          :title="t('session.rename.action')"
           @click="emit('rename')"
         >
           <Pencil :size="15" />
@@ -92,6 +94,7 @@ const projectLabel = computed(
           size="small"
           variant="ghost"
           :aria-label="t('session.moveProject.action')"
+          :title="t('session.moveProject.action')"
           :disabled="recording || movingSession"
           @click="moveOpen = true"
         >
@@ -102,6 +105,7 @@ const projectLabel = computed(
           size="small"
           variant="ghost"
           :aria-label="t('session.export')"
+          :title="t('session.export')"
           @click="exportOpen = true"
         >
           <Download :size="16" />
@@ -113,10 +117,11 @@ const projectLabel = computed(
         ></span>
         <AppButton
           v-if="!recording"
-          class="shrink-0"
+          class="text-ink-muted hover:text-accent shrink-0"
           size="small"
-          variant="danger"
+          variant="ghost"
           :aria-label="t('session.trash.action')"
+          :title="t('session.trash.action')"
           @click="emit('trash')"
         >
           <Trash2 :size="16" />

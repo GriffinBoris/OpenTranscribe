@@ -1,0 +1,16 @@
+[package]
+name = "opentranscribe-text-normalizer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+encoding_rs = "=0.8.35"
+opentranscribe-transcriber-protocol = { path = "../../crates/transcriber-protocol" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+llama-cpp-2 = { version = "=0.1.156", default-features = false, features = ["metal"] }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+llama-cpp-2 = { version = "=0.1.156", default-features = false }

@@ -29,6 +29,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(AppState::default())
         .setup(|app| {
+            dictation::clear_temporary_recordings(app.handle())?;
             app_menu::setup(app)?;
             tray::setup(app)?;
             Ok(())
@@ -67,6 +68,7 @@ pub fn run() {
         .on_menu_event(app_menu::handle_menu_event)
         .invoke_handler(tauri::generate_handler![
             commands::application::bootstrap,
+            commands::application::ensure_application_idle,
             commands::application::save_settings,
             commands::application::reset_application_settings,
             commands::application::delete_all_application_data,
@@ -99,8 +101,9 @@ pub fn run() {
             commands::credentials::remove_openai_api_key,
             commands::credentials::test_openai_connection,
             commands::dictation::toggle_dictation,
+            commands::dictation::retry_dictation,
+            commands::dictation::dictation_settings,
             commands::dictation::dictation_status,
-            commands::dictation::dictation_shortcut,
             commands::dictation::dictation_history,
             commands::dictation::clear_dictation_history,
             commands::dictation::cancel_dictation,

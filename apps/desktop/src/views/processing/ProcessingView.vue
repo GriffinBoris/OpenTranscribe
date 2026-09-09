@@ -5,7 +5,6 @@ import { useI18n } from "vue-i18n";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppEmptyState from "@/components/ui/AppEmptyState.vue";
 import AppProgressBar from "@/components/ui/AppProgressBar.vue";
-import AppSurface from "@/components/ui/AppSurface.vue";
 import StatusPill from "@/components/ui/StatusPill.vue";
 import type { Job } from "@/types/domain";
 import { useApplicationStore } from "@/views/application/applicationStore";
@@ -98,9 +97,8 @@ function estimateDetails(job: Job) {
       </h1>
     </header>
 
-    <AppSurface
+    <section
       class="processing-page__jobs grid min-h-0 grid-rows-[minmax(0,1fr)]"
-      :padded="false"
     >
       <div class="processing-page__scroll min-h-0 overflow-auto">
         <template v-if="application.activeJobs.length">
@@ -130,11 +128,16 @@ function estimateDetails(job: Job) {
                 :size="18"
                 class="shrink-0 animate-[spin_1.4s_linear_infinite]"
               />
-              <span class="grid min-w-0 gap-1"
-                ><strong class="truncate">{{
-                  sessionTitle(job.session_id)
-                }}</strong
-                ><small
+              <span class="grid min-w-0 gap-1">
+                <RouterLink
+                  v-if="job.session_id"
+                  :to="`/sessions/${job.session_id}`"
+                  class="truncate font-semibold hover:underline"
+                  :title="sessionTitle(job.session_id)"
+                  >{{ sessionTitle(job.session_id) }}</RouterLink
+                >
+                <strong v-else>{{ sessionTitle(job.session_id) }}</strong>
+                <small
                   :class="job.error_message ? 'text-[var(--warning)]' : ''"
                   >{{ job.error_message ?? jobKind(job) }}</small
                 ></span
@@ -182,7 +185,10 @@ function estimateDetails(job: Job) {
               >
                 {{ t("processing.status") }}
               </span>
-              <StatusPill tone="neutral">{{ jobState(job) }}</StatusPill>
+              <StatusPill
+                :tone="job.state === 'failed' ? 'warning' : 'neutral'"
+                >{{ jobState(job) }}</StatusPill
+              >
               <AppButton
                 v-if="job.state === 'failed'"
                 size="small"
@@ -215,6 +221,6 @@ function estimateDetails(job: Job) {
           <template #icon><CircleCheck :size="21" /></template>
         </AppEmptyState>
       </div>
-    </AppSurface>
+    </section>
   </div>
 </template>

@@ -45,3 +45,8 @@ clear shared role; do not create aliases for every pixel value.
 
 Theme-dependent colors belong only in `tokens.css`. Components should consume
 semantic color tokens or derive a state with `color-mix()` from those tokens.
+
+Button variants own their border colors. Keep shared border width on the base
+component, but do not pair a base `border-transparent` with a variant's
+`border-line`; utility ordering can hide the secondary button outline. Selected
+navigation styles must likewise take precedence over the ghost button background.

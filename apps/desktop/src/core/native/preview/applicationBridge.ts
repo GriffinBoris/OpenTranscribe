@@ -1,3 +1,4 @@
+import { previewDictationBridge } from "@/core/native/preview/dictationBridge";
 import type { NativeBridge } from "@/core/native/NativeBridge";
 import {
   currentRecordingStatus,
@@ -5,13 +6,7 @@ import {
   previewState,
 } from "@/core/native/preview/previewState";
 import { i18n } from "@/i18n";
-import type {
-  AppSettings,
-  AudioDevices,
-  DictationHistoryEntry,
-  DictationStatus,
-  SearchFilters,
-} from "@/types/domain";
+import type { AppSettings, AudioDevices, SearchFilters } from "@/types/domain";
 
 const { t } = i18n.global;
 
@@ -33,9 +28,10 @@ type ApplicationBridge = Pick<
   | "audioDevices"
   | "openSystemAudioPermissionSettings"
   | "configureGlobalShortcut"
+  | "retryDictation"
+  | "dictationSettings"
   | "toggleDictation"
   | "dictationStatus"
-  | "dictationShortcut"
   | "dictationHistory"
   | "clearDictationHistory"
   | "cancelDictation"
@@ -69,12 +65,13 @@ export const previewApplicationBridge = {
       microphone_echo_cancellation: false,
       recording_project_selection: { kind: "automatic" },
       global_shortcut_enabled: false,
-      dictation_shortcut_enabled: true,
+      dictation_shortcut_enabled: false,
       dictation_shortcut: "Alt+Space",
       dictation_provider: "local",
       dictation_local_model_id: null,
       dictation_openai_model: "gpt_transcribe",
       dictation_auto_paste: true,
+      dictation_cleanup_enabled: false,
       appearance: { theme: "system", reduced_motion: false },
     };
     previewState.settings = settings;
@@ -243,66 +240,7 @@ export const previewApplicationBridge = {
     }
   },
 
-  async toggleDictation(): Promise<DictationStatus> {
-    const isRecording = previewState.dictationStatus.phase === "recording";
-    previewState.dictationStatus = isRecording
-      ? {
-          ...previewState.dictationStatus,
-          phase: "completed",
-          text: "Preview dictation.",
-          auto_pasted: true,
-          approximate_cost_usd: null,
-        }
-      : {
-          id: crypto.randomUUID(),
-          phase: "recording",
-          provider: previewState.settings.dictation_provider ?? "local",
-          text: null,
-          error_message: null,
-          elapsed_ms: 0,
-          microphone_peak: 0.58,
-          auto_pasted: false,
-          approximate_cost_usd: null,
-        };
-    previewState.dictationStatusListener?.(previewState.dictationStatus);
-    return previewState.dictationStatus;
-  },
-
-  async dictationStatus(): Promise<DictationStatus> {
-    return previewState.dictationStatus;
-  },
-
-  async dictationShortcut() {
-    return previewState.settings.dictation_shortcut ?? "Alt+Space";
-  },
-
-  async dictationHistory(): Promise<DictationHistoryEntry[]> {
-    return [];
-  },
-
-  async clearDictationHistory() {},
-
-  async cancelDictation(): Promise<DictationStatus> {
-    previewState.dictationStatus = {
-      id: null,
-      phase: "idle",
-      provider: null,
-      text: null,
-      error_message: null,
-      elapsed_ms: 0,
-      microphone_peak: 0,
-      auto_pasted: false,
-      approximate_cost_usd: null,
-    };
-    previewState.dictationStatusListener?.(previewState.dictationStatus);
-    return previewState.dictationStatus;
-  },
-
-  async dismissDictation() {},
-
-  async subscribeDictationStatus(onStatus) {
-    previewState.dictationStatusListener = onStatus;
-  },
+  ...previewDictationBridge,
 
   async subscribe(onEvent) {
     previewState.appEventListener = onEvent;
