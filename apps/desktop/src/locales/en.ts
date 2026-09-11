@@ -209,7 +209,7 @@ export const messages = {
         "Install a speech model in Local models, then choose it here.",
       cleanupTitle: "Clean up dictation",
       cleanupDescription:
-        "S1-mini by Superwhisper removes fillers and tidies English text after transcription. Runs locally; your original words stay in history.",
+        "S1-mini by Superwhisper cleans English text after Whisper or OpenAI transcribes your speech. It cannot transcribe audio on its own. Runs locally; your original words stay in history.",
       cleanupDownload: "Download S1-mini · 484 MB",
       cleanupDownloading: "Downloading S1-mini…",
       title: "Dictation",
@@ -222,8 +222,10 @@ export const messages = {
       provider: "Transcription provider",
       local: "Local",
       openAi: "OpenAI",
-      localModel: "Local model",
-      chooseLocalModel: "Choose an installed model",
+      localModel: "Speech recognition model",
+      localModelDescription:
+        "Choose Whisper to turn audio into text. Enable S1-mini below to clean up that text.",
+      chooseLocalModel: "Choose an installed speech model",
       openAiModel: "OpenAI model",
       autoPaste: "Paste automatically",
       autoPasteDescription:

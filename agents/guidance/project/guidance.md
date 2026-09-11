@@ -100,6 +100,12 @@ order: 0
   retryable run; discard, replacement, and app restart clear it. Save recognized
   words before optional cleanup, preserve the raw transcript, and treat empty
   cleanup output as valid. Keep copied results and delivery failures visible.
+- Reposition the dictation panel for each new capture, including when an older
+  copied result is still visible. On macOS, use AppKit screen, pointer, and window
+  coordinates together so mixed display scale factors cannot select the wrong
+  monitor. Order the panel front without making it key: activating it steals
+  the original app and prevents the focus-checked automatic paste. Keep failed
+  or copy-only results visible without repositioning an already visible panel.
 - Model removal/moves, reset, and update checks must include dictation work.
   Release idle worker processes before moving or deleting model artifacts.
 - Build the macOS sidecar with Whisper Metal support and explicitly request its GPU path. Keep Windows and Linux acceleration as opt-in target variants rather than universally enabling CUDA or Vulkan, because those backends impose hardware- and SDK-specific build requirements that would make ordinary cross-platform installs unreliable.

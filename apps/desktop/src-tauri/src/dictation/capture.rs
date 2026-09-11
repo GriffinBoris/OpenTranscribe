@@ -45,7 +45,7 @@ pub(super) fn start(app: tauri::AppHandle, state: &AppState) -> AppResult<Dictat
         history::remove_recovery_directory(&directory, "failed");
         return Err(error);
     }
-    if let Err(error) = panel::show(&app) {
+    if let Err(error) = panel::show(&app, true) {
         let _ = state.recorder.stop();
         history::remove_recovery_directory(&directory, "failed");
         return Err(error);

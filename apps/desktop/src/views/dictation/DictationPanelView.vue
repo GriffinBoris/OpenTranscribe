@@ -77,6 +77,7 @@ async function refreshPreferences() {
 
 function applyStatus(next: DictationStatus) {
   const changed = status.value.phase !== next.phase;
+  if (status.value.id !== next.id || changed) errorMessage.value = null;
   status.value = next;
   if (changed) {
     void refreshPreferences();

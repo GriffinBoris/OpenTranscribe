@@ -106,7 +106,7 @@ pub(super) async fn run(
     publish_status(&state);
     if auto_pasted {
         panel::hide(&app);
-    } else if let Err(error) = panel::show(&app) {
+    } else if let Err(error) = panel::show(&app, false) {
         log::warn!("could not show dictation result: {error}");
     }
 }
