@@ -64,7 +64,7 @@ test("keeps settings controls inside the minimum desktop window", async ({
   await page.setViewportSize({ width: 900, height: 640 });
   await page.goto("/settings");
   const model = page.getByRole("combobox", {
-    name: "Local model",
+    name: "Speech recognition model",
     exact: true,
   });
   await expect(model).toBeVisible();

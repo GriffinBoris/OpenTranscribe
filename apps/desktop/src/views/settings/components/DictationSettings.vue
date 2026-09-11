@@ -287,7 +287,10 @@ onBeforeUnmount(() => {
       v-if="provider === 'local'"
       class="grid grid-cols-[minmax(160px,1fr)_minmax(220px,1.3fr)] items-center gap-5 border-t border-[var(--divider)] py-3 max-[700px]:grid-cols-1"
     >
-      <span>{{ t("settings.dictation.localModel") }}</span>
+      <span class="grid gap-1">
+        <strong>{{ t("settings.dictation.localModel") }}</strong>
+        <small>{{ t("settings.dictation.localModelDescription") }}</small>
+      </span>
       <AppSelect
         :model-value="localModel"
         :options="localModelOptions"

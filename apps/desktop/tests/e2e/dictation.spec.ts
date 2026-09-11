@@ -84,8 +84,11 @@ test("offers S1-mini separately from speech models and shows missing setup", asy
   await expect(
     page.getByRole("switch", { name: "Clean up dictation", exact: true }),
   ).toBeChecked();
+  await expect(
+    page.getByText(/It cannot transcribe audio on its own/),
+  ).toBeVisible();
   await page
-    .getByRole("combobox", { name: "Local model", exact: true })
+    .getByRole("combobox", { name: "Speech recognition model", exact: true })
     .click();
   await expect(
     page.getByRole("option", { name: "S1-mini by Superwhisper" }),

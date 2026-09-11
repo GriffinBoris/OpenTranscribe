@@ -18,8 +18,11 @@ completed recordings locally or with an OpenAI API key.
 ### Dictation and optional S1-mini cleanup
 
 Choose a speech model in **Settings → Dictation**, then start from the Dictation
-page or enable its global shortcut. The compact panel shows recording,
-transcription, and delivery status. Cancel stops pending delivery; a failed run
+page or enable its global shortcut. Press the shortcut once to start and again
+to stop and transcribe. Each new dictation places the compact panel on the
+display containing your pointer. On macOS, it appears without taking focus
+from the app you are typing in. The panel shows recording, transcription, and
+delivery status. Cancel stops pending delivery; a failed run
 offers Retry and keeps its audio until discarded, replaced, or the app restarts.
 
 For English dictation, download **S1-mini by Superwhisper** (484 MB) under
@@ -27,7 +30,18 @@ For English dictation, download **S1-mini by Superwhisper** (484 MB) under
 by your selected Whisper or OpenAI speech model, removing fillers and applying
 spoken corrections. Cleanup runs locally and preserves the original transcript
 in history. It is optional and supports up to 1,000 input tokens per dictation.
-Using OpenAI for speech recognition still sends audio to OpenAI.
+Using OpenAI for speech recognition still sends audio to OpenAI. S1-mini is a
+text cleanup model, so it appears under **Clean up dictation**, not in the
+**Speech recognition model** selector. For fully local dictation, install and
+select a Whisper model, then optionally enable S1-mini.
+
+Enable **Paste automatically** to paste into the original app and dismiss the
+panel after transcription and optional cleanup finish. Keep that app active
+until completion. On macOS, OpenTranscribe also needs **Accessibility** access.
+If automatic paste is disabled, access is denied, or you switch apps, the text
+is copied and the panel stays open so you can paste manually. Linux currently
+uses copy only. If paste stops working after replacing an unsigned build, follow
+the [permission reset steps](#macos-reset-permissions-after-reinstalling-an-unsigned-build).
 
 ### Screenshots
 
@@ -103,8 +117,13 @@ go to Privacy & Security, and choose Open Anyway for OpenTranscribe, or clear
 the quarantine attribute after moving the app into place.
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/OpenTranscribe.app
+/usr/bin/xattr -d -r com.apple.quarantine "/Applications/OpenTranscribe.app"
 ```
+
+Use lowercase `-r` (recursive), not uppercase `-R`. The full `/usr/bin/xattr`
+path selects Apple’s utility even if Python or another tool installed a different
+`xattr` on your PATH. This removes the launch quarantine only; for microphone,
+screen recording, or automatic-paste permissions, use the reset steps below.
 
 **Windows** installers are unsigned, so SmartScreen shows a warning on first
 run. Choose More info, then Run anyway. Nothing degrades on later updates.
