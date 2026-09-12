@@ -25,7 +25,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppSurface id="openai">
+  <AppSurface id="settings-openai">
     <div
       class="section-heading flex items-start justify-between gap-4 border-b border-[var(--divider)] pb-3.5"
     >

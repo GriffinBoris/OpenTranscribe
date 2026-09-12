@@ -66,7 +66,7 @@ async function deleteAllData() {
 </script>
 
 <template>
-  <AppSurface id="application">
+  <AppSurface id="settings-application">
     <div class="border-b border-[var(--divider)] pb-3.5">
       <h2 class="mb-[5px] text-2xl">
         {{ t("settings.application.title") }}

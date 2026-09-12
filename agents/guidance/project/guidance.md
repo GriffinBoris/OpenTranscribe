@@ -262,6 +262,10 @@ order: 0
   a supported non-text key. Prevent a new Dictation run while the previous one
   is transcribing, and snapshot its provider, model, and delivery preferences
   before capture so a later settings change cannot alter the active run.
+- Settings section navigation owns only the settings scroll pane. Keep route
+  fragments separate from DOM element IDs and use router navigation plus explicit
+  pane scrolling so background model-download layout updates cannot reapply a
+  browser fragment anchor. Progress updates must not trigger section scrolling.
 - Route pages fill the available main pane with adaptive horizontal gutters.
   Do not center the whole utility workspace inside a fixed desktop max-width;
   constrain only genuinely prose-heavy content when readability requires it.

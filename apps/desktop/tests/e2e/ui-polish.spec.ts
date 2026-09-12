@@ -9,7 +9,7 @@ test("recovers an unknown settings section and opens model setup", async ({
     page.getByRole("heading", { name: "Dictation", exact: true }),
   ).toBeVisible();
   await page
-    .locator("#dictation")
+    .locator("#settings-dictation")
     .getByRole("button", { name: "Browse models", exact: true })
     .click();
   await expect(page).toHaveURL(/#models$/);

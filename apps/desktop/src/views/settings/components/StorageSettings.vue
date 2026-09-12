@@ -10,7 +10,7 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <AppSurface id="storage">
+  <AppSurface id="settings-storage">
     <div class="border-b border-[var(--divider)] pb-3.5">
       <div>
         <h2 class="mb-[5px] text-2xl">
