@@ -137,7 +137,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppSurface id="recording">
+  <AppSurface id="settings-recording">
     <div class="border-b border-[var(--divider)] pb-3.5">
       <div>
         <h2 class="mb-[5px] text-2xl">

@@ -6,7 +6,9 @@ test("shows storage and shortcut utilities in settings", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Storage" })).toBeVisible();
   await expect(page.getByText("~/Documents/OpenTranscribe")).toBeVisible();
   await expect(
-    page.locator("#storage").getByRole("button", { name: "Change folder" }),
+    page
+      .locator("#settings-storage")
+      .getByRole("button", { name: "Change folder" }),
   ).toBeVisible();
 
   await page.getByRole("link", { name: "Shortcuts" }).click();
@@ -14,7 +16,7 @@ test("shows storage and shortcut utilities in settings", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Shortcuts" })).toBeVisible();
   await expect(
     page
-      .locator("#shortcuts .section-heading")
+      .locator("#settings-shortcuts .section-heading")
       .getByText(
         "Control recording from anywhere and review shortcuts available in the app.",
       ),
@@ -29,7 +31,7 @@ test("shows storage and shortcut utilities in settings", async ({ page }) => {
   await page.keyboard.press("Space");
   await expect(page.getByLabel("Global recording shortcut")).toBeVisible();
   await expect(
-    page.locator("#shortcuts").getByText("Active", { exact: true }),
+    page.locator("#settings-shortcuts").getByText("Active", { exact: true }),
   ).toBeVisible();
 
   await page.evaluate(() => {
@@ -127,7 +129,7 @@ test("keeps Dictation shortcut registration separate from recording", async ({
   await expect(page.getByRole("heading", { name: "Dictation" })).toBeVisible();
   await expect(
     page
-      .locator("#dictation")
+      .locator("#settings-dictation")
       .getByText("Choose a speech model", { exact: true }),
   ).toBeVisible();
 
@@ -135,7 +137,7 @@ test("keeps Dictation shortcut registration separate from recording", async ({
   await page.getByRole("link", { name: "Shortcuts" }).click();
   await page.getByRole("switch", { name: "Record from anywhere" }).click();
   await expect(
-    page.locator("#shortcuts").getByText("Active", { exact: true }),
+    page.locator("#settings-shortcuts").getByText("Active", { exact: true }),
   ).toBeVisible();
 
   await page.evaluate(() => {
@@ -183,7 +185,9 @@ test("surfaces a replacement shortcut registration failure after capture closes"
   ).not.toBeVisible();
   await expect(shortcutButton).toContainText("K");
   await expect(
-    page.locator("#shortcuts").getByText("Unavailable", { exact: true }),
+    page
+      .locator("#settings-shortcuts")
+      .getByText("Unavailable", { exact: true }),
   ).toBeVisible();
 
   await page.evaluate(() => {
@@ -214,7 +218,7 @@ test("keeps an active local-model download from being started twice", async ({
 test("confirms and updates the local model folder", async ({ page }) => {
   await page.goto("/settings#models");
 
-  const models = page.locator("#models");
+  const models = page.locator("#settings-models");
   await expect(models).toContainText(
     "/Users/you/Documents/OpenTranscribe/models",
   );
@@ -252,7 +256,7 @@ test("reviews a signed application update before downloading it", async ({
     "/settings?updater=enabled&update=available&resetReady=1#application",
   );
 
-  const applicationSettings = page.locator("#application");
+  const applicationSettings = page.locator("#settings-application");
   await expect(applicationSettings).toContainText(
     "Version 0.1.2 is available.",
   );
@@ -384,14 +388,14 @@ test("uses quieter one-pixel dividers in settings", async ({ page }) => {
   expect(dividerStyle.color).not.toBe(controlStyle.color);
 });
 
-test("uses standard anchor navigation for settings sections", async ({
+test("navigates settings sections without native fragment scrolling", async ({
   page,
 }) => {
   await page.goto("/settings#storage");
 
   await expect
     .poll(() =>
-      page.locator("#storage").evaluate((section) => {
+      page.locator("#settings-storage").evaluate((section) => {
         const scrollPane = document.querySelector(".settings-content");
         if (!scrollPane) {
           return false;
@@ -420,7 +424,7 @@ test("uses standard anchor navigation for settings sections", async ({
     await expect(page).toHaveURL(new RegExp(`#${id}$`));
     await expect
       .poll(() =>
-        page.locator(`#${id}`).evaluate((section) => {
+        page.locator(`#settings-${id}`).evaluate((section) => {
           const scrollPane = document.querySelector(".settings-content");
           if (!scrollPane) {
             return false;
@@ -444,7 +448,7 @@ test("uses standard anchor navigation for settings sections", async ({
 
   await expect
     .poll(() =>
-      page.locator("#recording").evaluate((section) => {
+      page.locator("#settings-recording").evaluate((section) => {
         const scrollPane = document.querySelector(".settings-content");
         if (!scrollPane) {
           return false;
@@ -459,6 +463,19 @@ test("uses standard anchor navigation for settings sections", async ({
       }),
     )
     .toBe(true);
+  await page.goBack();
+  await expect(page).toHaveURL(/#application$/);
+  await expect(
+    page.getByRole("button", { name: "Reset settings…", exact: true }),
+  ).toBeInViewport();
+  await page.goForward();
+  await expect(page).toHaveURL(/#recording$/);
+  await expect(
+    page.getByRole("combobox", {
+      name: "Default recording action",
+      exact: true,
+    }),
+  ).toBeInViewport();
 });
 
 test("keeps route scrolling inside each workspace", async ({ page }) => {
@@ -495,11 +512,13 @@ test("surfaces a global shortcut registration conflict", async ({ page }) => {
   await page.keyboard.press("Space");
 
   await expect(
-    page.locator("#shortcuts").getByText("Unavailable", { exact: true }),
+    page
+      .locator("#settings-shortcuts")
+      .getByText("Unavailable", { exact: true }),
   ).toBeVisible();
   await expect(
     page
-      .locator("#shortcuts")
+      .locator("#settings-shortcuts")
       .getByText(
         "This shortcut could not be registered: This shortcut is already in use.",
       ),
@@ -612,4 +631,33 @@ test("keeps inline form controls on the medium design-token tier", async ({
       Number.parseFloat(mediumControlHeight),
       Number.parseFloat(mediumControlHeight),
     ]);
+});
+
+test("keeps the user's settings scroll position during model download updates", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.goto("/settings#models");
+  await page
+    .getByRole("group", { name: "Fast", exact: true })
+    .getByRole("button", { name: "Download", exact: true })
+    .click();
+  await page.clock.runFor(300);
+  const pane = page.locator(".settings-content");
+  await pane.evaluate((element) => {
+    element.scrollTop = 2400;
+  });
+  const position = await pane.evaluate((element) => element.scrollTop);
+  expect(position).toBeGreaterThan(0);
+  for (let update = 0; update < 2; update += 1) {
+    await page.clock.runFor(600);
+    await expect
+      .poll(() => pane.evaluate((element) => element.scrollTop))
+      .toBe(position);
+  }
+  await expect(page.getByTestId("global-model-download")).toContainText("72%");
+  await page.getByRole("link", { name: "Local models", exact: true }).click();
+  await expect
+    .poll(() => pane.evaluate((element) => element.scrollTop))
+    .not.toBe(position);
 });

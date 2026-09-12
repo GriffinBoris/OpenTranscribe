@@ -47,7 +47,7 @@ async function updateReducedMotion(value: boolean) {
 </script>
 
 <template>
-  <AppSurface id="appearance">
+  <AppSurface id="settings-appearance">
     <div class="border-b border-[var(--divider)] pb-3.5">
       <h2 class="mb-[5px] text-2xl">
         {{ t("settings.navigation.appearance") }}

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import {
   FolderOpen,
   HardDrive,
@@ -24,7 +24,13 @@ import StorageSettings from "@/views/settings/components/StorageSettings.vue";
 
 const { t } = useI18n();
 const route = useRoute();
-const activeSection = computed(() => route.hash.slice(1) || "dictation");
+const router = useRouter();
+const content = ref<HTMLElement | null>(null);
+const activeSection = computed(() =>
+  sections.some((section) => section.id === route.hash.slice(1))
+    ? route.hash.slice(1)
+    : "dictation",
+);
 const sections = [
   { id: "dictation", label: "dictation", icon: MessageSquareText },
   { id: "recording", label: "recording", icon: Volume2 },
@@ -36,19 +42,34 @@ const sections = [
   { id: "application", label: "application", icon: Settings2 },
 ];
 
-function selectSection(section: string) {
-  window.location.hash = section;
+function scrollToSection() {
+  const pane = content.value!;
+  const section = pane.querySelector<HTMLElement>(
+    `#settings-${activeSection.value}`,
+  )!;
+  pane.scrollTop +=
+    section.getBoundingClientRect().top - pane.getBoundingClientRect().top;
 }
 
-onMounted(async () => {
+function selectSection(section: string) {
+  if (route.hash === `#${section}`) {
+    scrollToSection();
+    return;
+  }
+  void router.push({ hash: `#${section}` });
+}
+
+async function navigateToSection() {
+  if (route.hash !== `#${activeSection.value}`) {
+    await router.replace({ hash: `#${activeSection.value}` });
+    return;
+  }
   await nextTick();
-  const hash = window.location.hash.slice(1);
-  const section = sections.some((item) => item.id === hash)
-    ? hash
-    : "dictation";
-  if (section !== hash) selectSection(section);
-  document.getElementById(section)!.scrollIntoView();
-});
+  scrollToSection();
+}
+
+onMounted(navigateToSection);
+watch(() => route.hash, navigateToSection, { flush: "post" });
 </script>
 
 <template>
@@ -72,20 +93,22 @@ onMounted(async () => {
         :aria-label="t('settings.sections')"
         class="settings-nav grid min-h-0 content-start gap-1 overflow-auto pr-1 max-[1000px]:auto-cols-max max-[1000px]:grid-flow-col max-[1000px]:overflow-x-auto max-[1000px]:overflow-y-hidden max-[1000px]:pr-0"
       >
-        <a
+        <RouterLink
           v-for="section in sections"
           :key="section.id"
           class="rounded-app-sm text-ink hover:bg-canvas-subtle [&.active]:bg-canvas-subtle inline-flex w-full items-center justify-start gap-2.5 px-2.5 py-[9px] font-semibold max-[1000px]:w-auto"
           :class="{ active: activeSection === section.id }"
           :aria-current="activeSection === section.id ? 'location' : undefined"
-          :href="`#${section.id}`"
+          :to="{ hash: `#${section.id}` }"
+          @click="route.hash === `#${section.id}` && scrollToSection()"
         >
           <component :is="section.icon" :size="16" aria-hidden="true" />
           {{ t(`settings.navigation.${section.label}`) }}
-        </a>
+        </RouterLink>
       </nav>
 
       <div
+        ref="content"
         class="settings-content grid h-full min-h-0 auto-rows-max content-start gap-4 overflow-auto pr-1"
       >
         <DictationSettings @open-models="selectSection('models')" />

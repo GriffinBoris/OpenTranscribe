@@ -123,7 +123,7 @@ To inspect the script or select a version/destination:
 curl -fsSL https://raw.githubusercontent.com/GriffinBoris/OpenTranscribe/main/scripts/install.sh -o install.sh
 less install.sh
 bash install.sh --dry-run
-bash install.sh --version v0.1.14 --directory "$HOME/Applications"
+bash install.sh --version v0.1.15 --directory "$HOME/Applications"
 ```
 
 `--dry-run` resolves the release without installing. Use a writable directory;
