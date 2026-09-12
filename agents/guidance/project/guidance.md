@@ -350,6 +350,11 @@ task ci:linux:docker MODE=native-test
   22.04 and Ubuntu 24.04 must never reuse compiled build scripts because their
   GLIBC baselines differ, and dependency updates must never restore stale build
   scripts; registry downloads can still remain shared through Cargo's cache.
+- Keep the curl installer self-contained. Resolve official release assets by
+  exact platform/architecture and verify GitHub asset SHA-256 digests before
+  replacing an installation. Stage replacements on the destination filesystem,
+  preserve the previous app on failure, and keep permission resets separate.
+  Installer tests run with `python3 -m unittest discover -s scripts/tests`.
 - Public releases are dual licensed under MIT OR Apache-2.0.
 - Do not publish updater metadata until every intended artifact and updater signature is available.
 - Preserve the updater signing key for the lifetime of every updater-enabled

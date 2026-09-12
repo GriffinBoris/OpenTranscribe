@@ -102,7 +102,35 @@ smoke-tested before signing is configured.
 
 ## Installing a release
 
-Download the installer for your platform from the releases page.
+Download the installer for your platform from the releases page, or use the
+terminal installer on **macOS or Linux x64** (requires Python 3.9+ and curl):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/GriffinBoris/OpenTranscribe/main/scripts/install.sh | bash
+```
+
+Quit OpenTranscribe first. The script selects the latest stable release and the
+correct architecture (including Apple silicon when Terminal runs under Rosetta),
+verifies the download against GitHub's SHA-256 asset digest, and installs it in
+`/Applications/OpenTranscribe.app` on macOS or `~/Applications/OpenTranscribe.AppImage`
+on Linux. It preserves recordings, settings, downloaded models, and the normal
+in-app updater. It does not launch the app, reset permissions, or remove quarantine.
+Windows users should use the EXE or MSI from the releases page.
+
+To inspect the script or select a version/destination:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/GriffinBoris/OpenTranscribe/main/scripts/install.sh -o install.sh
+less install.sh
+bash install.sh --dry-run
+bash install.sh --version v0.1.14 --directory "$HOME/Applications"
+```
+
+`--dry-run` resolves the release without installing. Use a writable directory;
+the script never invokes `sudo`. Open the installed application to finish setup.
+If an interrupted install leaves a `.OpenTranscribe.app.previous` or
+`.OpenTranscribe.AppImage.previous` backup beside the application, recover or move
+that backup before retrying.
 
 **macOS** ships a separate DMG per architecture: `aarch64` for Apple Silicon
 and `x86_64` for Intel. Drag OpenTranscribe to Applications and open it from
@@ -134,8 +162,9 @@ system-output capture. Mark the AppImage executable before running it.
 
 ## Updating a release
 
-OpenTranscribe checks the signed release manifest on startup and only downloads
-an update after you select **Update**. It waits until recordings, processing,
+The terminal installer uses official release artifacts, so in-app updates work
+the same as after a manual installation. OpenTranscribe checks the release manifest on startup and only downloads
+an update after you select **Update**. Downloaded update payloads are signature-verified. It waits until recordings, processing,
 and model downloads finish.
 
 - **macOS:** Run the copy in Applications. A mounted disk image is read-only,
@@ -159,9 +188,9 @@ dictation. If this happens after a reinstall or update:
 3. Open Terminal and run:
 
    ```bash
-   tccutil reset Microphone com.griffinboris.opentranscribe
-   tccutil reset ScreenCapture com.griffinboris.opentranscribe
-   tccutil reset Accessibility com.griffinboris.opentranscribe
+   /usr/bin/tccutil reset Microphone com.griffinboris.opentranscribe
+   /usr/bin/tccutil reset ScreenCapture com.griffinboris.opentranscribe
+   /usr/bin/tccutil reset Accessibility com.griffinboris.opentranscribe
    ```
 
    These reset only OpenTranscribe's microphone, Screen & System Audio Recording,

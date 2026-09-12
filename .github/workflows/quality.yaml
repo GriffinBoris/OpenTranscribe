@@ -61,6 +61,11 @@ jobs:
         run: npm run prepare:sidecar:debug
         working-directory: apps/desktop
 
+      - name: Check installer
+        run: |
+          bash -n scripts/install.sh
+          python3 -m unittest discover -s scripts/tests
+
       - name: Verify generated domain contracts
         run: |
           npm run types:generate
