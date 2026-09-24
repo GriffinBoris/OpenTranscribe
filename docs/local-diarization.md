@@ -157,3 +157,9 @@ platform CI and packaged-app smoke tests. On Linux with Docker available, use
 `task ci:linux:docker MODE=native-test`. On Windows, prepare both sidecars with
 `node scripts/prepare-sidecar.mjs`, then run workspace tests and the inference
 tests above. The existing S1-mini opt-in model test is unrelated to diarization.
+
+The manually dispatched `Packaged Diarization Smoke` workflow takes a successful
+`Native Compile` run ID and tests the worker extracted from that run's Linux
+`.deb` on native Ubuntu 22.04. It verifies the pinned model hash and runs
+speaker recognition twice without loading Whisper, using generated eSpeak
+speech. This checks packaged runtime compatibility, not speaker accuracy.
