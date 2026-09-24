@@ -3683,7 +3683,7 @@ dependencies = [
 
 [[package]]
 name = "opentranscribe-desktop"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "arboard",
  "atomic-write-file",
@@ -3734,7 +3734,7 @@ dependencies = [
 
 [[package]]
 name = "opentranscribe-domain"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "chrono",
  "serde",
@@ -3746,7 +3746,7 @@ dependencies = [
 
 [[package]]
 name = "opentranscribe-local-transcriber"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "opentranscribe-transcriber-protocol",
  "ort",
@@ -3757,7 +3757,7 @@ dependencies = [
 
 [[package]]
 name = "opentranscribe-text-normalizer"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "encoding_rs",
  "llama-cpp-2",
@@ -3766,7 +3766,7 @@ dependencies = [
 
 [[package]]
 name = "opentranscribe-transcriber-protocol"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "rmp-serde",
  "serde",
