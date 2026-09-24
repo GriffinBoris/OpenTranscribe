@@ -1,16 +1,21 @@
 mod audio;
+mod diarization;
 mod runtime;
 
 use std::io::BufReader;
 use std::path::Path;
 
 use opentranscribe_transcriber_protocol::{
-    Command, Envelope, Event, FileTranscription, PROTOCOL_VERSION, read_frame, write_frame,
+    Command, Envelope, Event, FileDiarization, FileTranscription, PROTOCOL_VERSION, SpeakerTurn,
+    read_frame, write_frame,
 };
 
 use runtime::TranscriberRuntime;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // whisper.cpp debug logs can contain recognized words; report failures through the protocol.
+    whisper_rs::install_logging_hooks();
+    ort::init().with_telemetry(false).commit();
     let stdin = std::io::stdin();
     let mut reader = BufReader::new(stdin.lock());
     let mut runtime = TranscriberRuntime::default();
@@ -57,6 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Command::TranscribeFile(request) => {
                 transcribe_file(&runtime, envelope.request_id, request)?;
             }
+            Command::DiarizeFile(request) => diarize_file(envelope.request_id, request)?,
             Command::UnloadModel => {
                 runtime.unload_model();
                 write_event(
@@ -109,6 +115,7 @@ fn transcribe_file(
                         start_ms: segment.start_ms,
                         end_ms: segment.end_ms,
                         text: segment.text,
+                        speaker_label: segment.speaker_label,
                     },
                 )?;
             }
@@ -152,4 +159,43 @@ fn write_event(
             body: event,
         },
     )
+}
+
+fn diarize_file(
+    request_id: String,
+    request: FileDiarization,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let result = audio::decode_for_whisper(Path::new(&request.path))
+        .and_then(|audio| diarization::diarize(Path::new(&request.model_path), &audio.samples));
+    match result {
+        Ok(turns) => {
+            for turn in turns {
+                write_event(
+                    request_id.clone(),
+                    Event::SpeakerTurn {
+                        job_id: request.job_id.clone(),
+                        turn: SpeakerTurn {
+                            start_ms: turn.start / 16,
+                            end_ms: turn.end / 16,
+                            speaker_label: (turn.speaker_id + 1).to_string(),
+                        },
+                    },
+                )?;
+            }
+            write_event(
+                request_id,
+                Event::Completed {
+                    job_id: request.job_id,
+                },
+            )?;
+        }
+        Err(message) => write_event(
+            request_id,
+            Event::Error {
+                code: "diarization_failed".to_owned(),
+                message,
+            },
+        )?,
+    }
+    Ok(())
 }

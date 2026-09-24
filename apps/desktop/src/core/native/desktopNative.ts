@@ -250,12 +250,30 @@ export const desktopNative: NativeBridge = {
     sessionId: string,
     provider: "local" | "open_ai",
     modelId: string,
+    diarizationModelId?: string,
   ) {
     return invoke<Job>("enqueue_transcription", {
       request: {
         session_id: sessionId,
         provider,
         model_id: modelId,
+        diarization_model_id: diarizationModelId ?? null,
+      },
+    });
+  },
+
+  enqueueDiarization(
+    sessionId: string,
+    modelId: string,
+    transcriptId: string,
+    expectedRevision: number,
+  ) {
+    return invoke<Job>("enqueue_diarization", {
+      request: {
+        session_id: sessionId,
+        model_id: modelId,
+        transcript_id: transcriptId,
+        expected_revision: expectedRevision,
       },
     });
   },

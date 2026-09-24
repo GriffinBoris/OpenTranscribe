@@ -10,7 +10,7 @@ export function findActiveTranscriptionJob(
     jobs.find(
       (job) =>
         job.session_id === sessionId &&
-        job.kind.startsWith("transcribe_") &&
+        (job.kind.startsWith("transcribe_") || job.kind === "diarize_local") &&
         ACTIVE_JOB_STATES.includes(job.state),
     ) ?? null
   );

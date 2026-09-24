@@ -46,6 +46,7 @@ pub(super) async fn transcribe(
                     path: path.to_string_lossy().into_owned(),
                     language_hint: None,
                     prompt: None,
+                    diarization_model_path: None,
                 }),
                 &canceled,
                 |event| {

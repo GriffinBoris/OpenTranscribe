@@ -3,6 +3,7 @@
 set -euo pipefail
 
 mode="${1:?Choose native, quality, frontend, browser, or release}"
+export ORT_LIB_PATH="${PWD}/target/onnxruntime-1.22.0-x86_64-unknown-linux-gnu/onnxruntime/lib"
 
 build_frontend_and_sidecar() {
   npm --prefix apps/desktop run build

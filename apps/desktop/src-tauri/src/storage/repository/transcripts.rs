@@ -167,14 +167,14 @@ impl LibraryRepository {
         self.save_transcript_edits(&transcript_directory, transcript)
     }
 
-    fn editable_transcript(&self, session_id: &str) -> AppResult<(PathBuf, Transcript)> {
+    pub(super) fn editable_transcript(&self, session_id: &str) -> AppResult<(PathBuf, Transcript)> {
         let transcript_directory = self.session_directory(session_id)?.join("transcripts");
         let transcript =
             serde_json::from_slice(&fs::read(transcript_directory.join("transcript.json"))?)?;
         Ok((transcript_directory, transcript))
     }
 
-    fn save_transcript_edits(
+    pub(super) fn save_transcript_edits(
         &self,
         transcript_directory: &std::path::Path,
         mut transcript: Transcript,
@@ -182,13 +182,22 @@ impl LibraryRepository {
         transcript.revision += 1;
         transcript.updated_at = opentranscribe_domain::now();
 
-        atomic_file::write_json(&transcript_directory.join("transcript.json"), &transcript)?;
+        self.persist_transcript(transcript_directory, &transcript)?;
+        Ok(transcript)
+    }
+
+    pub(super) fn persist_transcript(
+        &self,
+        transcript_directory: &std::path::Path,
+        transcript: &Transcript,
+    ) -> AppResult<()> {
+        atomic_file::write_json(&transcript_directory.join("transcript.json"), transcript)?;
         atomic_file::write(
             &transcript_directory.join("transcript.md"),
-            transcript_markdown(&transcript).as_bytes(),
+            transcript_markdown(transcript).as_bytes(),
         )?;
-        self.index.replace_transcript(&transcript)?;
-        Ok(transcript)
+        self.index.replace_transcript(transcript)?;
+        Ok(())
     }
 }
 

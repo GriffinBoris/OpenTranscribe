@@ -73,6 +73,13 @@ export interface NativeBridge {
     sessionId: string,
     provider: "local" | "open_ai",
     modelId: string,
+    diarizationModelId?: string,
+  ): Promise<Job>;
+  enqueueDiarization(
+    sessionId: string,
+    modelId: string,
+    transcriptId: string,
+    expectedRevision: number,
   ): Promise<Job>;
   retryJob(jobId: string): Promise<Job>;
   cancelJob(jobId: string): Promise<Job>;

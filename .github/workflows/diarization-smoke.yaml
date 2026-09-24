@@ -1,0 +1,67 @@
+name: Packaged Diarization Smoke
+
+on:
+  workflow_call:
+    inputs:
+      artifact_run_id:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      artifact_run_id:
+        description: Successful Native Compile run containing the Linux installer to test
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Download and extract the candidate installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_RUN_ID: ${{ inputs.artifact_run_id }}
+        run: |
+          candidate_sha="$(gh run view "$ARTIFACT_RUN_ID" --json headSha --jq .headSha)"
+          gh run download "$ARTIFACT_RUN_ID" \
+            --name "opentranscribe-x86_64-unknown-linux-gnu-$candidate_sha" \
+            --dir candidate
+          dpkg-deb --extract candidate/deb/*.deb candidate/extracted
+          echo "Testing packaged worker from $candidate_sha"
+
+      - name: Prepare synthetic speech and the pinned diarization model
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes espeak-ng gdb
+          python3 -m pip install msgpack==1.1.2
+          espeak-ng -v en-us -s 150 -w candidate/speech.wav \
+            "Welcome to the project meeting. The desktop application can identify speakers and preserve the words they said. We need to verify that this works on every platform."
+          curl --fail --location --retry 3 \
+            'https://huggingface.co/altunenes/parakeet-rs/resolve/4d2a8bc71f5c896ec40faa59732e6716295edaf2/nemotron-3-diarization/nemotron3_diar_v3.onnx?download=true' \
+            --output candidate/model.onnx
+          echo '915e4fa23b0192ed9fadeb1cdd26847df986d50c92012d177be28d0343bbe03a  candidate/model.onnx' | sha256sum --check
+
+      - name: Run repeated diarization with the packaged worker
+        run: >-
+          python3 scripts/tests/smoke_packaged_diarization.py
+          "$PWD/candidate/extracted/usr/bin/local-transcriber"
+          "$PWD/candidate/model.onnx"
+          "$PWD/candidate/speech.wav"
+
+      - name: Collect a native crash backtrace
+        if: failure()
+        run: |
+          cat > candidate/debug-worker <<'EOF'
+          #!/usr/bin/env bash
+          exec gdb --batch --return-child-result -ex run -ex 'bt 30' --args "$PWD/candidate/extracted/usr/bin/local-transcriber" >&2
+          EOF
+          chmod +x candidate/debug-worker
+          python3 scripts/tests/smoke_packaged_diarization.py \
+            "$PWD/candidate/debug-worker" "$PWD/candidate/model.onnx" "$PWD/candidate/speech.wav"

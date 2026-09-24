@@ -136,8 +136,17 @@ pub fn download(
     migrate_legacy_models(app)?;
     let definition = find(model_id).ok_or_else(|| AppError::Model("unknown model".to_owned()))?;
 
+    download_artifact(app, definition, &mut on_progress)?;
+    status(app, definition)
+}
+
+fn download_artifact(
+    app: &tauri::AppHandle,
+    definition: &ModelDefinition,
+    mut on_progress: impl FnMut(u64, u64),
+) -> AppResult<()> {
     if is_installed(app, definition)? {
-        return status(app, definition);
+        return Ok(());
     }
 
     let directory = model_directory(app, definition)?;
@@ -232,7 +241,7 @@ pub fn download(
 
     fs::rename(&temporary_path, &path)?;
     write_manifest(&directory, &path, definition)?;
-    status(app, definition)
+    Ok(())
 }
 
 pub fn remove(app: &tauri::AppHandle, model_id: &str) -> AppResult<LocalModel> {

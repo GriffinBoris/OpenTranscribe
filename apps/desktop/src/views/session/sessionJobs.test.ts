@@ -40,3 +40,11 @@ test("ignores failed and unrelated jobs", () => {
 
   expect(findActiveTranscriptionJob(jobs, "session-a")).toBeNull();
 });
+
+test("treats local diarization as an active transcript job with cancellation", () => {
+  const jobs = [createJob("labels", "session-a", "running", "diarize_local")];
+  expect(findActiveTranscriptionJob(jobs, "session-a")?.id).toBe("labels");
+  expect(findActiveTranscriptionJob(jobs, "session-b")).toBeNull();
+  jobs[0]!.state = "canceled";
+  expect(findActiveTranscriptionJob(jobs, "session-a")).toBeNull();
+});

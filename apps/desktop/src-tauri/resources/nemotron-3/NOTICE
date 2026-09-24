@@ -1,0 +1,13 @@
+NVIDIA Nemotron 3 Diarization
+Original model: https://huggingface.co/nvidia/Nemotron-3-Diarization
+License: OpenMDW License Agreement, version 1.1 (see LICENSE).
+
+OpenTranscribe uses the community ONNX conversion by altunenes, not an
+official NVIDIA ONNX release:
+https://huggingface.co/altunenes/parakeet-rs/tree/4d2a8bc71f5c896ec40faa59732e6716295edaf2/nemotron-3-diarization
+
+Artifact: nemotron3_diar_v3.onnx (400506656 bytes)
+SHA-256: 915e4fa23b0192ed9fadeb1cdd26847df986d50c92012d177be28d0343bbe03a
+Runtime: parakeet-rs 0.3.8 (MIT OR Apache-2.0), ONNX Runtime (MIT).
+The weights are downloaded on request, separately from the application.
+Nemotron predicts anonymous speaker activity; Whisper provides transcript text.

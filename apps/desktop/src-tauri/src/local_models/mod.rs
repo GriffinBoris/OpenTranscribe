@@ -1,5 +1,7 @@
 mod catalog;
+pub(crate) mod diarizer;
 mod manager;
+mod sidecar;
 mod transcriber;
 
 use std::collections::HashSet;
@@ -147,7 +149,6 @@ pub async fn download_local_model(
     state: tauri::State<'_, crate::state::AppState>,
 ) -> AppResult<LocalModel> {
     let _download = ActiveModelDownload::reserve(&state.active_model_downloads, model_id.clone())?;
-
     let download_model_id = model_id.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let mut progress_connected = true;
@@ -206,12 +207,13 @@ fn select_preferred_installed_model(models: &[LocalModel]) -> Option<&LocalModel
         .iter()
         .find(|model| model.installed && model.preset == "balanced")
         .or_else(|| {
-            models
-                .iter()
-                .find(|model| model.installed && model.preset != "cleanup")
+            models.iter().find(|model| {
+                model.installed && model.preset != "cleanup" && model.preset != "diarization"
+            })
         })
 }
 
+pub(crate) use catalog::NEMOTRON_MODEL_ID;
 pub use manager::{installed_path, remove_all};
 pub use transcriber::LocalTranscriptionService;
 
@@ -286,6 +288,12 @@ mod tests {
         ];
 
         assert!(select_preferred_installed_model(&models).is_none());
+    }
+
+    #[test]
+    fn never_selects_a_diarizer_as_a_speech_model() {
+        let profile = model(super::NEMOTRON_MODEL_ID, "diarization", true);
+        assert!(select_preferred_installed_model(&[profile]).is_none());
     }
 
     #[test]

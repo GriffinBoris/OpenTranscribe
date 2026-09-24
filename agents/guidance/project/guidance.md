@@ -90,6 +90,20 @@ order: 0
   toolchain pin together so local development, CI, and release builds stay on
   one supported compiler.
 - Local inference runs in the supervised sidecar. A sidecar failure must not stop or corrupt recording.
+- Nemotron 3 is an independent diarizer, not a speech recognizer. Offer it as an
+  optional stage with any local speech model and as a separate job on saved
+  transcripts. Exclude it from speech/dictation model selectors. Re-diarization
+  preserves words, segment IDs/timestamps, edits, and speech-run provenance;
+  archive before/after assignments and compare the full input snapshot before
+  promotion, including on retries. Serialize cancellation with promotion.
+  Preserve speaker boundaries when merging new transcription fragments. Poll
+  cancellation independently of worker output so silent inference remains
+  cancellable. Keep ONNX bindings on API 21 for the pinned Intel Mac/Linux runtime;
+  prepare it through the sidecar build script. Linux retains one process-lifetime
+  environment reference because ort's ELF finalizer runs after the static C++
+  runtime's destructors; verify packaged worker exit with the inference smoke test. Bundle the Windows runtime's
+  DirectML DLL beside the executables even when selecting CPU inference.
+  See `docs/local-diarization.md` for alignment limits and licensing.
 - Dictation uses supervised warm speech and cleanup workers. Preload during
   capture, serialize requests per worker, and kill/reset the worker on canceled
   or failed inference. Never load S1-mini through the Whisper runtime or offer
@@ -191,7 +205,7 @@ order: 0
   `Documents/OpenTranscribe/models`. Show the resolved path in settings and
   move existing model files only after explicit confirmation; do not allow a
   move while recording, processing, or downloading. Local model artifacts come
-  from pinned upstream Whisper and Superwhisper S1-mini Hugging Face revisions and
+  from pinned Whisper, Nemotron community ONNX, and Superwhisper S1-mini Hugging Face revisions and
   must pass their catalog SHA-256 integrity check before use.
 - Schema changes require sequential migrations and fixtures covering the previous schema.
 

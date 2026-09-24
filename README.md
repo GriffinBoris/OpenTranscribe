@@ -123,7 +123,7 @@ To inspect the script or select a version/destination:
 curl -fsSL https://raw.githubusercontent.com/GriffinBoris/OpenTranscribe/main/scripts/install.sh -o install.sh
 less install.sh
 bash install.sh --dry-run
-bash install.sh --version v0.1.15 --directory "$HOME/Applications"
+bash install.sh --version v0.1.16 --directory "$HOME/Applications"
 ```
 
 `--dry-run` resolves the release without installing. Use a writable directory;
@@ -315,11 +315,17 @@ cargo test --workspace --locked
 
 ## Data and privacy
 
+For local speaker labels, download **Nemotron 3 speaker recognition** in Settings.
+Enable it alongside any local speech model, or choose **Re-identify speakers**
+on an existing local or cloud transcript without retranscribing its words.
+Speaker recognition runs entirely on the computer. See
+[local diarization](docs/local-diarization.md) for setup, architecture, and limits.
+
 OpenTranscribe does not require an OpenTranscribe account. A selected library
 contains readable projects and sessions. Downloaded speech models are kept in a
 separate configurable folder, defaulting to `OpenTranscribe/models` under the
 documents directory. They are shared by every library, removable from Settings,
-and fetched from pinned Whisper and Superwhisper S1-mini revisions on Hugging Face with a
+and fetched from pinned Whisper, Nemotron community ONNX, and Superwhisper S1-mini revisions on Hugging Face with a
 SHA-256 verification step before use. OpenAI transcription is opt-in per
 session. The API key is entered in the Settings webview, passed directly to the
 native credential command, and never written to frontend persistence or the

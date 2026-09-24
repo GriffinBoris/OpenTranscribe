@@ -37,13 +37,36 @@ export const useSessionStore = defineStore("session", () => {
     }
   }
 
-  async function transcribeLocally(sessionId: string, modelId: string) {
+  async function transcribeLocally(
+    sessionId: string,
+    modelId: string,
+    diarizationModelId?: string,
+  ) {
     application.operationError = null;
     try {
       const job = await native.enqueueTranscription(
         sessionId,
         "local",
         modelId,
+        diarizationModelId,
+      );
+      application.upsertJob(job);
+    } catch (reason) {
+      application.operationError =
+        reason instanceof Error ? reason.message : String(reason);
+    }
+  }
+
+  async function diarize(sessionId: string, modelId: string) {
+    const transcript = transcripts.value[sessionId];
+    if (!transcript) return;
+    application.operationError = null;
+    try {
+      const job = await native.enqueueDiarization(
+        sessionId,
+        modelId,
+        transcript.id,
+        transcript.revision,
       );
       application.upsertJob(job);
     } catch (reason) {
@@ -247,6 +270,7 @@ export const useSessionStore = defineStore("session", () => {
     transcriptionJobForSession,
     transcribeWithOpenAi,
     transcribeLocally,
+    diarize,
     loadWorkspace,
     startNotesEditing,
     saveNotes,

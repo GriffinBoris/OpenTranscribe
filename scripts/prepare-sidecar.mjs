@@ -6,9 +6,11 @@ import {
   rmSync,
 } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+
+import { prepareOnnxRuntime } from "./prepare-onnx-runtime.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const release = process.argv.includes("--release");
@@ -62,15 +64,6 @@ if (target) {
   buildArguments.push("--target", target);
 }
 
-const build = spawnSync("cargo", buildArguments, {
-  cwd: projectRoot,
-  stdio: "inherit",
-});
-
-if (build.status !== 0) {
-  process.exit(build.status ?? 1);
-}
-
 const compiler = spawnSync("rustc", ["-vV"], {
   cwd: projectRoot,
   encoding: "utf8",
@@ -92,12 +85,34 @@ if (!host) {
   throw new Error("Unable to determine the Rust host target.");
 }
 
+const onnxRuntime = await prepareOnnxRuntime(host);
+
+const build = spawnSync("cargo", buildArguments, {
+  cwd: projectRoot,
+  stdio: "inherit",
+  env: onnxRuntime
+    ? { ...process.env, ORT_LIB_PATH: onnxRuntime }
+    : process.env,
+});
+
+if (build.status !== 0) {
+  process.exit(build.status ?? 1);
+}
+
+const buildDirectory = resolve(
+  projectRoot,
+  "target",
+  ...(target ? [target] : []),
+  profile,
+);
+const binariesDirectory = resolve(
+  projectRoot,
+  "apps/desktop/src-tauri/binaries",
+);
+
 for (const name of ["local-transcriber", "text-normalizer"]) {
   const source = resolve(
-    projectRoot,
-    "target",
-    ...(target ? [target] : []),
-    profile,
+    buildDirectory,
     `opentranscribe-${name}${executableSuffix}`,
   );
   const destination = resolve(
@@ -122,4 +137,12 @@ for (const name of ["local-transcriber", "text-normalizer"]) {
   }
 
   process.stdout.write(`Prepared ${destination}\n`);
+}
+
+if (host === "x86_64-pc-windows-msvc") {
+  // The static Windows ONNX runtime imports this companion DLL, even on the CPU path.
+  copyFileSync(
+    join(buildDirectory, "DirectML.dll"),
+    join(binariesDirectory, "DirectML.dll"),
+  );
 }

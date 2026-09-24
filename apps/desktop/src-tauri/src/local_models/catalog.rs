@@ -9,7 +9,9 @@ pub struct ModelDefinition {
     pub download_url: &'static str,
 }
 
-pub const MODELS: [ModelDefinition; 4] = [
+pub const NEMOTRON_MODEL_ID: &str = "nemotron-3-diarization";
+
+pub const MODELS: [ModelDefinition; 5] = [
     ModelDefinition {
         id: "whisper-small-q5_1",
         preset: "fast",
@@ -50,6 +52,16 @@ pub const MODELS: [ModelDefinition; 4] = [
         sha256: "3b41ebe2502cbd03e811d5d16b022f5ab551eda58d62597d152f89535003c634",
         download_url: "https://huggingface.co/superwhisper/s1-mini-GGUF/resolve/34add00a48a2e5d24e5a4ee5405a99620a3a240c/s1-mini-q4_k_m.gguf?download=true",
     },
+    ModelDefinition {
+        id: NEMOTRON_MODEL_ID,
+        preset: "diarization",
+        label: "Nemotron 3 speaker recognition",
+        description: "NVIDIA speaker labels · Works with any transcript · Up to 8 speakers",
+        filename: "nemotron3_diar_v3.onnx",
+        byte_count: 400_506_656,
+        sha256: "915e4fa23b0192ed9fadeb1cdd26847df986d50c92012d177be28d0343bbe03a",
+        download_url: "https://huggingface.co/altunenes/parakeet-rs/resolve/4d2a8bc71f5c896ec40faa59732e6716295edaf2/nemotron-3-diarization/nemotron3_diar_v3.onnx?download=true",
+    },
 ];
 
 pub fn find(model_id: &str) -> Option<&'static ModelDefinition> {
@@ -72,5 +84,12 @@ mod tests {
         assert_eq!(MODELS[0].id, "whisper-small-q5_1");
         assert_eq!(MODELS[1].id, "whisper-medium-q5_0");
         assert_eq!(MODELS[2].id, "whisper-large-v3-turbo-q5_0");
+    }
+
+    #[test]
+    fn nemotron_is_a_standalone_diarizer() {
+        let model = find(super::NEMOTRON_MODEL_ID).expect("Nemotron model");
+        assert_eq!(model.preset, "diarization");
+        assert_eq!(model.byte_count, 400_506_656);
     }
 }

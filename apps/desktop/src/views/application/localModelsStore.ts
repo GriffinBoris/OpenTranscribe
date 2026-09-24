@@ -15,8 +15,12 @@ export const useLocalModelsStore = defineStore("local-models", () => {
 
   const installedModels = computed(() =>
     models.value.filter(
-      (model) => model.installed && model.preset !== "cleanup",
+      (model) =>
+        model.installed && !["cleanup", "diarization"].includes(model.preset),
     ),
+  );
+  const diarizationModel = computed(
+    () => models.value.find((model) => model.preset === "diarization") ?? null,
   );
 
   async function load() {
@@ -47,10 +51,10 @@ export const useLocalModelsStore = defineStore("local-models", () => {
     error.value = null;
 
     try {
-      const model = await native.downloadLocalModel(modelId, (nextProgress) => {
+      await native.downloadLocalModel(modelId, (nextProgress) => {
         progress.value = nextProgress;
       });
-      replace(model);
+      await load();
     } catch (reason) {
       error.value = reason instanceof Error ? reason.message : String(reason);
     } finally {
@@ -63,7 +67,8 @@ export const useLocalModelsStore = defineStore("local-models", () => {
     error.value = null;
 
     try {
-      replace(await native.removeLocalModel(modelId));
+      await native.removeLocalModel(modelId);
+      await load();
     } catch (reason) {
       error.value = reason instanceof Error ? reason.message : String(reason);
     }
@@ -85,18 +90,11 @@ export const useLocalModelsStore = defineStore("local-models", () => {
     return true;
   }
 
-  function replace(model: LocalModel) {
-    const index = models.value.findIndex((item) => item.id === model.id);
-
-    if (index >= 0) {
-      models.value[index] = model;
-    }
-  }
-
   return {
     models,
     storagePath,
     installedModels,
+    diarizationModel,
     isLoading,
     isMovingStorage,
     downloadingModelId,

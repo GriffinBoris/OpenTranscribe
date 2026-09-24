@@ -15,8 +15,8 @@ const { t } = useI18n();
 const selectedStoragePath = ref<string | null>(null);
 const moveDialogOpen = ref(false);
 
-const hasInstalledModels = computed(
-  () => localModels.installedModels.length > 0,
+const hasInstalledModels = computed(() =>
+  localModels.models.some((model) => model.installed),
 );
 
 function modelSize(byteCount: number) {
@@ -115,27 +115,29 @@ async function moveStorage() {
             model.installed ? t("models.installed") : t("models.notInstalled")
           }}
         </StatusPill>
-        <AppButton
-          v-if="model.installed"
-          size="small"
-          variant="ghost"
-          @click="localModels.remove(model.id)"
-        >
-          {{ t("models.remove") }}
-        </AppButton>
-        <AppButton
-          v-else
-          size="small"
-          :loading="localModels.downloadingModelId === model.id"
-          :disabled="localModels.downloadingModelId !== null"
-          @click="localModels.download(model.id)"
-        >
-          {{
-            localModels.downloadingModelId === model.id
-              ? t("models.downloading")
-              : t("models.download")
-          }}
-        </AppButton>
+        <div class="flex items-center gap-2">
+          <AppButton
+            v-if="model.installed"
+            size="small"
+            variant="ghost"
+            @click="localModels.remove(model.id)"
+          >
+            {{ t("models.remove") }}
+          </AppButton>
+          <AppButton
+            v-if="!model.installed"
+            size="small"
+            :loading="localModels.downloadingModelId === model.id"
+            :disabled="localModels.downloadingModelId !== null"
+            @click="localModels.download(model.id)"
+          >
+            {{
+              localModels.downloadingModelId === model.id
+                ? t("models.downloading")
+                : t("models.download")
+            }}
+          </AppButton>
+        </div>
       </div>
     </div>
     <div

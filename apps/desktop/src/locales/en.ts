@@ -432,11 +432,15 @@ export const messages = {
   },
   models: {
     title: "Local models",
-    description: "Download speech models and optional dictation cleanup.",
+    description:
+      "Download speech models, speaker recognition, and optional dictation cleanup.",
     private: "Private",
     fast: "Fast",
     balanced: "Balanced",
     best: "Best",
+    nemotron: "Nemotron 3 speaker recognition",
+    nemotronDescription:
+      "NVIDIA speaker labels · Works with any transcript · Up to 8 speakers",
     fastDescription: "Whisper Small · Multilingual · Q5",
     balancedDescription: "Whisper Medium · Multilingual · Q5",
     bestDescription: "Whisper Large v3 Turbo · Multilingual · Q5",
@@ -452,7 +456,7 @@ export const messages = {
     remove: "Remove",
     retry: "Retry",
     source:
-      "Whisper speech models and S1-mini by Superwhisper come from pinned Hugging Face revisions. Every download is verified with SHA-256 before use.",
+      "Whisper, NVIDIA Nemotron 3 (community ONNX conversion), and S1-mini by Superwhisper come from pinned Hugging Face revisions. Every download is verified with SHA-256 before use. Nemotron adds speaker labels to Whisper meeting transcripts; it does not recognize words or identify people by name.",
     storage: {
       title: "Model folder",
       loading: "Loading model folder…",
@@ -631,6 +635,14 @@ export const messages = {
     localModel: "Local transcription model",
     openAiModel: "OpenAI transcription model",
     transcriptionTarget: "Transcription target",
+    identifySpeakers: "Identify speakers with Nemotron 3",
+    rediarize: "Re-identify speakers",
+    diarizationHelp:
+      "Replaces speaker labels and names. Keeps your words, edits, and timestamps. Previous assignments are saved in the session folder.",
+    diarizationPrecision:
+      "Each existing segment gets one speaker label. Long segments may contain more than one speaker.",
+    setUpDiarization: "Set up speaker recognition",
+    diarizing: "Identifying speakers locally",
     localOption: "Local · {model}",
     transcribe: "Transcribe",
     retranscribe: "Retranscribe",

@@ -3,6 +3,7 @@ import { createPreviewSnapshot } from "@/core/native/preview/previewData";
 import { i18n } from "@/i18n";
 import type {
   AppEvent,
+  Job,
   CredentialStatus,
   LocalModel,
   RecordingMode,
@@ -14,6 +15,8 @@ import type {
 const { t } = i18n.global;
 
 export const previewState = {
+  withTranscript: false,
+  processingJobs: new Map<string, Job>(),
   recordingStartedAt: 0,
   recordingSessionId: "",
   recordingMode: "record_only" as RecordingMode,
@@ -72,6 +75,14 @@ export const previewState = {
       byte_count: 484219808,
       installed: false,
     },
+    {
+      id: "nemotron-3-diarization",
+      preset: "diarization",
+      label: t("models.nemotron"),
+      description: t("models.nemotronDescription"),
+      byte_count: 400_506_656,
+      installed: false,
+    },
   ] as LocalModel[],
 };
 
@@ -107,6 +118,8 @@ function setupCompleted() {
 
 export function previewSnapshot(path?: string) {
   const snapshot = createPreviewSnapshot(path, setupCompleted());
+  if (new URLSearchParams(window.location.search).has("transcript"))
+    previewState.withTranscript = true;
   const searchParameters = new URLSearchParams(window.location.search);
   const recordingMode = searchParameters.get("recordingMode");
   const globalShortcut = searchParameters.get("globalShortcut");
@@ -179,6 +192,7 @@ export function previewSnapshot(path?: string) {
     })
     .filter((session) => !previewState.trashedSessions.has(session.id));
 
+  snapshot.active_jobs.push(...previewState.processingJobs.values());
   return snapshot;
 }
 

@@ -129,10 +129,10 @@ const projectLabel = computed(
       </div>
     </div>
     <div
-      class="session-header__content flex min-w-0 items-center gap-4 max-[900px]:flex-col max-[900px]:items-stretch max-[900px]:gap-3"
+      class="session-header__content flex min-w-0 flex-wrap items-center gap-4 max-[900px]:flex-col max-[900px]:items-stretch max-[900px]:gap-3"
     >
       <div
-        class="session-header__metadata text-ink-muted flex min-h-[var(--control-height-medium)] min-w-0 flex-1 flex-wrap items-center gap-2 text-sm"
+        class="session-header__metadata text-ink-muted flex min-h-[var(--control-height-medium)] min-w-fit flex-1 flex-wrap items-center gap-2 text-sm"
       >
         <span class="whitespace-nowrap">{{
           session
@@ -158,7 +158,7 @@ const projectLabel = computed(
         </span>
       </div>
       <div
-        class="session-header__controls ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 max-[900px]:ml-0 max-[900px]:justify-start"
+        class="session-header__controls ml-auto flex max-w-full min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 max-[900px]:ml-0 max-[900px]:justify-start"
       >
         <AppButton
           v-if="recoverable"

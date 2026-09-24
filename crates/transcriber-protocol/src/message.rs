@@ -20,6 +20,21 @@ pub struct FileTranscription {
     pub path: String,
     pub language_hint: Option<String>,
     pub prompt: Option<String>,
+    pub diarization_model_path: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct FileDiarization {
+    pub job_id: String,
+    pub path: String,
+    pub model_path: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct SpeakerTurn {
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub speaker_label: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -28,6 +43,7 @@ pub enum Command {
     Hello,
     LoadModel(ModelDescriptor),
     TranscribeFile(FileTranscription),
+    DiarizeFile(FileDiarization),
     NormalizeText { job_id: String, text: String },
     UnloadModel,
     Shutdown,
@@ -48,6 +64,11 @@ pub enum Event {
         start_ms: u64,
         end_ms: u64,
         text: String,
+        speaker_label: Option<String>,
+    },
+    SpeakerTurn {
+        job_id: String,
+        turn: SpeakerTurn,
     },
     JobProgress {
         job_id: String,

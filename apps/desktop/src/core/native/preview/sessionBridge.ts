@@ -6,6 +6,7 @@ import {
 } from "@/core/native/preview/previewState";
 import { createPreviewSnapshot } from "@/core/native/preview/previewData";
 import { i18n } from "@/i18n";
+import { createPreviewTranscript } from "@/core/native/preview/previewTranscript";
 import type { ExportFormat } from "@/types/domain";
 
 const { t } = i18n.global;
@@ -57,6 +58,19 @@ export const previewSessionBridge = {
       throw new Error(t("native.requestedItemMissing"));
     }
 
+    if (previewState.withTranscript) {
+      const session = previewSnapshot().recent_sessions.find(
+        (item) => item.id === sessionId,
+      );
+      if (!session) return desktopOnly(t("native.requestedItemMissing"));
+      return {
+        session,
+        notes: "",
+        notes_hash: "preview",
+        transcript: createPreviewTranscript(sessionId),
+        transcript_run: null,
+      };
+    }
     return null;
   },
 

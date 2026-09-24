@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         backlog_ms: 0,
                     })
                 }
-                Command::TranscribeFile(_) => {
+                Command::TranscribeFile(_) | Command::DiarizeFile(_) => {
                     Err("Use the speech transcriber for audio.".to_owned())
                 }
                 Command::Shutdown => break,

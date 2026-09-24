@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use opentranscribe_domain::{Job, JobKind, JobState, RecordingMode};
+use opentranscribe_domain::{Job, JobKind, JobState, RecordingMode, Transcript};
 use serde::{Deserialize, Serialize};
 
 use super::atomic_file;
@@ -16,6 +16,12 @@ pub enum JobRequest {
     },
     TranscribeLocal {
         model_id: String,
+        #[serde(default)]
+        diarization_model_id: Option<String>,
+    },
+    DiarizeLocal {
+        model_id: String,
+        transcript: Box<Transcript>,
     },
     TranscribeOpenAi {
         model_id: String,
@@ -29,6 +35,7 @@ impl JobRequest {
         match self {
             Self::FinalizeRecording { .. } => JobKind::FinalizeRecording,
             Self::TranscribeLocal { .. } => JobKind::TranscribeLocal,
+            Self::DiarizeLocal { .. } => JobKind::DiarizeLocal,
             Self::TranscribeOpenAi { .. } => JobKind::TranscribeOpenAi,
         }
     }

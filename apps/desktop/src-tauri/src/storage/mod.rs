@@ -3,6 +3,8 @@ mod audio_artifact;
 mod index;
 mod job_record;
 mod repository;
+#[path = "repository/diarization.rs"]
+mod repository_diarization;
 #[path = "repository/documents.rs"]
 mod repository_documents;
 #[path = "repository/imports.rs"]

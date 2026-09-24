@@ -110,6 +110,7 @@ pub fn run() {
             commands::dictation::dismiss_dictation,
             commands::dictation::subscribe_dictation_status,
             commands::jobs::enqueue_transcription,
+            commands::jobs::enqueue_diarization,
             commands::jobs::retry_job,
             commands::jobs::cancel_job,
             commands::session::update_transcript_segment,
