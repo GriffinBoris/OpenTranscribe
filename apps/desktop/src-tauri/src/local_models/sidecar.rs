@@ -1,5 +1,5 @@
 use opentranscribe_transcriber_protocol::{
-    Command, Envelope, Event, FileTranscription, ModelDescriptor, PROTOCOL_VERSION, decode_frame,
+    Command, Envelope, Event, ModelDescriptor, PROTOCOL_VERSION, SpeakerTurn, decode_frame,
     write_frame,
 };
 use tauri_plugin_shell::ShellExt;
@@ -8,31 +8,31 @@ use tauri_plugin_shell::process::CommandEvent;
 use crate::error::{AppError, AppResult};
 use crate::transcription::TranscriptionSegmentInput;
 
+#[derive(Default)]
+pub(super) struct SidecarOutput {
+    pub segments: Vec<TranscriptionSegmentInput>,
+    pub speaker_turns: Vec<SpeakerTurn>,
+}
+
 pub(super) async fn run_sidecar(
     app: &tauri::AppHandle,
-    model_id: &str,
-    model_path: &std::path::Path,
-    request: FileTranscription,
+    model: Option<ModelDescriptor>,
+    job_id: &str,
+    request: Command,
     mut on_progress: impl FnMut(u64, u64),
     should_cancel: impl Fn() -> bool,
-) -> AppResult<Vec<TranscriptionSegmentInput>> {
+) -> AppResult<SidecarOutput> {
     let request_id = opentranscribe_domain::new_id();
     let mut stdin = Vec::new();
     write_command(&mut stdin, opentranscribe_domain::new_id(), Command::Hello)?;
-    write_command(
-        &mut stdin,
-        opentranscribe_domain::new_id(),
-        Command::LoadModel(ModelDescriptor {
-            model_id: model_id.to_owned(),
-            path: model_path.to_string_lossy().into_owned(),
-            use_gpu: cfg!(target_os = "macos"),
-        }),
-    )?;
-    write_command(
-        &mut stdin,
-        request_id,
-        Command::TranscribeFile(request.clone()),
-    )?;
+    if let Some(model) = model {
+        write_command(
+            &mut stdin,
+            opentranscribe_domain::new_id(),
+            Command::LoadModel(model),
+        )?;
+    }
+    write_command(&mut stdin, request_id, request)?;
     write_command(
         &mut stdin,
         opentranscribe_domain::new_id(),
@@ -51,13 +51,7 @@ pub(super) async fn run_sidecar(
         return Err(AppError::Model(error.to_string()));
     }
 
-    let result = collect_output(
-        &mut receiver,
-        &request.job_id,
-        &mut on_progress,
-        should_cancel,
-    )
-    .await;
+    let result = collect_output(&mut receiver, job_id, &mut on_progress, should_cancel).await;
     if result.is_err() {
         let _ = child.kill();
     }
@@ -69,10 +63,10 @@ async fn collect_output(
     job_id: &str,
     on_progress: &mut impl FnMut(u64, u64),
     should_cancel: impl Fn() -> bool,
-) -> AppResult<Vec<TranscriptionSegmentInput>> {
+) -> AppResult<SidecarOutput> {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let mut segments = Vec::new();
+    let mut output = SidecarOutput::default();
     let mut completed = false;
     let mut exit_code = None;
 
@@ -105,7 +99,7 @@ async fn collect_output(
                     handle_sidecar_event(
                         envelope.body,
                         job_id,
-                        &mut segments,
+                        &mut output,
                         &mut completed,
                         on_progress,
                     )?;
@@ -140,13 +134,13 @@ async fn collect_output(
         ));
     }
 
-    Ok(segments)
+    Ok(output)
 }
 
 fn handle_sidecar_event(
     event: Event,
     job_id: &str,
-    segments: &mut Vec<TranscriptionSegmentInput>,
+    output: &mut SidecarOutput,
     completed: &mut bool,
     on_progress: &mut impl FnMut(u64, u64),
 ) -> AppResult<()> {
@@ -158,13 +152,17 @@ fn handle_sidecar_event(
             text,
             speaker_label,
         } if event_job_id == job_id => {
-            segments.push(TranscriptionSegmentInput {
+            output.segments.push(TranscriptionSegmentInput {
                 start_ms,
                 end_ms,
                 text,
                 speaker_label,
             });
         }
+        Event::SpeakerTurn {
+            job_id: event_job_id,
+            turn,
+        } if event_job_id == job_id => output.speaker_turns.push(turn),
         Event::JobProgress {
             job_id: event_job_id,
             completed_ms,
@@ -200,12 +198,12 @@ fn protocol_error(error: opentranscribe_transcriber_protocol::FrameError) -> App
 mod tests {
     use opentranscribe_transcriber_protocol::Event;
 
-    use super::{collect_output, handle_sidecar_event};
+    use super::{SidecarOutput, collect_output, handle_sidecar_event};
     use crate::error::AppError;
 
     #[test]
     fn consumes_the_local_sidecar_file_transcription_contract() {
-        let mut segments = Vec::new();
+        let mut output = SidecarOutput::default();
         let mut completed = false;
         let mut progress = Vec::new();
 
@@ -216,7 +214,7 @@ mod tests {
                 total_ms: 1_000,
             },
             "job",
-            &mut segments,
+            &mut output,
             &mut completed,
             &mut |completed, total| progress.push((completed, total)),
         )
@@ -230,7 +228,7 @@ mod tests {
                 speaker_label: Some("1".to_owned()),
             },
             "job",
-            &mut segments,
+            &mut output,
             &mut completed,
             &mut |_, _| {},
         )
@@ -240,24 +238,24 @@ mod tests {
                 job_id: "job".to_owned(),
             },
             "job",
-            &mut segments,
+            &mut output,
             &mut completed,
             &mut |_, _| {},
         )
         .expect("completion should be accepted");
 
         assert_eq!(progress, vec![(500, 1_000)]);
-        assert_eq!(segments.len(), 1);
-        assert_eq!(segments[0].start_ms, 0);
-        assert_eq!(segments[0].end_ms, 1_000);
-        assert_eq!(segments[0].text, "Testing the local contract.");
-        assert_eq!(segments[0].speaker_label.as_deref(), Some("1"));
+        assert_eq!(output.segments.len(), 1);
+        assert_eq!(output.segments[0].start_ms, 0);
+        assert_eq!(output.segments[0].end_ms, 1_000);
+        assert_eq!(output.segments[0].text, "Testing the local contract.");
+        assert_eq!(output.segments[0].speaker_label.as_deref(), Some("1"));
         assert!(completed);
     }
 
     #[test]
     fn ignores_local_sidecar_events_for_another_job() {
-        let mut segments = Vec::new();
+        let mut output = SidecarOutput::default();
         let mut completed = false;
         let mut progress = Vec::new();
 
@@ -281,7 +279,7 @@ mod tests {
             handle_sidecar_event(
                 event,
                 "job",
-                &mut segments,
+                &mut output,
                 &mut completed,
                 &mut |completed, total| progress.push((completed, total)),
             )
@@ -289,13 +287,39 @@ mod tests {
         }
 
         assert!(progress.is_empty());
-        assert!(segments.is_empty());
+        assert!(output.segments.is_empty());
         assert!(!completed);
     }
 
     #[test]
+    fn collects_speaker_turns_without_inventing_transcription_segments() {
+        let mut output = SidecarOutput::default();
+        let mut completed = false;
+        let turn = opentranscribe_transcriber_protocol::SpeakerTurn {
+            start_ms: 125,
+            end_ms: 870,
+            speaker_label: "2".to_owned(),
+        };
+        for job_id in ["other", "job"] {
+            handle_sidecar_event(
+                Event::SpeakerTurn {
+                    job_id: job_id.to_owned(),
+                    turn: turn.clone(),
+                },
+                "job",
+                &mut output,
+                &mut completed,
+                &mut |_, _| {},
+            )
+            .unwrap();
+        }
+        assert_eq!(output.speaker_turns, vec![turn]);
+        assert!(output.segments.is_empty());
+    }
+
+    #[test]
     fn surfaces_local_sidecar_errors() {
-        let mut segments = Vec::new();
+        let mut output = SidecarOutput::default();
         let mut completed = false;
         let error = handle_sidecar_event(
             Event::Error {
@@ -303,7 +327,7 @@ mod tests {
                 message: "model could not be loaded".to_owned(),
             },
             "job",
-            &mut segments,
+            &mut output,
             &mut completed,
             &mut |_, _| {},
         )

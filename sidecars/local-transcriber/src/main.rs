@@ -6,7 +6,8 @@ use std::io::BufReader;
 use std::path::Path;
 
 use opentranscribe_transcriber_protocol::{
-    Command, Envelope, Event, FileTranscription, PROTOCOL_VERSION, read_frame, write_frame,
+    Command, Envelope, Event, FileDiarization, FileTranscription, PROTOCOL_VERSION, SpeakerTurn,
+    read_frame, write_frame,
 };
 
 use runtime::TranscriberRuntime;
@@ -61,6 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Command::TranscribeFile(request) => {
                 transcribe_file(&runtime, envelope.request_id, request)?;
             }
+            Command::DiarizeFile(request) => diarize_file(envelope.request_id, request)?,
             Command::UnloadModel => {
                 runtime.unload_model();
                 write_event(
@@ -157,4 +159,43 @@ fn write_event(
             body: event,
         },
     )
+}
+
+fn diarize_file(
+    request_id: String,
+    request: FileDiarization,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let result = audio::decode_for_whisper(Path::new(&request.path))
+        .and_then(|audio| diarization::diarize(Path::new(&request.model_path), &audio.samples));
+    match result {
+        Ok(turns) => {
+            for turn in turns {
+                write_event(
+                    request_id.clone(),
+                    Event::SpeakerTurn {
+                        job_id: request.job_id.clone(),
+                        turn: SpeakerTurn {
+                            start_ms: turn.start / 16,
+                            end_ms: turn.end / 16,
+                            speaker_label: (turn.speaker_id + 1).to_string(),
+                        },
+                    },
+                )?;
+            }
+            write_event(
+                request_id,
+                Event::Completed {
+                    job_id: request.job_id,
+                },
+            )?;
+        }
+        Err(message) => write_event(
+            request_id,
+            Event::Error {
+                code: "diarization_failed".to_owned(),
+                message,
+            },
+        )?,
+    }
+    Ok(())
 }

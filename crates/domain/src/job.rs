@@ -11,6 +11,7 @@ pub enum JobKind {
     TranscribeLocal,
     TranscribeOpenAi,
     DiarizeOpenAi,
+    DiarizeLocal,
     DownloadModel,
     Export,
     MoveLibrary,

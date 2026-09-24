@@ -15,23 +15,13 @@ export const useLocalModelsStore = defineStore("local-models", () => {
 
   const installedModels = computed(() =>
     models.value.filter(
-      (model) => model.preset !== "cleanup" && isReady(model),
+      (model) =>
+        model.installed && !["cleanup", "diarization"].includes(model.preset),
     ),
   );
-  const dictationModels = computed(() =>
-    installedModels.value.filter((model) => model.preset !== "diarization"),
+  const diarizationModel = computed(
+    () => models.value.find((model) => model.preset === "diarization") ?? null,
   );
-
-  function isReady(model: LocalModel) {
-    return (
-      model.installed &&
-      (!model.required_model_id ||
-        models.value.some(
-          (dependency) =>
-            dependency.id === model.required_model_id && dependency.installed,
-        ))
-    );
-  }
 
   async function load() {
     isLoading.value = true;
@@ -104,8 +94,7 @@ export const useLocalModelsStore = defineStore("local-models", () => {
     models,
     storagePath,
     installedModels,
-    dictationModels,
-    isReady,
+    diarizationModel,
     isLoading,
     isMovingStorage,
     downloadingModelId,

@@ -71,6 +71,7 @@ fn preserves_and_marks_an_interrupted_job_for_retry() {
         .create_job(
             session.id,
             JobRequest::TranscribeLocal {
+                diarization_model_id: None,
                 model_id: "whisper".to_owned(),
             },
         )
@@ -100,6 +101,7 @@ fn marks_a_queued_job_as_interrupted_when_the_library_reopens() {
         .create_job(
             session.id,
             JobRequest::TranscribeLocal {
+                diarization_model_id: None,
                 model_id: "whisper".to_owned(),
             },
         )
@@ -124,6 +126,7 @@ fn prevents_parallel_transcriptions_for_one_session() {
         .create_job(
             session.id.clone(),
             JobRequest::TranscribeLocal {
+                diarization_model_id: None,
                 model_id: "whisper".to_owned(),
             },
         )
@@ -157,6 +160,7 @@ fn canceled_jobs_leave_the_session_available_for_another_transcription() {
         .create_job(
             session.id.clone(),
             JobRequest::TranscribeLocal {
+                diarization_model_id: None,
                 model_id: "whisper".to_owned(),
             },
         )

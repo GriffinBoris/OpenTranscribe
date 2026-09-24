@@ -85,3 +85,74 @@ fn transcribes_two_speakers_through_the_packaged_protocol() {
         "expected multiple speakers, found {speakers:?}"
     );
 }
+
+#[test]
+#[ignore = "requires Nemotron model and two-speaker WAV; no Whisper model required"]
+fn diarizes_repeatedly_without_loading_a_speech_model() {
+    let model_path =
+        std::env::var("OPENTRANSCRIBE_TEST_NEMOTRON_MODEL").expect("Nemotron model path");
+    let path = std::env::var("OPENTRANSCRIBE_TEST_AUDIO").expect("audio path");
+    let mut child = ProcessCommand::new(env!("CARGO_BIN_EXE_opentranscribe-local-transcriber"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    let mut stdout = child.stdout.take().unwrap();
+    for job_id in ["first", "rerun"] {
+        write_frame(
+            &mut stdin,
+            &Envelope {
+                protocol_version: PROTOCOL_VERSION,
+                request_id: job_id.to_owned(),
+                body: Command::DiarizeFile(opentranscribe_transcriber_protocol::FileDiarization {
+                    job_id: job_id.to_owned(),
+                    path: path.clone(),
+                    model_path: model_path.clone(),
+                }),
+            },
+        )
+        .unwrap();
+        let mut speakers = HashSet::new();
+        let mut last_start = 0;
+        loop {
+            let response: Envelope<Event> = read_frame(&mut stdout).unwrap();
+            match response.body {
+                Event::SpeakerTurn {
+                    job_id: response_job_id,
+                    turn,
+                } => {
+                    assert_eq!(response_job_id, job_id);
+                    assert!(turn.start_ms >= last_start && turn.end_ms > turn.start_ms);
+                    last_start = turn.start_ms;
+                    speakers.insert(turn.speaker_label);
+                }
+                Event::Completed {
+                    job_id: response_job_id,
+                } => {
+                    assert_eq!(response_job_id, job_id);
+                    break;
+                }
+                Event::Error { message, .. } => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    panic!("{message}");
+                }
+                Event::Segment { .. } => panic!("diarization must not emit replacement text"),
+                _ => {}
+            }
+        }
+        assert!(speakers.len() >= 2, "{speakers:?}");
+    }
+    write_frame(
+        &mut stdin,
+        &Envelope {
+            protocol_version: PROTOCOL_VERSION,
+            request_id: "shutdown".to_owned(),
+            body: Command::Shutdown,
+        },
+    )
+    .unwrap();
+    drop(stdin);
+    assert!(child.wait().unwrap().success());
+}

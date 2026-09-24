@@ -74,7 +74,13 @@ async function cancelTranscription() {
     />
     <span class="grid gap-0.5">
       <strong v-if="progressPercent !== null">{{ progressPercent }}%</strong>
-      <span v-else>{{ t("processing.waiting") }}</span>
+      <span v-else>{{
+        t(
+          activeJob.kind === "diarize_local"
+            ? "session.diarizing"
+            : "processing.waiting",
+        )
+      }}</span>
       <small v-if="estimateDetails.length" class="text-xs">
         {{ estimateDetails.join(" · ") }}
       </small>

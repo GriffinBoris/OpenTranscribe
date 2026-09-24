@@ -90,14 +90,15 @@ order: 0
   toolchain pin together so local development, CI, and release builds stay on
   one supported compiler.
 - Local inference runs in the supervised sidecar. A sidecar failure must not stop or corrupt recording.
-- Nemotron 3 is a diarizer, not a speech recognizer. Keep its meeting profile
-  explicitly paired with Whisper Best, reuse the shared speech artifact, and
-  require both verified artifacts before offering transcription. Keep the
-  dependency removable and repairable in Settings; exclude the combined profile
-  from dictation. Preserve model timestamps and speaker boundaries when merging
-  transcript fragments. Poll cancellation independently of sidecar output so
-  silent ONNX inference cannot make a canceled job unresponsive. See
-  `docs/local-diarization.md` for the runtime, alignment limits, and model license.
+- Nemotron 3 is an independent diarizer, not a speech recognizer. Offer it as an
+  optional stage with any local speech model and as a separate job on saved
+  transcripts. Exclude it from speech/dictation model selectors. Re-diarization
+  preserves words, segment IDs/timestamps, edits, and speech-run provenance;
+  archive before/after assignments and compare the full input snapshot before
+  promotion, including on retries. Serialize cancellation with promotion.
+  Preserve speaker boundaries when merging new transcription fragments. Poll
+  cancellation independently of worker output so silent inference remains
+  cancellable. See `docs/local-diarization.md` for alignment limits and licensing.
 - Dictation uses supervised warm speech and cleanup workers. Preload during
   capture, serialize requests per worker, and kill/reset the worker on canceled
   or failed inference. Never load S1-mini through the Whisper runtime or offer

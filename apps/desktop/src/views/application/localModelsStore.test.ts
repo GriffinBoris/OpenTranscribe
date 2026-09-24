@@ -15,34 +15,26 @@ const best: LocalModel = {
   description: "",
   byte_count: 574_041_195,
   installed: true,
-  required_model_id: null,
 };
 const nemotron: LocalModel = {
-  id: "whisper-large-v3-turbo-nemotron-3",
+  id: "nemotron-3-diarization",
   preset: "diarization",
-  label: "Whisper + Nemotron 3",
+  label: "Nemotron 3 speaker recognition",
   description: "",
-  byte_count: 974_547_851,
+  byte_count: 400_506_656,
   installed: true,
-  required_model_id: best.id,
 };
 
-test("offers a ready diarization profile for meetings and only Whisper for dictation", () => {
+test("keeps the diarizer separate from speech and dictation models", () => {
   const store = useLocalModelsStore();
   store.models = [{ ...best }, { ...nemotron }];
-  expect(store.installedModels.map((model) => model.id)).toEqual([
-    best.id,
-    nemotron.id,
-  ]);
-  expect(store.dictationModels.map((model) => model.id)).toEqual([best.id]);
+  expect(store.installedModels.map((model) => model.id)).toEqual([best.id]);
+  expect(store.diarizationModel?.id).toBe(nemotron.id);
 });
 
-test("keeps Nemotron removable but unavailable until its shared speech model is restored", () => {
+test("supports speaker recognition with no speech model installed", () => {
   const store = useLocalModelsStore();
   store.models = [{ ...best, installed: false }, { ...nemotron }];
-  expect(store.models[1]!.installed).toBe(true);
-  expect(store.isReady(store.models[1]!)).toBe(false);
+  expect(store.diarizationModel?.installed).toBe(true);
   expect(store.installedModels).toEqual([]);
-  store.models[0]!.installed = true;
-  expect(store.isReady(store.models[1]!)).toBe(true);
 });

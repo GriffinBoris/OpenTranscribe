@@ -2,17 +2,22 @@
 
 ## Using it
 
-In **Settings → Local models**, download **Whisper + Nemotron 3**. This installs
-the 400.5 MB Nemotron ONNX artifact and the shared 574.0 MB Whisper Best artifact
-(974.5 MB total). An already installed Best model is reused. In a saved session's
-transcription menu, choose **Whisper + Nemotron 3**. Audio stays on the computer.
-The resulting transcript supports the existing speaker renaming, seeking,
-editing, and export workflows.
+In **Settings → Local models**, download **Nemotron 3 speaker recognition**
+(400.5 MB). It is independent of the speech models:
 
-Removing this option removes Nemotron only. Removing Best makes the combination
-unavailable; Settings keeps Nemotron removable and offers Download to restore
-the missing dependency. Existing transcription defaults stay unchanged. This
-option is for saved meetings and imports, not live captions or dictation.
+- For a new local transcript, choose any installed Whisper model and enable
+  **Identify speakers with Nemotron 3** before transcribing.
+- For an existing local or cloud transcript, choose **Re-identify speakers**.
+  Only Nemotron is required. Keep the original session audio available.
+- Leave the checkbox off for ordinary local transcription. Automatic transcription
+  after recording and dictation retain their existing defaults.
+
+Re-identification replaces speaker labels and names, including manual renames or
+merges. It preserves transcript text, edits, segment IDs, timestamps, word timing
+data, and the original speech model/cost attribution. Previous and resulting
+transcript snapshots are saved in the session folder. Speaker numbers can change
+between runs; rename them after recognizing speakers. This feature processes
+saved recordings and imports, rather than live captions or dictation.
 
 ## What the NVIDIA model does
 
@@ -25,7 +30,7 @@ long recordings without resetting speaker identity at each chunk. NVIDIA
 provides NeMo and Transformers inference examples; neither runtime was already
 part of this desktop application.
 
-OpenTranscribe pairs this diarizer with Whisper Large v3 Turbo Q5. It uses the
+OpenTranscribe can pair this diarizer with any installed Whisper model. It uses the
 [community ONNX export and Rust runtime](https://github.com/altunenes/parakeet-rs/tree/v0.3.8),
 not the gated preview checkpoint or an official NVIDIA ONNX release. The runtime
 is pinned to `parakeet-rs = 0.3.8`; the lockfile also pins ONNX Runtime bindings.
@@ -40,46 +45,61 @@ The model comes from [this pinned revision](https://huggingface.co/altunenes/par
 The catalog verifies 400,506,656 bytes and SHA-256
 `915e4fa23b0192ed9fadeb1cdd26847df986d50c92012d177be28d0343bbe03a`.
 The bundled `resources/nemotron-3/LICENSE` and `NOTICE` retain the OpenMDW-1.1
-license and model/conversion attribution. Both model artifacts remain in the
+license and model/conversion attribution. Model artifacts remain in the
 ordinary configurable model folder and participate in move, removal, and reset.
 
 ## Repository data flow
 
-1. The Vue session view uses `localModelsStore` to list installed, usable models
-   and sends the selected model ID through the typed native bridge. Settings
-   gets model metadata from the Rust catalog. Dictation filters out the combined
-   meeting profile, with a matching native validation check.
-2. Native jobs resolve finalized audio through the library repository and call
-   `LocalTranscriptionService`. The service validates both installed artifacts,
-   resolves the combination to its Whisper and Nemotron paths, and launches the
-   supervised `local-transcriber` executable.
-3. Protocol version 4 carries the optional diarizer path in `FileTranscription`
-   and an optional speaker label on each segment. The desktop and both bundled
-   workers use the shared protocol crate and must be built together.
-4. The sidecar decodes the selected audio once, downmixes it to mono, and resamples
-   to 16 kHz with the existing audio decoder. Nemotron runs first, using the
-   runtime's offline profile and persistent speaker cache within the recording.
-   The application still performs this work only after recording finalization.
-5. Whisper enables token timestamps and word splitting for the combined profile.
-   The alignment module assigns each word to the speaker with the greatest total
-   overlapping activity. Ties choose the earlier-arriving speaker. Words without
-   matching activity remain unassigned. Sentence merging stops at speaker changes,
-   punctuation, long pauses, and the existing duration limit.
-6. The desktop preserves model IDs, the diarizer hash, and timed/labeled segments
-   in the provider response. `build_bundle` creates stable speaker identities for
-   that immutable run, then the existing repository persists the run and promotes
-   the canonical transcript. No library schema migration is needed: speakers and
-   integer-millisecond segment times already exist in the domain model.
+1. `apps/desktop/src/views/session/components/SessionTranscriptionActions.vue`
+   passes an optional diarization model ID alongside the speech model.
+   `SessionDiarizationActions.vue` requests a separate job with the current
+   transcript ID and revision. `localModelsStore` separates the speech and
+   speaker-recognition model choices.
+2. `apps/desktop/src-tauri/src/jobs.rs` owns enqueueing, retry, cancellation,
+   and progress. Its `jobs/transcription.rs`, `jobs/diarization.rs`, and
+   `jobs/finalization.rs` modules run the separate workflows. The repository
+   prevents two active jobs against one session. Diarization jobs persist a full
+   transcript snapshot, so retry after restart cannot silently target new text.
+3. `apps/desktop/src-tauri/src/local_models/transcriber.rs` validates the
+   independently selected artifacts; `diarizer.rs` requires only Nemotron.
+   Both reuse the supervised runner in `local_models/sidecar.rs`.
+4. Protocol version 5 in `crates/transcriber-protocol` carries an optional
+   diarizer path in `FileTranscription`, and a separate `DiarizeFile` command
+   returning timed `SpeakerTurn` events. Standalone diarization never loads a
+   Whisper model and never emits replacement text. Rebuild both bundled workers
+   when changing the protocol.
+5. `sidecars/local-transcriber/src/diarization.rs` runs the CPU model on decoded
+   16 kHz mono audio. With new transcription, Whisper uses word timestamps;
+   words are assigned by total overlapping speaker activity, with stable ties,
+   then merged into sentences without crossing speaker boundaries. Existing
+   timestamp and native whitespace behavior is retained.
+6. `apps/desktop/src-tauri/src/storage/repository/diarization.rs` assigns each
+   existing segment to the speaker with greatest total overlap. Unmatched
+   segments become **Unassigned**. Empty speaker output fails without replacing
+   the transcript. Re-identification compares the full current transcript with
+   the input snapshot, rejecting concurrent edits, external changes, or a
+   replacement transcript. Canceled jobs cannot promote their results.
+7. Each rerun writes `transcripts/diarization-runs/<id>/run.json`,
+   `provider-response.json`, `input-transcript.json`, and `transcript.json`.
+   These record the model hash, source speech run, revisions, raw timed turns,
+   and before/after assignments. History is written before updating canonical
+   `transcript.json`, Markdown, and search data; an interrupted promotion may
+   leave an unapplied history folder. The speech run remains immutable. History
+   is inspectable in the session folder; there is no in-app history restore UI.
 
-The sidecar's output reader polls cancellation even when model loading/inference
-is silent. Errors, protocol mismatches, and incomplete output fail the job and
-terminate the child. A failure does not persist a partially completed transcript
-or affect the saved recording. Progress allocates half to diarization and half
-to Whisper; this is stage progress, not a prediction of elapsed processing time.
-Whisper's native debug logging is disabled because it can expose recognized text;
-inference errors are delivered through the protocol.
+Cancellation polls every 50 ms independently of worker output and kills the
+worker even during silent ONNX inference. Errors, protocol mismatches, and
+incomplete output fail the job and preserve the existing transcript. New
+transcription splits stage progress between diarization and speech recognition;
+standalone diarization shows an indeterminate progress indicator. Whisper debug
+logging and ONNX telemetry are disabled.
 
 ## Limits and validation
+
+Re-identifying existing transcripts preserves their segment boundaries: a long
+segment containing several speakers still receives only one label. A new
+transcription with speaker recognition uses word-level alignment for finer
+boundaries.
 
 Speaker IDs are local to one run. This is not voice enrollment or cross-meeting
 identification. The canonical transcript has one speaker per segment, so
@@ -90,10 +110,10 @@ Nemotron's 10 ms output resolution does not guarantee 10 ms word accuracy.
 The sidecar currently decodes the complete recording into memory, as it already
 did for Whisper; cached diarization does not remove that existing memory cost.
 
-Automated tests cover alignment, overlapping turns and ties, silence, all eight
-speaker channels, sentence boundaries, protocol transport, silent cancellation,
-incomplete completion, catalog dependencies, and UI availability after dependency
-removal. The browser test exercises combined installation and repair.
+Automated tests cover overlap alignment and ties, silence, all eight speaker
+channels, sentence boundaries, silent cancellation, incomplete output, unchanged
+text and timestamps, archived assignments, concurrent changes, restart snapshots,
+independent downloads, and frontend availability without speech weights.
 
 The opt-in inference test uses actual model files and a two-speaker WAV. No
 weights or user recordings are committed. Run it with:
@@ -105,28 +125,25 @@ OPENTRANSCRIBE_TEST_AUDIO=/absolute/path/to/two-speaker.wav \
 cargo test -p opentranscribe-local-transcriber --test diarized_transcription --locked -- --ignored --nocapture
 ```
 
-This test validates decoded events, nonempty text, ordered timestamps, multiple
+These tests validate standalone repeated diarization without a loaded speech
+model, decoded events, nonempty text, ordered timestamps, multiple
 speaker labels, and successful process exit. It is a wiring smoke test, not a
 diarization accuracy benchmark. macOS validation can use synthesized voices so
 no personal meeting audio is needed. Windows/Linux execution and installer
 behavior still need their platform CI and packaged-app smoke tests.
 
-### Implementation validation — 2026-09-24
+### Platform validation
 
-On macOS Apple silicon: 182 native tests, 16 frontend unit tests, and 82 browser
-tests passed, including light/dark accessibility checks and the model dependency
-repair flow at 900 × 640. Formatting, Clippy with warnings denied, ESLint, Vue
-type checking, the frontend production build, `scripts/prepare-sidecar.mjs`, and
-`cargo build --workspace --locked` passed. Both downloaded artifact hashes matched
-the catalog. The opt-in inference test passed with Whisper Best and Nemotron on
-roughly 33 seconds of synthesized two-voice audio, including a returning speaker.
-The normal native suite skips two model-dependent tests; the Nemotron test was
-run separately with the downloaded weights. The existing S1-mini model test was
-not run.
+On 2026-09-24, macOS validation passed 189 Rust tests, 20 frontend unit tests,
+83 browser tests, and both real-model inference tests. Clippy with warnings
+denied, ESLint, type checking, formatting, production builds, and sidecar
+preparation passed. Focused workspace tests also verify the speaker controls
+at 800, 900, and 1200 pixel widths.
 
-Linux native validation was unavailable because the local Docker daemon was not
-running. With Docker available, run `task ci:linux:docker MODE=native-test`.
-On Windows, prepare the sidecars with `node scripts/prepare-sidecar.mjs`, then run
-`cargo clippy --workspace --all-targets --locked -- -D warnings`,
-`cargo test --workspace --locked`, and the opt-in inference test above. These
-checks do not replace a signed/packaged application smoke test on each platform.
+Actual inference is exercised on macOS Apple silicon using synthesized voices,
+including a returning speaker. This is a wiring smoke test, not an accuracy
+benchmark. No models or recordings are committed. Linux and Windows require
+platform CI and packaged-app smoke tests. On Linux with Docker available, use
+`task ci:linux:docker MODE=native-test`. On Windows, prepare both sidecars with
+`node scripts/prepare-sidecar.mjs`, then run workspace tests and the inference
+tests above. The existing S1-mini opt-in model test is unrelated to diarization.

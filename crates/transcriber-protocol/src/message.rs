@@ -24,11 +24,26 @@ pub struct FileTranscription {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct FileDiarization {
+    pub job_id: String,
+    pub path: String,
+    pub model_path: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct SpeakerTurn {
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub speaker_label: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(tag = "type", content = "payload", rename_all = "snake_case")]
 pub enum Command {
     Hello,
     LoadModel(ModelDescriptor),
     TranscribeFile(FileTranscription),
+    DiarizeFile(FileDiarization),
     NormalizeText { job_id: String, text: String },
     UnloadModel,
     Shutdown,
@@ -50,6 +65,10 @@ pub enum Event {
         end_ms: u64,
         text: String,
         speaker_label: Option<String>,
+    },
+    SpeakerTurn {
+        job_id: String,
+        turn: SpeakerTurn,
     },
     JobProgress {
         job_id: String,

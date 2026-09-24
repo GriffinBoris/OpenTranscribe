@@ -16,6 +16,7 @@ type TranscriptionBridge = Pick<
   | "removeOpenAiApiKey"
   | "testOpenAiConnection"
   | "enqueueTranscription"
+  | "enqueueDiarization"
   | "retryJob"
   | "cancelJob"
   | "localModelStatuses"
@@ -58,7 +59,7 @@ export const previewTranscriptionBridge = {
     provider: "local" | "open_ai",
   ): Promise<Job> {
     const timestamp = new Date().toISOString();
-    return {
+    const job: Job = {
       id: crypto.randomUUID(),
       session_id: sessionId,
       kind: provider === "open_ai" ? "transcribe_open_ai" : "transcribe_local",
@@ -70,6 +71,26 @@ export const previewTranscriptionBridge = {
       created_at: timestamp,
       updated_at: timestamp,
     };
+    previewState.processingJobs.set(job.id, job);
+    return job;
+  },
+
+  async enqueueDiarization(sessionId: string): Promise<Job> {
+    const timestamp = new Date().toISOString();
+    const job: Job = {
+      id: crypto.randomUUID(),
+      session_id: sessionId,
+      kind: "diarize_local",
+      state: "queued",
+      progress: null,
+      estimated_cost_usd: null,
+      attempt: 1,
+      error_message: null,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+    previewState.processingJobs.set(job.id, job);
+    return job;
   },
 
   async retryJob() {
@@ -85,12 +106,14 @@ export const previewTranscriptionBridge = {
       return desktopOnly(t("native.requestedItemMissing"));
     }
 
-    return {
+    const canceled: Job = {
       ...job,
       state: "canceled",
       progress: null,
       updated_at: new Date().toISOString(),
     };
+    previewState.processingJobs.set(jobId, canceled);
+    return canceled;
   },
 
   async localModelStatuses() {
@@ -135,12 +158,6 @@ export const previewTranscriptionBridge = {
     }
 
     model.installed = true;
-    if (model.required_model_id) {
-      const dependency = previewState.localModels.find(
-        (item) => item.id === model.required_model_id,
-      );
-      if (dependency) dependency.installed = true;
-    }
     return structuredClone(model);
   },
 

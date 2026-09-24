@@ -14,6 +14,7 @@ use crate::error::AppError;
 use super::{LibraryRepository, read_directories, read_files, relative_path};
 use crate::storage::JobRequest;
 
+mod diarization;
 mod imports_and_trash;
 mod library_and_jobs;
 mod moves;

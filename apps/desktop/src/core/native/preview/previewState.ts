@@ -3,6 +3,7 @@ import { createPreviewSnapshot } from "@/core/native/preview/previewData";
 import { i18n } from "@/i18n";
 import type {
   AppEvent,
+  Job,
   CredentialStatus,
   LocalModel,
   RecordingMode,
@@ -14,6 +15,8 @@ import type {
 const { t } = i18n.global;
 
 export const previewState = {
+  withTranscript: false,
+  processingJobs: new Map<string, Job>(),
   recordingStartedAt: 0,
   recordingSessionId: "",
   recordingMode: "record_only" as RecordingMode,
@@ -41,7 +44,6 @@ export const previewState = {
   localModels: [
     {
       id: "whisper-small-q5_1",
-      required_model_id: null,
       preset: "fast",
       label: t("models.fast"),
       description: t("models.fastDescription"),
@@ -50,7 +52,6 @@ export const previewState = {
     },
     {
       id: "whisper-medium-q5_0",
-      required_model_id: null,
       preset: "balanced",
       label: t("models.balanced"),
       description: t("models.balancedDescription"),
@@ -59,7 +60,6 @@ export const previewState = {
     },
     {
       id: "whisper-large-v3-turbo-q5_0",
-      required_model_id: null,
       preset: "best",
       label: t("models.best"),
       description: t("models.bestDescription"),
@@ -68,7 +68,6 @@ export const previewState = {
     },
     {
       id: "s1-mini-q4_k_m",
-      required_model_id: null,
       preset: "cleanup",
       label: "S1-mini by Superwhisper",
       description:
@@ -77,12 +76,11 @@ export const previewState = {
       installed: false,
     },
     {
-      id: "whisper-large-v3-turbo-nemotron-3",
-      required_model_id: "whisper-large-v3-turbo-q5_0",
+      id: "nemotron-3-diarization",
       preset: "diarization",
       label: t("models.nemotron"),
       description: t("models.nemotronDescription"),
-      byte_count: 974_547_851,
+      byte_count: 400_506_656,
       installed: false,
     },
   ] as LocalModel[],
@@ -120,6 +118,8 @@ function setupCompleted() {
 
 export function previewSnapshot(path?: string) {
   const snapshot = createPreviewSnapshot(path, setupCompleted());
+  if (new URLSearchParams(window.location.search).has("transcript"))
+    previewState.withTranscript = true;
   const searchParameters = new URLSearchParams(window.location.search);
   const recordingMode = searchParameters.get("recordingMode");
   const globalShortcut = searchParameters.get("globalShortcut");
@@ -192,6 +192,7 @@ export function previewSnapshot(path?: string) {
     })
     .filter((session) => !previewState.trashedSessions.has(session.id));
 
+  snapshot.active_jobs.push(...previewState.processingJobs.values());
   return snapshot;
 }
 

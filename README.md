@@ -315,9 +315,10 @@ cargo test --workspace --locked
 
 ## Data and privacy
 
-For local speaker labels, download **Whisper + Nemotron 3** in Settings and select
-it from a saved session's transcription menu. It pairs Whisper Best transcription
-with NVIDIA's Nemotron 3 speaker diarization, entirely on the computer. See
+For local speaker labels, download **Nemotron 3 speaker recognition** in Settings.
+Enable it alongside any local speech model, or choose **Re-identify speakers**
+on an existing local or cloud transcript without retranscribing its words.
+Speaker recognition runs entirely on the computer. See
 [local diarization](docs/local-diarization.md) for setup, architecture, and limits.
 
 OpenTranscribe does not require an OpenTranscribe account. A selected library

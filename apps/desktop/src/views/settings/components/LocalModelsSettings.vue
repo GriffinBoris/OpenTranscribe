@@ -109,17 +109,10 @@ async function moveStorage() {
           <small>
             {{ model.description }} · {{ modelSize(model.byte_count) }}
           </small>
-          <small v-if="model.required_model_id" class="text-ink-muted">
-            {{ t("models.sharedSpeechModel") }}
-          </small>
         </span>
-        <StatusPill :tone="localModels.isReady(model) ? 'success' : 'neutral'">
+        <StatusPill :tone="model.installed ? 'success' : 'neutral'">
           {{
-            localModels.isReady(model)
-              ? t("models.installed")
-              : model.installed
-                ? t("models.needsSpeechModel")
-                : t("models.notInstalled")
+            model.installed ? t("models.installed") : t("models.notInstalled")
           }}
         </StatusPill>
         <div class="flex items-center gap-2">
@@ -132,7 +125,7 @@ async function moveStorage() {
             {{ t("models.remove") }}
           </AppButton>
           <AppButton
-            v-if="!localModels.isReady(model)"
+            v-if="!model.installed"
             size="small"
             :loading="localModels.downloadingModelId === model.id"
             :disabled="localModels.downloadingModelId !== null"

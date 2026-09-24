@@ -1,5 +1,5 @@
 use opentranscribe_domain::TranscriptSource;
-use opentranscribe_transcriber_protocol::FileTranscription;
+use opentranscribe_transcriber_protocol::{Command, FileTranscription, ModelDescriptor};
 
 use crate::error::{AppError, AppResult};
 use crate::storage::TranscriptionInput;
@@ -16,6 +16,7 @@ impl LocalTranscriptionService {
         app: &tauri::AppHandle,
         input: TranscriptionInput,
         model_id: String,
+        diarization_model_id: Option<String>,
         mut on_progress: impl FnMut(u64, u64),
         should_cancel: impl Fn() -> bool,
     ) -> AppResult<TranscriptionBundle> {
@@ -26,47 +27,48 @@ impl LocalTranscriptionService {
                 AppError::Model("record or import audio before transcribing".to_owned())
             })?
             .clone();
-        if model_id == "s1-mini-q4_k_m" {
-            return Err(AppError::Model(
-                "S1-mini cleans text; select a speech model for transcription.".to_owned(),
-            ));
-        }
         let definition =
             find(&model_id).ok_or_else(|| AppError::Model("unknown model".to_owned()))?;
-        let installed = installed_path(app, &model_id)?;
-        let (speech_model_id, model_path, diarization_model_path) = match definition.speech_model_id
-        {
-            Some(speech_model_id) => (
-                speech_model_id,
-                installed_path(app, speech_model_id)?,
-                Some(installed.to_string_lossy().into_owned()),
-            ),
-            None => (model_id.as_str(), installed, None),
-        };
+        if matches!(definition.preset, "cleanup" | "diarization") {
+            return Err(AppError::Model(
+                "Select a speech model for transcription.".to_owned(),
+            ));
+        }
+        let model_path = installed_path(app, &model_id)?;
+        let diarization_model_path = diarization_model_id
+            .as_deref()
+            .map(|id| super::diarizer::model_path(app, id))
+            .transpose()?
+            .map(|path| path.to_string_lossy().into_owned());
         let job_id = opentranscribe_domain::new_id();
         let request = FileTranscription {
-            job_id,
+            job_id: job_id.clone(),
             path: audio_path.to_string_lossy().into_owned(),
             language_hint: input.session.language_hint.clone(),
             prompt: (!input.session.glossary.is_empty()).then(|| input.session.glossary.join(", ")),
             diarization_model_path,
         };
-        let segments = run_sidecar(
+        let output = run_sidecar(
             app,
-            speech_model_id,
-            &model_path,
-            request,
+            Some(ModelDescriptor {
+                model_id: model_id.clone(),
+                path: model_path.to_string_lossy().into_owned(),
+                use_gpu: cfg!(target_os = "macos"),
+            }),
+            &job_id,
+            Command::TranscribeFile(request),
             |completed, total| {
                 on_progress(completed, total);
             },
             should_cancel,
         )
         .await?;
+        let segments = output.segments;
         let provider_response = serde_json::json!({
             "runtime": "whisper.cpp",
-            "speech_model_id": speech_model_id,
-            "diarization_model_id": definition.speech_model_id.map(|_| "nvidia/Nemotron-3-Diarization"),
-            "diarization_sha256": definition.speech_model_id.map(|_| definition.sha256),
+            "speech_model_id": model_id,
+            "diarization_model_id": diarization_model_id,
+            "diarization_sha256": diarization_model_id.as_deref().and_then(find).map(|model| model.sha256),
             "segments": segments.iter().map(|segment| serde_json::json!({
                 "start_ms": segment.start_ms,
                 "end_ms": segment.end_ms,

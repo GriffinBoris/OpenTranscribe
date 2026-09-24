@@ -4,6 +4,8 @@ import { useRouter } from "vue-router";
 import { Cpu, Settings, Sparkles } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
+import AppCheckbox from "@/components/ui/AppCheckbox.vue";
+import SessionDiarizationActions from "@/views/session/components/SessionDiarizationActions.vue";
 import AppButton from "@/components/ui/AppButton.vue";
 import AppSplitButton from "@/components/ui/AppSplitButton.vue";
 import { useOpenAiStore } from "@/views/application/openAiStore";
@@ -30,6 +32,7 @@ const localModels = useLocalModelsStore();
 const sessionStore = useSessionStore();
 const { t } = useI18n();
 const selectedTarget = ref("");
+const identifySpeakers = ref(false);
 const activeJob = computed(() =>
   sessionStore.transcriptionJobForSession(props.sessionId),
 );
@@ -79,7 +82,13 @@ async function transcribe(target = selectedTargetOption.value) {
   }
 
   if (target.provider === "local") {
-    await sessionStore.transcribeLocally(props.sessionId, target.modelId);
+    await sessionStore.transcribeLocally(
+      props.sessionId,
+      target.modelId,
+      identifySpeakers.value && localModels.diarizationModel?.installed
+        ? localModels.diarizationModel.id
+        : undefined,
+    );
     return;
   }
 
@@ -101,9 +110,23 @@ onMounted(() => {
 <template>
   <div
     v-if="canTranscribe"
-    class="transcription-actions flex max-w-full min-w-0 flex-wrap items-center gap-2"
+    class="transcription-actions grid max-w-full min-w-0 grid-cols-[auto_auto] items-center gap-2 max-[720px]:grid-cols-1"
   >
     <template v-if="transcriptionTargets.length">
+      <label
+        v-if="
+          selectedTargetOption?.provider === 'local' &&
+          localModels.diarizationModel?.installed
+        "
+        class="col-span-full flex items-center gap-2 text-sm"
+      >
+        <AppCheckbox
+          v-model="identifySpeakers"
+          :accessible-label="t('session.identifySpeakers')"
+          :disabled="Boolean(activeJob)"
+        />
+        {{ t("session.identifySpeakers") }}
+      </label>
       <AppSplitButton
         class="max-w-full shrink-0 max-[720px]:w-full"
         :options="transcriptionTargets"
@@ -136,5 +159,10 @@ onMounted(() => {
       <Settings :size="15" />
       {{ t("session.setUpTranscription") }}
     </AppButton>
+    <SessionDiarizationActions
+      v-if="hasTranscript"
+      :session-id="sessionId"
+      :disabled="Boolean(activeJob)"
+    />
   </div>
 </template>

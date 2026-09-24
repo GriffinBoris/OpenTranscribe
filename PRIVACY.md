@@ -23,8 +23,10 @@ synchronized model folder will treat models as ordinary files and can upload
 several hundred megabytes of regenerable data, so choose a non-synced folder if
 that matters to you.
 
-The optional Whisper + Nemotron 3 meeting profile runs speech recognition and
-speaker labeling on this device. Audio is not sent to NVIDIA or Hugging Face.
+Optional Nemotron 3 speaker recognition runs on this device, alongside a local
+speech model or separately on saved local or cloud transcripts. Audio is not sent
+to NVIDIA or Hugging Face. Re-identification archives the original and resulting
+transcript, speaker names, and timed speaker activity in the session folder.
 Speaker labels are anonymous and scoped to each transcription run; they do not
 identify people by name or match voices across meetings.
 

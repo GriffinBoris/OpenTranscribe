@@ -65,6 +65,8 @@ function jobKind(job: Job) {
     return t("processing.openAiTranscription");
   }
 
+  if (job.kind === "diarize_local") return t("session.diarizing");
+
   if (job.kind === "transcribe_local") {
     return t("processing.localTranscription");
   }
