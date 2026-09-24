@@ -14,6 +14,11 @@ on:
           - frontend-browser
           - native
           - build
+          - diarization-smoke
+      artifact_run_id:
+        description: Native Compile run ID for the packaged diarization smoke stage
+        required: false
+        type: string
       native_os:
         description: Operating system for the native test stage
         required: true
@@ -79,3 +84,12 @@ jobs:
     with:
       bundle: true
       target: ${{ inputs.target }}
+
+  diarization-smoke:
+    if: inputs.stage == 'diarization-smoke'
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/diarization-smoke.yaml
+    with:
+      artifact_run_id: ${{ inputs.artifact_run_id }}

@@ -1,6 +1,11 @@
 name: Packaged Diarization Smoke
 
 on:
+  workflow_call:
+    inputs:
+      artifact_run_id:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       artifact_run_id:
