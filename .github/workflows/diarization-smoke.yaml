@@ -39,7 +39,7 @@ jobs:
       - name: Prepare synthetic speech and the pinned diarization model
         run: |
           sudo apt-get update
-          sudo apt-get install --yes espeak-ng
+          sudo apt-get install --yes espeak-ng gdb
           python3 -m pip install msgpack==1.1.2
           espeak-ng -v en-us -s 150 -w candidate/speech.wav \
             "Welcome to the project meeting. The desktop application can identify speakers and preserve the words they said. We need to verify that this works on every platform."
@@ -54,3 +54,14 @@ jobs:
           "$PWD/candidate/extracted/usr/bin/local-transcriber"
           "$PWD/candidate/model.onnx"
           "$PWD/candidate/speech.wav"
+
+      - name: Collect a native crash backtrace
+        if: failure()
+        run: |
+          cat > candidate/debug-worker <<'EOF'
+          #!/usr/bin/env bash
+          exec gdb --batch --return-child-result -ex run -ex 'bt 30' --args "$PWD/candidate/extracted/usr/bin/local-transcriber" >&2
+          EOF
+          chmod +x candidate/debug-worker
+          python3 scripts/tests/test_packaged_diarization.py \
+            "$PWD/candidate/debug-worker" "$PWD/candidate/model.onnx" "$PWD/candidate/speech.wav"
