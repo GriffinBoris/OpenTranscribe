@@ -96,7 +96,7 @@ tasks:
     vars:
       MODE: '{{.MODE | default "native-test"}}'
       PLATFORM: '{{.PLATFORM | default "linux/amd64"}}'
-      LINUX_CI_IMAGE: '{{.LINUX_CI_IMAGE | default "opentranscribe-linux-ci-base:ubuntu22-v4"}}'
+      LINUX_CI_IMAGE: '{{.LINUX_CI_IMAGE | default "opentranscribe-linux-ci-base:ubuntu22-v5"}}'
     cmds:
       - >-
         docker image inspect {{.LINUX_CI_IMAGE}} >/dev/null ||
@@ -108,8 +108,8 @@ tasks:
     desc: Provision the cached Ubuntu 22 Docker image used by local Linux CI gates
     vars:
       PLATFORM: '{{.PLATFORM | default "linux/amd64"}}'
-      LINUX_CI_IMAGE: '{{.LINUX_CI_IMAGE | default "opentranscribe-linux-ci-base:ubuntu22-v4"}}'
-      LINUX_CI_CONTAINER: '{{.LINUX_CI_CONTAINER | default "opentranscribe-linux-ci-bootstrap-ubuntu22-v4"}}'
+      LINUX_CI_IMAGE: '{{.LINUX_CI_IMAGE | default "opentranscribe-linux-ci-base:ubuntu22-v5"}}'
+      LINUX_CI_CONTAINER: '{{.LINUX_CI_CONTAINER | default "opentranscribe-linux-ci-bootstrap-ubuntu22-v5"}}'
     status:
       - docker image inspect {{.LINUX_CI_IMAGE}}
     cmds:

@@ -19,6 +19,7 @@ setup() {
     libappindicator3-dev \
     libasound2-dev \
     libclang-dev \
+    libssl-dev \
     libgtk-3-dev \
     libpipewire-0.3-dev \
     librsvg2-dev \

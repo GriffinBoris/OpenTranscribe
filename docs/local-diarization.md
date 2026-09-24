@@ -36,9 +36,17 @@ not the gated preview checkpoint or an official NVIDIA ONNX release. The runtime
 is pinned to `parakeet-rs = 0.3.8`; the lockfile also pins ONNX Runtime bindings.
 The default CPU execution provider avoids requiring CUDA, Python, or a running
 server. Whisper continues to use Metal on macOS. ONNX Runtime is statically
-linked by its default build, so sidecar packaging does not require a new runtime
-installer. Build-time binary downloads are handled by `ort-sys` and verified
-against its pinned distribution manifest. ONNX telemetry is explicitly disabled
+linked. Windows also bundles its required DirectML DLL beside the executable;
+users do not need a runtime installer. Intel Macs and Linux use checksum-pinned
+ONNX Runtime 1.22 static archives through `scripts/prepare-onnx-runtime.mjs`.
+Newer prebuilt distributions dropped Intel Mac support and require a newer
+Linux GLIBC than our Ubuntu 22.04 baseline. The bindings explicitly target API 22
+on every platform. Use `scripts/prepare-sidecar.mjs` for these builds; direct
+Cargo commands need `ORT_LIB_PATH` pointing at
+`target/onnxruntime-1.22.0-<target-triple>/onnxruntime/lib` after preparation.
+The script exports this path for subsequent GitHub Actions steps; local Docker
+checks set it in `scripts/run-linux-ci.sh`. Other runtime downloads are handled
+by `ort-sys` and verified against its pinned distribution manifest. ONNX telemetry is explicitly disabled
 before creating any inference session.
 
 The model comes from [this pinned revision](https://huggingface.co/altunenes/parakeet-rs/tree/4d2a8bc71f5c896ec40faa59732e6716295edaf2/nemotron-3-diarization).

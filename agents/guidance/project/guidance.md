@@ -98,7 +98,10 @@ order: 0
   promotion, including on retries. Serialize cancellation with promotion.
   Preserve speaker boundaries when merging new transcription fragments. Poll
   cancellation independently of worker output so silent inference remains
-  cancellable. See `docs/local-diarization.md` for alignment limits and licensing.
+  cancellable. Keep ONNX bindings on API 22 for the pinned Intel Mac/Linux runtime;
+  prepare it through the sidecar build script. Bundle the Windows runtime's
+  DirectML DLL beside the executables even when selecting CPU inference.
+  See `docs/local-diarization.md` for alignment limits and licensing.
 - Dictation uses supervised warm speech and cleanup workers. Preload during
   capture, serialize requests per worker, and kill/reset the worker on canceled
   or failed inference. Never load S1-mini through the Whisper runtime or offer
