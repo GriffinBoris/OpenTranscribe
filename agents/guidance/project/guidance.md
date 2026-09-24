@@ -99,7 +99,9 @@ order: 0
   Preserve speaker boundaries when merging new transcription fragments. Poll
   cancellation independently of worker output so silent inference remains
   cancellable. Keep ONNX bindings on API 21 for the pinned Intel Mac/Linux runtime;
-  prepare it through the sidecar build script. Bundle the Windows runtime's
+  prepare it through the sidecar build script. Linux retains one process-lifetime
+  environment reference because ort's ELF finalizer runs after the static C++
+  runtime's destructors; verify packaged worker exit with the inference smoke test. Bundle the Windows runtime's
   DirectML DLL beside the executables even when selecting CPU inference.
   See `docs/local-diarization.md` for alignment limits and licensing.
 - Dictation uses supervised warm speech and cleanup workers. Preload during

@@ -1,10 +1,23 @@
 use std::path::Path;
+#[cfg(target_os = "linux")]
+use std::sync::{Arc, OnceLock};
+
+#[cfg(target_os = "linux")]
+use ort::environment::Environment;
 
 use parakeet_rs::sortformer::{Sortformer, SpeakerSegment};
 
 use crate::runtime::Segment;
 
 pub fn diarize(path: &Path, samples: &[f32]) -> Result<Vec<SpeakerSegment>, String> {
+    #[cfg(target_os = "linux")]
+    {
+        // ort's ELF finalizer runs after the static runtime's C++ destructors.
+        // Retain one process-lifetime environment reference so ReleaseEnv cannot
+        // access those destroyed globals. Session/model resources still drop normally.
+        static ENVIRONMENT: OnceLock<Arc<Environment>> = OnceLock::new();
+        let _ = ENVIRONMENT.set(Environment::current().map_err(|error| error.to_string())?);
+    }
     let mut diarizer = Sortformer::new(path).map_err(|error| error.to_string())?;
     let mut turns = diarizer
         .diarize(samples.to_vec(), 16_000, 1)

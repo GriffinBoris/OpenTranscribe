@@ -49,7 +49,11 @@ Cargo commands need `ORT_LIB_PATH` pointing at
 The script exports this path for subsequent GitHub Actions steps; local Docker
 checks set it in `scripts/run-linux-ci.sh`. Other runtime downloads are handled
 by `ort-sys` and verified against its pinned distribution manifest. ONNX telemetry is explicitly disabled
-before creating any inference session.
+before creating any inference session. On Linux, one environment reference is
+retained for the worker's process lifetime: ort's ELF finalizer otherwise calls
+`ReleaseEnv` after the static runtime's C++ globals have been destroyed and
+crashes at exit. Session and model allocations are still released after each run;
+the OS reclaims the process-global environment when the worker exits.
 
 The model comes from [this pinned revision](https://huggingface.co/altunenes/parakeet-rs/tree/4d2a8bc71f5c896ec40faa59732e6716295edaf2/nemotron-3-diarization).
 The catalog verifies 400,506,656 bytes and SHA-256
