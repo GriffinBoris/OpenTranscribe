@@ -50,7 +50,7 @@ jobs:
 
       - name: Run repeated diarization with the packaged worker
         run: >-
-          python3 scripts/tests/test_packaged_diarization.py
+          python3 scripts/tests/smoke_packaged_diarization.py
           "$PWD/candidate/extracted/usr/bin/local-transcriber"
           "$PWD/candidate/model.onnx"
           "$PWD/candidate/speech.wav"
@@ -63,5 +63,5 @@ jobs:
           exec gdb --batch --return-child-result -ex run -ex 'bt 30' --args "$PWD/candidate/extracted/usr/bin/local-transcriber" >&2
           EOF
           chmod +x candidate/debug-worker
-          python3 scripts/tests/test_packaged_diarization.py \
+          python3 scripts/tests/smoke_packaged_diarization.py \
             "$PWD/candidate/debug-worker" "$PWD/candidate/model.onnx" "$PWD/candidate/speech.wav"
