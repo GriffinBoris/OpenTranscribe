@@ -24,7 +24,7 @@ def main():
         frames.extend(struct.pack('<I', len(payload)) + payload)
 
     result = subprocess.run([worker], input=frames, capture_output=True, timeout=180)
-    assert result.returncode == 0, f'Worker exit {result.returncode}: {result.stderr.decode(errors='replace')}'
+    assert result.returncode == 0, (result.returncode, result.stderr.decode(errors='replace'))
     output = result.stdout
     speakers = {'first': set(), 'rerun': set()}
     completed = []
