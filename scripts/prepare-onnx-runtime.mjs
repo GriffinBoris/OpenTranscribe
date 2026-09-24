@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Runtime 1.22 supports Intel Mac and the Ubuntu 22.04 baseline. Use API 22.
+// Runtime 1.22 supports Intel Mac and the Ubuntu 22.04 baseline. Use API 21.
 const checksums = {
   "x86_64-apple-darwin":
     "e0538783248bbb77d2e97556134b8cc47cfc35ac3d762067d51eaf8355c0f48e",

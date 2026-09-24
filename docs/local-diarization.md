@@ -40,8 +40,10 @@ linked. Windows also bundles its required DirectML DLL beside the executable;
 users do not need a runtime installer. Intel Macs and Linux use checksum-pinned
 ONNX Runtime 1.22 static archives through `scripts/prepare-onnx-runtime.mjs`.
 Newer prebuilt distributions dropped Intel Mac support and require a newer
-Linux GLIBC than our Ubuntu 22.04 baseline. The bindings explicitly target API 22
-on every platform. Use `scripts/prepare-sidecar.mjs` for these builds; direct
+Linux GLIBC than our Ubuntu 22.04 baseline. The bindings explicitly target API 21
+on every platform to avoid automatic device-selection policies unsupported by
+the older static runtime. A one-line vendored `parakeet-rs` patch selects the
+compatible `ORT_ENABLE_ALL` optimization level (see `vendor/README.md`). Use `scripts/prepare-sidecar.mjs` for these builds; direct
 Cargo commands need `ORT_LIB_PATH` pointing at
 `target/onnxruntime-1.22.0-<target-triple>/onnxruntime/lib` after preparation.
 The script exports this path for subsequent GitHub Actions steps; local Docker

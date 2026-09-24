@@ -7,7 +7,7 @@ rust-version.workspace = true
 
 [dependencies]
 opentranscribe-transcriber-protocol = { path = "../../crates/transcriber-protocol" }
-ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "ndarray", "download-binaries", "tls-native", "copy-dylibs", "api-22"] }
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "ndarray", "download-binaries", "tls-native", "copy-dylibs", "api-21"] }
 parakeet-rs = { version = "=0.3.8", default-features = false, features = ["cpu", "sortformer"] }
 symphonia = { version = "0.6.0", features = ["all"] }
 

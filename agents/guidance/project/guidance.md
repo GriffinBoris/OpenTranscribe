@@ -98,7 +98,7 @@ order: 0
   promotion, including on retries. Serialize cancellation with promotion.
   Preserve speaker boundaries when merging new transcription fragments. Poll
   cancellation independently of worker output so silent inference remains
-  cancellable. Keep ONNX bindings on API 22 for the pinned Intel Mac/Linux runtime;
+  cancellable. Keep ONNX bindings on API 21 for the pinned Intel Mac/Linux runtime;
   prepare it through the sidecar build script. Bundle the Windows runtime's
   DirectML DLL beside the executables even when selecting CPU inference.
   See `docs/local-diarization.md` for alignment limits and licensing.
