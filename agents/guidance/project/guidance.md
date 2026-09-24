@@ -90,6 +90,14 @@ order: 0
   toolchain pin together so local development, CI, and release builds stay on
   one supported compiler.
 - Local inference runs in the supervised sidecar. A sidecar failure must not stop or corrupt recording.
+- Nemotron 3 is a diarizer, not a speech recognizer. Keep its meeting profile
+  explicitly paired with Whisper Best, reuse the shared speech artifact, and
+  require both verified artifacts before offering transcription. Keep the
+  dependency removable and repairable in Settings; exclude the combined profile
+  from dictation. Preserve model timestamps and speaker boundaries when merging
+  transcript fragments. Poll cancellation independently of sidecar output so
+  silent ONNX inference cannot make a canceled job unresponsive. See
+  `docs/local-diarization.md` for the runtime, alignment limits, and model license.
 - Dictation uses supervised warm speech and cleanup workers. Preload during
   capture, serialize requests per worker, and kill/reset the worker on canceled
   or failed inference. Never load S1-mini through the Whisper runtime or offer
@@ -191,7 +199,7 @@ order: 0
   `Documents/OpenTranscribe/models`. Show the resolved path in settings and
   move existing model files only after explicit confirmation; do not allow a
   move while recording, processing, or downloading. Local model artifacts come
-  from pinned upstream Whisper and Superwhisper S1-mini Hugging Face revisions and
+  from pinned Whisper, Nemotron community ONNX, and Superwhisper S1-mini Hugging Face revisions and
   must pass their catalog SHA-256 integrity check before use.
 - Schema changes require sequential migrations and fixtures covering the previous schema.
 

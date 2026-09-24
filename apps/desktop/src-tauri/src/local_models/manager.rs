@@ -118,7 +118,7 @@ pub fn installed_path(app: &tauri::AppHandle, model_id: &str) -> AppResult<PathB
     migrate_legacy_models(app)?;
     let definition = find(model_id).ok_or_else(|| AppError::Model("unknown model".to_owned()))?;
 
-    if !is_installed(app, definition)? {
+    if !profile_installed(app, definition)? {
         return Err(AppError::Model(format!(
             "{} is not installed",
             definition.label
@@ -136,8 +136,26 @@ pub fn download(
     migrate_legacy_models(app)?;
     let definition = find(model_id).ok_or_else(|| AppError::Model("unknown model".to_owned()))?;
 
+    let artifacts = definition.artifacts();
+    let total_bytes = artifacts.iter().map(|artifact| artifact.byte_count).sum();
+    let mut completed_bytes = 0;
+    for artifact in artifacts {
+        download_artifact(app, artifact, |completed, _| {
+            on_progress(completed_bytes + completed, total_bytes);
+        })?;
+        completed_bytes += artifact.byte_count;
+        on_progress(completed_bytes, total_bytes);
+    }
+    status(app, definition)
+}
+
+fn download_artifact(
+    app: &tauri::AppHandle,
+    definition: &ModelDefinition,
+    mut on_progress: impl FnMut(u64, u64),
+) -> AppResult<()> {
     if is_installed(app, definition)? {
-        return status(app, definition);
+        return Ok(());
     }
 
     let directory = model_directory(app, definition)?;
@@ -232,7 +250,7 @@ pub fn download(
 
     fs::rename(&temporary_path, &path)?;
     write_manifest(&directory, &path, definition)?;
-    status(app, definition)
+    Ok(())
 }
 
 pub fn remove(app: &tauri::AppHandle, model_id: &str) -> AppResult<LocalModel> {
@@ -252,9 +270,23 @@ fn status(app: &tauri::AppHandle, definition: &ModelDefinition) -> AppResult<Loc
         preset: definition.preset.to_owned(),
         label: definition.label.to_owned(),
         description: definition.description.to_owned(),
-        byte_count: definition.byte_count,
+        byte_count: definition
+            .artifacts()
+            .iter()
+            .map(|artifact| artifact.byte_count)
+            .sum(),
         installed: is_installed(app, definition)?,
+        required_model_id: definition.speech_model_id.map(str::to_owned),
     })
+}
+
+fn profile_installed(app: &tauri::AppHandle, definition: &ModelDefinition) -> AppResult<bool> {
+    for artifact in definition.artifacts() {
+        if !is_installed(app, artifact)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 fn model_directory(app: &tauri::AppHandle, definition: &ModelDefinition) -> AppResult<PathBuf> {

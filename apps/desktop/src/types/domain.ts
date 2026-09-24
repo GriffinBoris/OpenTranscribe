@@ -109,8 +109,9 @@ export interface UpdateDownloadProgress {
 }
 
 export interface LocalModel {
+  required_model_id: string | null;
   id: string;
-  preset: "fast" | "balanced" | "best" | "cleanup";
+  preset: "fast" | "balanced" | "best" | "cleanup" | "diarization";
   label: string;
   description: string;
   byte_count: number;

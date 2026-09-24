@@ -7,6 +7,8 @@ rust-version.workspace = true
 
 [dependencies]
 opentranscribe-transcriber-protocol = { path = "../../crates/transcriber-protocol" }
+ort = { version = "=2.0.0-rc.13", default-features = false }
+parakeet-rs = { version = "=0.3.8", features = ["sortformer"] }
 symphonia = { version = "0.6.0", features = ["all"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]

@@ -106,6 +106,11 @@ fn validate_configuration(
                 "S1-mini cleans text after speech recognition. Choose a speech model.".to_owned(),
             ));
         }
+        if model == crate::local_models::NEMOTRON_MODEL_ID {
+            return Err(AppError::Model(
+                "Choose a speech model for dictation. Nemotron speaker labels are for meeting transcripts.".to_owned(),
+            ));
+        }
         installed_path(app, model)?;
     } else {
         state.openai_credentials.read()?;

@@ -1,4 +1,5 @@
 mod audio;
+mod diarization;
 mod runtime;
 
 use std::io::BufReader;
@@ -11,6 +12,9 @@ use opentranscribe_transcriber_protocol::{
 use runtime::TranscriberRuntime;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // whisper.cpp debug logs can contain recognized words; report failures through the protocol.
+    whisper_rs::install_logging_hooks();
+    ort::init().with_telemetry(false).commit();
     let stdin = std::io::stdin();
     let mut reader = BufReader::new(stdin.lock());
     let mut runtime = TranscriberRuntime::default();
@@ -109,6 +113,7 @@ fn transcribe_file(
                         start_ms: segment.start_ms,
                         end_ms: segment.end_ms,
                         text: segment.text,
+                        speaker_label: segment.speaker_label,
                     },
                 )?;
             }

@@ -135,6 +135,12 @@ export const previewTranscriptionBridge = {
     }
 
     model.installed = true;
+    if (model.required_model_id) {
+      const dependency = previewState.localModels.find(
+        (item) => item.id === model.required_model_id,
+      );
+      if (dependency) dependency.installed = true;
+    }
     return structuredClone(model);
   },
 

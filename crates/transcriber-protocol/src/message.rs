@@ -20,6 +20,7 @@ pub struct FileTranscription {
     pub path: String,
     pub language_hint: Option<String>,
     pub prompt: Option<String>,
+    pub diarization_model_path: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -48,6 +49,7 @@ pub enum Event {
         start_ms: u64,
         end_ms: u64,
         text: String,
+        speaker_label: Option<String>,
     },
     JobProgress {
         job_id: String,

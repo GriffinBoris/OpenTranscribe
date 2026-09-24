@@ -1,5 +1,6 @@
 mod catalog;
 mod manager;
+mod sidecar;
 mod transcriber;
 
 use std::collections::HashSet;
@@ -20,6 +21,7 @@ pub struct LocalModel {
     pub description: String,
     pub byte_count: u64,
     pub installed: bool,
+    pub required_model_id: Option<String>,
 }
 
 struct ActiveModelDownload<'a> {
@@ -147,6 +149,10 @@ pub async fn download_local_model(
     state: tauri::State<'_, crate::state::AppState>,
 ) -> AppResult<LocalModel> {
     let _download = ActiveModelDownload::reserve(&state.active_model_downloads, model_id.clone())?;
+    let _speech_download = catalog::find(&model_id)
+        .and_then(|model| model.speech_model_id)
+        .map(|id| ActiveModelDownload::reserve(&state.active_model_downloads, id.to_owned()))
+        .transpose()?;
 
     let download_model_id = model_id.clone();
     tauri::async_runtime::spawn_blocking(move || {
@@ -206,12 +212,13 @@ fn select_preferred_installed_model(models: &[LocalModel]) -> Option<&LocalModel
         .iter()
         .find(|model| model.installed && model.preset == "balanced")
         .or_else(|| {
-            models
-                .iter()
-                .find(|model| model.installed && model.preset != "cleanup")
+            models.iter().find(|model| {
+                model.installed && model.preset != "cleanup" && model.required_model_id.is_none()
+            })
         })
 }
 
+pub(crate) use catalog::NEMOTRON_MODEL_ID;
 pub use manager::{installed_path, remove_all};
 pub use transcriber::LocalTranscriptionService;
 
@@ -240,6 +247,7 @@ mod tests {
             description: String::new(),
             byte_count: 1,
             installed,
+            required_model_id: None,
         }
     }
 
@@ -286,6 +294,13 @@ mod tests {
         ];
 
         assert!(select_preferred_installed_model(&models).is_none());
+    }
+
+    #[test]
+    fn does_not_implicitly_select_a_combined_profile() {
+        let mut profile = model(super::NEMOTRON_MODEL_ID, "diarization", true);
+        profile.required_model_id = Some("whisper-large-v3-turbo-q5_0".to_owned());
+        assert!(select_preferred_installed_model(&[profile]).is_none());
     }
 
     #[test]

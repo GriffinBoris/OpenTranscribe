@@ -69,7 +69,7 @@ const status = computed(() => {
 
   if (
     provider.value === "local" &&
-    !localModels.installedModels.some((model) => model.id === localModel.value)
+    !localModels.dictationModels.some((model) => model.id === localModel.value)
   ) {
     return {
       label: t("settings.dictation.needsModel"),
@@ -102,7 +102,7 @@ const providerOptions = computed(() => [
   { label: t("settings.dictation.openAi"), value: "open_ai" },
 ]);
 const localModelOptions = computed(() =>
-  localModels.installedModels.map((model) => ({
+  localModels.dictationModels.map((model) => ({
     label: model.label,
     value: model.id,
   })),

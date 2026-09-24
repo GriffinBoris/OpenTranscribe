@@ -432,17 +432,24 @@ export const messages = {
   },
   models: {
     title: "Local models",
-    description: "Download speech models and optional dictation cleanup.",
+    description:
+      "Download speech models, speaker recognition, and optional dictation cleanup.",
     private: "Private",
     fast: "Fast",
     balanced: "Balanced",
     best: "Best",
+    nemotron: "Whisper + Nemotron 3",
+    nemotronDescription:
+      "Whisper Best + NVIDIA speaker labels · Up to 8 speakers",
     fastDescription: "Whisper Small · Multilingual · Q5",
     balancedDescription: "Whisper Medium · Multilingual · Q5",
     bestDescription: "Whisper Large v3 Turbo · Multilingual · Q5",
     loading: "Loading local models",
     installed: "Installed",
     notInstalled: "Not installed",
+    needsSpeechModel: "Whisper Best required",
+    sharedSpeechModel:
+      "Includes the shared Whisper Best model. Removing this option removes only Nemotron; Whisper Best can be removed separately.",
     downloading: "Downloading…",
     download: "Download",
     downloadProgress: "Downloading {model}",
@@ -452,7 +459,7 @@ export const messages = {
     remove: "Remove",
     retry: "Retry",
     source:
-      "Whisper speech models and S1-mini by Superwhisper come from pinned Hugging Face revisions. Every download is verified with SHA-256 before use.",
+      "Whisper, NVIDIA Nemotron 3 (community ONNX conversion), and S1-mini by Superwhisper come from pinned Hugging Face revisions. Every download is verified with SHA-256 before use. Nemotron adds speaker labels to Whisper meeting transcripts; it does not recognize words or identify people by name.",
     storage: {
       title: "Model folder",
       loading: "Loading model folder…",

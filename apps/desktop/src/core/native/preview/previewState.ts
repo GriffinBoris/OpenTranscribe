@@ -41,6 +41,7 @@ export const previewState = {
   localModels: [
     {
       id: "whisper-small-q5_1",
+      required_model_id: null,
       preset: "fast",
       label: t("models.fast"),
       description: t("models.fastDescription"),
@@ -49,6 +50,7 @@ export const previewState = {
     },
     {
       id: "whisper-medium-q5_0",
+      required_model_id: null,
       preset: "balanced",
       label: t("models.balanced"),
       description: t("models.balancedDescription"),
@@ -57,6 +59,7 @@ export const previewState = {
     },
     {
       id: "whisper-large-v3-turbo-q5_0",
+      required_model_id: null,
       preset: "best",
       label: t("models.best"),
       description: t("models.bestDescription"),
@@ -65,11 +68,21 @@ export const previewState = {
     },
     {
       id: "s1-mini-q4_k_m",
+      required_model_id: null,
       preset: "cleanup",
       label: "S1-mini by Superwhisper",
       description:
         "English dictation cleanup · Q4 · runs locally after transcription",
       byte_count: 484219808,
+      installed: false,
+    },
+    {
+      id: "whisper-large-v3-turbo-nemotron-3",
+      required_model_id: "whisper-large-v3-turbo-q5_0",
+      preset: "diarization",
+      label: t("models.nemotron"),
+      description: t("models.nemotronDescription"),
+      byte_count: 974_547_851,
       installed: false,
     },
   ] as LocalModel[],
